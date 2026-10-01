@@ -30,97 +30,88 @@ export function DtfCatalogGrid({ items, onAdjust }: DtfCatalogGridProps) {
         return (
           <div
             key={item.id}
-            className={`rounded-2xl bg-zinc-900/80 border overflow-hidden transition-all flex flex-col justify-between ${
-              isCritical
-                ? "border-red-500/40 bg-zinc-900/90 shadow-sm"
-                : "border-zinc-800 hover:border-zinc-700"
-            }`}
+            onClick={() => onAdjust(item)}
+            className="group relative rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-zinc-700/80 overflow-hidden cursor-pointer transition-all duration-300 ease-out shadow-sm hover:shadow-xl hover:shadow-black/50 flex flex-col"
           >
-            {/* Visual Preview */}
-            <div className="relative h-44 w-full bg-zinc-950 overflow-hidden group">
+            {/* Clean Visual Image Container with Smooth Hover Zoom */}
+            <div className="relative h-64 w-full bg-zinc-950 overflow-hidden">
               {item.dtfPreviewUrl ? (
                 <img
                   src={item.dtfPreviewUrl}
                   alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
-                  <ImageIcon size={28} />
-                  <span className="text-[10px] mt-1 font-mono">Sem Mockup</span>
+                  <ImageIcon size={32} />
+                  <span className="text-[10px] mt-1 font-mono">Sem Arte</span>
                 </div>
               )}
 
-              {/* Overlay Badges */}
-              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-md bg-zinc-950/80 backdrop-blur-md text-[10px] font-mono font-bold text-amber-400 border border-zinc-700">
+              {/* Minimal Top Header Badge */}
+              <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+                <span className="px-2 py-0.5 rounded-lg bg-zinc-950/80 backdrop-blur-md text-[10px] font-mono font-bold text-zinc-200 border border-zinc-800">
                   {item.dtfCode || item.sku}
                 </span>
-              </div>
-
-              {item.dtfPrintSize && (
-                <div className="absolute bottom-2.5 right-2.5">
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-950/80 backdrop-blur-md text-[10px] font-mono text-zinc-300 border border-zinc-700">
-                    {item.dtfPrintSize}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Content Details */}
-            <div className="p-4 flex-1 flex flex-col justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-zinc-100 truncate mb-1" title={item.name}>
-                  {item.name}
-                </h4>
-                <div className="text-[10px] text-zinc-500 mb-3">
-                  Fornecedor: {item.dtfSupplier || "DTF Master Print SP"}
-                </div>
-
-                <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800 mb-2">
-                  <div>
-                    <span className="text-[9px] uppercase font-semibold text-zinc-500 block">
-                      Saldo Disponível
-                    </span>
-                    <span
-                      className={`text-lg font-bold font-mono ${
-                        isCritical ? "text-red-400" : "text-zinc-100"
-                      }`}
-                    >
-                      {item.stockQuantity} un
-                    </span>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-[9px] uppercase font-semibold text-zinc-500 block">
-                      Custo Impressão
-                    </span>
-                    <span className="text-xs font-mono font-semibold text-zinc-300">
-                      {formatCurrency(item.costPrice)}
-                    </span>
-                  </div>
-                </div>
-
                 {isCritical && (
-                  <div className="flex items-center gap-1 text-[11px] text-red-400 font-medium mb-2">
-                    <AlertTriangle size={12} />
-                    <span>Estoque crítico (mín: {item.minStock} un)</span>
-                  </div>
+                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
                 )}
               </div>
 
-              <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between mt-2">
-                <span className="text-[10px] text-zinc-500 font-mono">
-                  Mín: {item.minStock} un
-                </span>
-                <button
-                  onClick={() => onAdjust(item)}
-                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Edit3 size={12} />
-                  <span>Ajustar Saldo</span>
-                </button>
+              {/* Progressive Disclosure: Dark Overlay revealed on Hover */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-out flex flex-col justify-end p-4 z-10">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-zinc-400">Tamanho Estampa:</span>
+                    <span className="text-zinc-100 font-semibold px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
+                      {item.dtfPrintSize || "A3 (30x42cm)"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400">Fornecedor:</span>
+                    <span className="text-zinc-200 font-medium truncate max-w-[130px]">
+                      {item.dtfSupplier || "DTF Master Print"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-zinc-400">Custo Impressão:</span>
+                    <span className="text-zinc-200">
+                      {formatCurrency(item.costPrice)}
+                    </span>
+                  </div>
+
+                  <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase font-mono text-zinc-500 block">
+                        Saldo Disponível
+                      </span>
+                      <span
+                        className={`text-lg font-bold font-mono ${
+                          isCritical ? "text-red-400" : "text-zinc-100"
+                        }`}
+                      >
+                        {item.stockQuantity} folhas
+                      </span>
+                    </div>
+
+                    <span className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs transition-colors">
+                      <Edit3 size={13} />
+                    </span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Quiet Footer (Always Visible) */}
+            <div className="p-3.5 bg-zinc-950/60 border-t border-zinc-800/60 flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-200 truncate pr-2" title={item.name}>
+                {item.name}
+              </span>
+              <span className="font-mono text-xs font-semibold text-zinc-400 shrink-0">
+                {item.stockQuantity} un
+              </span>
             </div>
           </div>
         );

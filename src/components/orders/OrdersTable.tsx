@@ -1,7 +1,8 @@
 "use client";
 
-import { Eye, Flame, ShoppingBag, ArrowUpDown, ChevronRight } from "lucide-react";
-import { formatCurrency, formatDate, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
+import { formatCurrency, formatDateShort, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
+import { OrderHoverPreview } from "./OrderHoverPreview";
+import { ChevronRight } from "lucide-react";
 
 interface OrdersTableProps {
   orders: any[];
@@ -11,126 +12,97 @@ interface OrdersTableProps {
 export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
   if (orders.length === 0) {
     return (
-      <div className="p-12 text-center rounded-xl bg-zinc-900/40 border border-zinc-800 text-zinc-400 text-xs">
+      <div className="p-16 text-center rounded-2xl bg-zinc-900/30 border border-zinc-800/50 text-zinc-500 text-xs">
         Nenhum pedido encontrado para os filtros selecionados.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-800/80 bg-zinc-900/60 shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-900/30 backdrop-blur-sm shadow-sm">
       <table className="w-full text-left text-xs">
         <thead>
-          <tr className="border-b border-zinc-800 bg-zinc-950/60 text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
-            <th className="px-4 py-3.5">Pedido / Canal</th>
-            <th className="px-4 py-3.5">Data / Hora</th>
-            <th className="px-4 py-3.5">Cliente</th>
-            <th className="px-4 py-3.5">Itens & Estampas</th>
-            <th className="px-4 py-3.5 text-right">Líquido</th>
-            <th className="px-4 py-3.5 text-right">Lucro Real</th>
-            <th className="px-4 py-3.5 text-center">Status</th>
-            <th className="px-4 py-3.5 text-center">Ações</th>
+          <tr className="border-b border-zinc-800/60 bg-zinc-950/40 text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
+            <th className="px-6 py-4">Pedido</th>
+            <th className="px-6 py-4">Canal</th>
+            <th className="px-6 py-4">Cliente</th>
+            <th className="px-6 py-4 text-right">Líquido / Lucro Real</th>
+            <th className="px-6 py-4 text-center">Status</th>
+            <th className="px-6 py-4 text-right">
+              <span className="sr-only">Ações</span>
+            </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-800/60">
+        <tbody className="divide-y divide-zinc-800/40">
           {orders.map((order) => {
             const channel = CHANNEL_CONFIG[order.channel] || {
               label: order.channel,
-              bg: "bg-zinc-800",
-              text: "text-zinc-300",
-              border: "border-zinc-700",
+              dot: "bg-zinc-500",
             };
             const status = STATUS_CONFIG[order.status] || {
               label: order.status,
-              bg: "bg-zinc-800 border-zinc-700",
-              text: "text-zinc-300",
-              dot: "bg-zinc-400",
+              bg: "bg-zinc-900 border-zinc-800 text-zinc-400",
             };
-
-            const totalQuantity = order.items?.reduce(
-              (acc: number, item: any) => acc + item.quantity,
-              0
-            ) || 0;
 
             return (
               <tr
                 key={order.id}
                 onClick={() => onSelectOrder(order)}
-                className="hover:bg-zinc-800/40 transition cursor-pointer group"
+                className="hover:bg-zinc-850/50 hover:bg-zinc-800/20 transition-all duration-150 cursor-pointer group"
               >
-                <td className="px-4 py-3.5 whitespace-nowrap">
+                {/* 1. Pedido (com HoverCard flutuante revelando foto, tamanho e status de prensagem) */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <OrderHoverPreview order={order}>
+                    <div className="inline-flex items-center gap-2 cursor-pointer">
+                      <span className="font-mono font-semibold text-zinc-200 group-hover:text-amber-400 transition-colors">
+                        {order.orderNumber}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        {formatDateShort(order.createdAt)}
+                      </span>
+                    </div>
+                  </OrderHoverPreview>
+                </td>
+
+                {/* 2. Canal */}
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-amber-400 group-hover:underline">
-                      {order.orderNumber}
-                    </span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-md font-medium border ${channel.bg} ${channel.text} ${channel.border}`}
-                    >
+                    <span className={`w-1.5 h-1.5 rounded-full ${channel.dot}`} />
+                    <span className="text-zinc-300 font-medium">
                       {channel.label}
                     </span>
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5 whitespace-nowrap text-zinc-400 text-[11px]">
-                  {formatDate(order.createdAt)}
-                </td>
-
-                <td className="px-4 py-3.5 whitespace-nowrap">
-                  <div className="font-medium text-zinc-200">
+                {/* 3. Cliente */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className="font-medium text-zinc-200">
                     {order.customerName}
-                  </div>
-                  <div className="text-[10px] text-zinc-500">
-                    {order.customerPhone || order.customerEmail || "Venda Direta"}
-                  </div>
+                  </span>
                 </td>
 
-                <td className="px-4 py-3.5">
-                  <div className="flex flex-col gap-0.5">
-                    {order.items?.map((item: any) => (
-                      <span
-                        key={item.id}
-                        className="text-[11px] text-zinc-300 truncate max-w-[240px]"
-                        title={item.variant?.product?.name}
-                      >
-                        {item.quantity}x {item.variant?.product?.name} ({item.variant?.title})
-                      </span>
-                    ))}
-                    {totalQuantity > 1 && (
-                      <span className="text-[10px] text-zinc-500 font-mono">
-                        Total: {totalQuantity} peças
-                      </span>
-                    )}
+                {/* 4. Valor Líquido / Lucro Real */}
+                <td className="px-6 py-4 text-right whitespace-nowrap font-mono">
+                  <div className="font-semibold text-zinc-200">
+                    {formatCurrency(order.netAmount)}
+                  </div>
+                  <div className="text-[10px] text-emerald-400/90 font-medium">
+                    +{formatCurrency(order.netProfit)} lucro
                   </div>
                 </td>
 
-                <td className="px-4 py-3.5 text-right whitespace-nowrap font-mono font-semibold text-zinc-200">
-                  {formatCurrency(order.netAmount)}
-                </td>
-
-                <td className="px-4 py-3.5 text-right whitespace-nowrap font-mono font-bold text-emerald-400">
-                  {formatCurrency(order.netProfit)}
-                </td>
-
-                <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                {/* 5. Status */}
+                <td className="px-6 py-4 text-center whitespace-nowrap">
                   <span
-                    className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-full font-medium border ${status.bg}`}
+                    className={`inline-flex items-center text-[10px] px-2.5 py-0.5 rounded-full font-medium border ${status.bg}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
                     {status.label}
                   </span>
                 </td>
 
-                <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectOrder(order);
-                    }}
-                    className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 transition"
-                    title="Ver detalhes do pedido"
-                  >
-                    <Eye size={13} />
-                  </button>
+                {/* Seta discreta indicando que abre gaveta lateral */}
+                <td className="px-6 py-4 text-right whitespace-nowrap text-zinc-600 group-hover:text-zinc-300 transition-colors">
+                  <ChevronRight size={14} className="inline group-hover:translate-x-0.5 transition-transform" />
                 </td>
               </tr>
             );

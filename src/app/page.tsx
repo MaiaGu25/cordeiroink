@@ -5,7 +5,7 @@ import { SalesChannelChart } from "@/components/dashboard/SalesChannelChart";
 import { TopProductsTable } from "@/components/dashboard/TopProductsTable";
 import { OrderStatusOverview } from "@/components/dashboard/OrderStatusOverview";
 import { TimeFilter } from "@/components/dashboard/TimeFilter";
-import { Sparkles, ArrowUpRight, Flame } from "lucide-react";
+import { Flame, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 interface DashboardPageProps {
@@ -68,6 +68,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // Cálculos do Dashboard
   const validOrders = orders.filter((o) => o.status !== "CANCELLED");
   const grossSales = validOrders.reduce((acc, o) => acc + o.totalProducts, 0);
+  const platformFees = validOrders.reduce((acc, o) => acc + o.platformFee, 0);
+  const estimatedCMV = validOrders.reduce((acc, o) => acc + o.estimatedCMV, 0);
   const netProfit = validOrders.reduce((acc, o) => acc + o.netProfit, 0);
   const avgTicket = validOrders.length > 0 ? grossSales / validOrders.length : 0;
   const profitMargin = grossSales > 0 ? (netProfit / grossSales) * 100 : 0;
@@ -81,6 +83,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const activeOrdersCount = orders.filter((o) =>
     ["NEW", "PAID", "WAITING_PRODUCTION", "IN_PRODUCTION"].includes(o.status)
   ).length;
+
+  const inProductionCount = statusCounts["IN_PRODUCTION"] || 0;
+  const waitingCount = (statusCounts["WAITING_PRODUCTION"] || 0) + (statusCounts["PAID"] || 0);
 
   // Canais
   const channels = ["SHOPEE", "SHEIN", "TIKTOK", "MANUAL"];
@@ -121,33 +126,35 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const topProducts = Object.values(productAgg).sort((a, b) => b.unitsSold - a.unitsSold);
 
   return (
-    <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-      {/* Welcome & Period Header */}
+    <div className="space-y-8 pb-16 max-w-7xl mx-auto">
+      {/* Welcome & Period Header with clean whitespace */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-              Painel Operacional & Indicadores
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-100">
+              Painel Operacional
             </h1>
-            <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              Live Data
-            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           </div>
-          <p className="text-xs text-zinc-400 mt-1">
-            Visão consolidada de vendas, prensa térmica, margens e estoque sob demanda.
+          <p className="text-xs text-zinc-500 mt-1">
+            Métricas de produção sob demanda e lucratividade real multicanal.
           </p>
         </div>
 
         <TimeFilter />
       </div>
 
-      {/* Main Metric Cards */}
+      {/* Main Metric Cards with Progressive Disclosure HoverCards */}
       <MetricCards
         grossSales={grossSales}
         netProfit={netProfit}
         avgTicket={avgTicket}
         activeOrdersCount={activeOrdersCount}
         profitMargin={profitMargin}
+        platformFees={platformFees}
+        estimatedCMV={estimatedCMV}
+        inProductionCount={inProductionCount}
+        waitingCount={waitingCount}
       />
 
       {/* Critical Stock Warning Banner */}
@@ -162,32 +169,32 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <TopProductsTable products={topProducts} />
       </div>
 
-      {/* Quick Action Dock */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-900/90 to-zinc-900 border border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      {/* Quiet Production Quick Dock */}
+      <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/60 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-            <Flame size={16} />
+          <div className="w-8 h-8 rounded-lg bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-center text-amber-400/90">
+            <Flame size={15} />
           </div>
           <div>
-            <span className="font-semibold text-zinc-200">
-              Fila de Produção e Prensagem DTF
+            <span className="font-medium text-zinc-200">
+              Fila da Prensa Térmica
             </span>
-            <p className="text-zinc-400 text-[11px]">
-              {statusCounts["IN_PRODUCTION"] || 0} camisetas atualmente sendo impressas e montadas no ateliê.
+            <p className="text-zinc-500 text-[11px]">
+              {inProductionCount} camisetas em processo de montagem e prensagem no ateliê.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Link
             href="/producao"
-            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium transition text-center flex items-center justify-center gap-1.5"
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
           >
-            Abrir Fila de Produção <ArrowUpRight size={13} />
+            Fila de Produção <ArrowUpRight size={13} />
           </Link>
           <Link
             href="/pedidos?novo=1"
-            className="w-full sm:w-auto px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold transition text-center"
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs transition-colors text-center"
           >
             + Novo Pedido
           </Link>

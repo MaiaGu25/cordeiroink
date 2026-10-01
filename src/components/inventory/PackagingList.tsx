@@ -24,40 +24,33 @@ export function PackagingList({ items, onAdjust }: PackagingListProps) {
       {items.map((item) => {
         const isCritical = item.stockQuantity <= item.minStock;
 
-        const Icon =
-          item.type === "GIFT" ? Gift : item.type === "LABEL" ? Tag : Package;
-
         return (
           <div
             key={item.id}
-            className={`p-4 rounded-xl bg-zinc-900/80 border transition-all flex flex-col justify-between ${
+            onClick={() => onAdjust(item)}
+            className={`p-5 rounded-2xl bg-zinc-900/40 border transition-all duration-200 ease-out flex flex-col justify-between cursor-pointer hover:border-zinc-700/80 hover:shadow-lg hover:shadow-black/30 group ${
               isCritical
-                ? "border-red-500/40 bg-zinc-900/90 shadow-sm"
-                : "border-zinc-800 hover:border-zinc-700"
+                ? "border-red-500/30"
+                : "border-zinc-800/60"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-zinc-800 text-amber-400 border border-zinc-700">
-                    <Icon size={14} />
-                  </div>
-                  <span className="text-xs font-bold text-zinc-100">
-                    {item.name}
-                  </span>
-                </div>
+                <span className="text-xs font-semibold text-zinc-200 group-hover:text-amber-400 transition-colors">
+                  {item.name}
+                </span>
                 <span className="font-mono text-[10px] text-zinc-500">
                   {item.sku}
                 </span>
               </div>
 
-              <div className="flex items-baseline justify-between p-3 rounded-lg bg-zinc-950/60 border border-zinc-800/80 my-3">
+              <div className="flex items-baseline justify-between p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/60 my-3">
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase block font-medium">
-                    Saldo em Estoque
+                  <span className="text-[10px] text-zinc-500 uppercase font-mono block">
+                    Saldo
                   </span>
                   <span
-                    className={`text-xl font-bold font-mono ${
+                    className={`text-2xl font-bold font-mono ${
                       isCritical ? "text-red-400" : "text-zinc-100"
                     }`}
                   >
@@ -66,34 +59,29 @@ export function PackagingList({ items, onAdjust }: PackagingListProps) {
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] text-zinc-500 uppercase block font-medium">
+                  <span className="text-[10px] text-zinc-500 uppercase font-mono block">
                     Custo Unit.
                   </span>
-                  <span className="text-xs font-mono font-semibold text-zinc-300">
+                  <span className="text-xs font-mono font-medium text-zinc-300">
                     {formatCurrency(item.costPrice)}
                   </span>
                 </div>
               </div>
 
               {isCritical && (
-                <div className="flex items-center gap-1.5 text-[11px] text-red-400 mb-2 font-medium">
-                  <AlertTriangle size={13} />
-                  <span>Abaixo do mínimo ({item.minStock} un)</span>
+                <div className="flex items-center gap-1.5 text-[11px] text-red-400 font-medium mb-1">
+                  <AlertTriangle size={12} />
+                  <span>Abaixo da margem de segurança ({item.minStock} un)</span>
                 </div>
               )}
             </div>
 
-            <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between">
-              <span className="text-[10px] text-zinc-500 font-mono">
-                Mínimo: {item.minStock} un
-              </span>
-              <button
-                onClick={() => onAdjust(item)}
-                className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-amber-400 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
-              >
+            <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-500">
+              <span className="text-[10px] font-mono">Mínimo: {item.minStock} un</span>
+              <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 flex items-center gap-1">
                 <Edit3 size={12} />
-                <span>Ajustar Saldo</span>
-              </button>
+                <span>Ajustar</span>
+              </span>
             </div>
           </div>
         );

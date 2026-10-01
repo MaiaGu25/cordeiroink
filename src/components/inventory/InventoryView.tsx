@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search, PlusCircle } from "lucide-react";
+import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search } from "lucide-react";
 import { BlankShirtsGrid } from "./BlankShirtsGrid";
 import { DtfCatalogGrid } from "./DtfCatalogGrid";
 import { PackagingList } from "./PackagingList";
@@ -43,35 +43,31 @@ export function InventoryView({
 
   return (
     <div className="space-y-6">
-      {/* Critical Stock Notification Banner */}
+      {/* Quiet Critical Stock Notification (only if critical items exist) */}
       {criticalItems.length > 0 && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-zinc-900/40 border border-red-500/20 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-1 rounded bg-red-500/20 text-red-400">
-              <AlertTriangle size={15} />
-            </div>
-            <div>
-              <span className="font-semibold text-red-300">
-                Atenção: {criticalItems.length} insumos estão no limite ou abaixo do estoque mínimo de segurança!
-              </span>
-              <span className="text-[11px] text-zinc-400 block mt-0.5">
-                Verifique reposição para não paralisar as ordens de prensagem na estamparia.
-              </span>
-            </div>
+            <span className="w-2 h-2 rounded-full bg-red-400 shrink-0" />
+            <span className="text-zinc-300">
+              {criticalItems.length} insumos requerem reposição programada antes de afetar a fila de prensagem.
+            </span>
           </div>
+          <span className="text-[10px] font-mono text-red-400 font-semibold uppercase">
+            Atenção Estoque
+          </span>
         </div>
       )}
 
       {/* Tabs & Search Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+        {/* Navigation Tabs with refined monochromatic states */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
           <button
             onClick={() => setActiveTab("SHIRTS")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
               activeTab === "SHIRTS"
-                ? "bg-amber-500 text-zinc-950 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             <Shirt size={14} />
@@ -80,22 +76,22 @@ export function InventoryView({
 
           <button
             onClick={() => setActiveTab("DTF")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
               activeTab === "DTF"
-                ? "bg-amber-500 text-zinc-950 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             <ImageIcon size={14} />
-            <span>Banco de Estampas DTF ({dtfPrints.length})</span>
+            <span>Banco de Estampas ({dtfPrints.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab("PACKAGING")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
               activeTab === "PACKAGING"
-                ? "bg-amber-500 text-zinc-950 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200"
+                ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             <Package size={14} />
@@ -114,7 +110,7 @@ export function InventoryView({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar insumo ou código..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-amber-500"
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
           />
         </div>
       </div>

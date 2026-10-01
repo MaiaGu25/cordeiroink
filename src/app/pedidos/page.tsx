@@ -44,18 +44,18 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
   }));
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto pb-16">
       <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-            Gestão de Pedidos Multicanal
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-100">
+            Pedidos Multicanal
           </h1>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
-            {orders.length} pedidos registrados
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+            {orders.length} pedidos
           </span>
         </div>
-        <p className="text-xs text-zinc-400 mt-1">
-          Acompanhamento dinâmico de vendas da Shopee, Shein, TikTok Shop e Vendas Diretas com margens e status.
+        <p className="text-xs text-zinc-500 mt-1">
+          Monitoramento e expedição de pedidos da Shopee, Shein, TikTok Shop e WhatsApp Direto.
         </p>
       </div>
 

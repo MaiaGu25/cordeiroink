@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutGrid, Table, Search, PlusCircle, Filter } from "lucide-react";
+import { LayoutGrid, Table, Search, Plus } from "lucide-react";
 import { OrdersTable } from "./OrdersTable";
 import { OrdersKanban } from "./OrdersKanban";
-import { OrderDetailModal } from "./OrderDetailModal";
+import { OrderSheet } from "./OrderSheet";
 import { NewOrderModal } from "./NewOrderModal";
 import { useRouter } from "next/navigation";
 
@@ -51,8 +51,8 @@ export function OrdersView({
   };
 
   return (
-    <div className="space-y-5">
-      {/* Top Controls Bar */}
+    <div className="space-y-6">
+      {/* Top Controls Bar with clean spacing */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Search & Channel Filters */}
         <div className="flex flex-wrap items-center gap-2.5">
@@ -65,8 +65,8 @@ export function OrdersView({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Filtrar por pedido ou cliente..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-amber-500"
+              placeholder="Buscar pedido ou cliente..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
             />
           </div>
 
@@ -74,13 +74,13 @@ export function OrdersView({
           <select
             value={selectedChannel}
             onChange={(e) => setSelectedChannel(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+            className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-300 focus:outline-none focus:border-zinc-600 transition-colors cursor-pointer"
           >
             <option value="ALL">Todos os Canais</option>
             <option value="SHOPEE">Shopee</option>
             <option value="SHEIN">Shein</option>
             <option value="TIKTOK">TikTok Shop</option>
-            <option value="MANUAL">Venda Direta / Whats</option>
+            <option value="MANUAL">Whats Direct</option>
           </select>
 
           {/* Status selector (useful for table view) */}
@@ -88,14 +88,13 @@ export function OrdersView({
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 focus:outline-none focus:border-amber-500"
+              className="px-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-300 focus:outline-none focus:border-zinc-600 transition-colors cursor-pointer"
             >
               <option value="ALL">Todos os Status</option>
               <option value="NEW">Novos</option>
               <option value="PAID">Pagos</option>
-              <option value="WAITING_PRODUCTION">Fila Produção</option>
               <option value="IN_PRODUCTION">Em Produção</option>
-              <option value="READY">Pronto / Embalado</option>
+              <option value="READY">Prontos</option>
               <option value="SHIPPED">Despachados</option>
               <option value="DELIVERED">Entregues</option>
             </select>
@@ -104,13 +103,13 @@ export function OrdersView({
 
         {/* View Mode Toggle and New Order Action */}
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center p-1 rounded-lg bg-zinc-900 border border-zinc-800">
+          <div className="flex items-center p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
             <button
               onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-md text-xs flex items-center gap-1.5 transition ${
+              className={`p-1.5 rounded-lg text-xs flex items-center gap-1.5 transition ${
                 viewMode === "table"
-                  ? "bg-zinc-800 text-amber-400 font-bold"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-zinc-800 text-zinc-100 font-semibold"
+                  : "text-zinc-500 hover:text-zinc-300"
               }`}
               title="Visualização em Tabela"
             >
@@ -119,10 +118,10 @@ export function OrdersView({
             </button>
             <button
               onClick={() => setViewMode("kanban")}
-              className={`p-1.5 rounded-md text-xs flex items-center gap-1.5 transition ${
+              className={`p-1.5 rounded-lg text-xs flex items-center gap-1.5 transition ${
                 viewMode === "kanban"
-                  ? "bg-zinc-800 text-amber-400 font-bold"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-zinc-800 text-zinc-100 font-semibold"
+                  : "text-zinc-500 hover:text-zinc-300"
               }`}
               title="Visualização em Kanban"
             >
@@ -133,9 +132,9 @@ export function OrdersView({
 
           <button
             onClick={() => setIsNewOrderOpen(true)}
-            className="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition shadow-sm"
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
-            <PlusCircle size={14} />
+            <Plus size={14} />
             <span>Novo Pedido</span>
           </button>
         </div>
@@ -155,13 +154,15 @@ export function OrdersView({
         />
       )}
 
-      {/* Modals */}
-      <OrderDetailModal
+      {/* Slide-over Drawer for Order Details */}
+      <OrderSheet
         order={selectedOrder}
+        isOpen={Boolean(selectedOrder)}
         onClose={() => setSelectedOrder(null)}
         onOrderUpdated={refreshData}
       />
 
+      {/* New Manual Order Modal */}
       <NewOrderModal
         isOpen={isNewOrderOpen}
         onClose={() => setIsNewOrderOpen(false)}

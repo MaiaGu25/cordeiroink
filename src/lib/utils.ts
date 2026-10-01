@@ -39,89 +39,91 @@ export function formatDateShort(date: Date | string | null | undefined): string 
   }).format(d);
 }
 
+// Configuração refinada e monocromática para evitar ruído visual
 export const CHANNEL_CONFIG: Record<
   string,
-  { label: string; bg: string; text: string; border: string; iconColor: string }
+  { label: string; bg: string; text: string; border: string; dot: string }
 > = {
   SHOPEE: {
     label: "Shopee",
-    bg: "bg-orange-500/10",
-    text: "text-orange-400",
-    border: "border-orange-500/20",
-    iconColor: "#f97316",
+    bg: "bg-zinc-900/60",
+    text: "text-zinc-300",
+    border: "border-zinc-800",
+    dot: "bg-orange-500/80",
   },
   SHEIN: {
     label: "Shein",
-    bg: "bg-purple-500/10",
-    text: "text-purple-300",
-    border: "border-purple-500/20",
-    iconColor: "#c084fc",
+    bg: "bg-zinc-900/60",
+    text: "text-zinc-300",
+    border: "border-zinc-800",
+    dot: "bg-purple-400/80",
   },
   TIKTOK: {
     label: "TikTok Shop",
-    bg: "bg-cyan-500/10",
-    text: "text-cyan-300",
-    border: "border-cyan-500/20",
-    iconColor: "#06b6d4",
+    bg: "bg-zinc-900/60",
+    text: "text-zinc-300",
+    border: "border-zinc-800",
+    dot: "bg-cyan-400/80",
   },
   MANUAL: {
-    label: "Venda Direta / Whats",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-400",
-    border: "border-emerald-500/20",
-    iconColor: "#10b981",
+    label: "Whats Direct",
+    bg: "bg-zinc-900/60",
+    text: "text-zinc-300",
+    border: "border-zinc-800",
+    dot: "bg-emerald-500/80",
   },
 };
 
+// Status monocromáticos padrão com cores apenas em estados críticos ou conclusivos
 export const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; dot: string }
 > = {
   NEW: {
     label: "Novo",
-    bg: "bg-zinc-800 text-zinc-300 border-zinc-700",
-    text: "text-zinc-300",
-    dot: "bg-zinc-400",
+    bg: "bg-zinc-900/70 border-zinc-800 text-zinc-400",
+    text: "text-zinc-400",
+    dot: "bg-zinc-500",
   },
   PAID: {
     label: "Pago",
-    bg: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    text: "text-blue-400",
-    dot: "bg-blue-400",
+    bg: "bg-zinc-900/70 border-zinc-800 text-zinc-300",
+    text: "text-zinc-300",
+    dot: "bg-zinc-400",
   },
   WAITING_PRODUCTION: {
     label: "Fila Produção",
-    bg: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-    text: "text-amber-300",
-    dot: "bg-amber-400 animate-pulse",
+    bg: "bg-zinc-900/70 border-zinc-800 text-zinc-300",
+    text: "text-zinc-300",
+    dot: "bg-amber-400",
   },
   IN_PRODUCTION: {
     label: "Em Produção",
-    bg: "bg-purple-500/10 text-purple-300 border-purple-500/20",
-    text: "text-purple-300",
-    dot: "bg-purple-400 animate-ping",
+    bg: "bg-amber-500/10 border-amber-500/20 text-amber-300",
+    text: "text-amber-300",
+    dot: "bg-amber-400 animate-pulse",
   },
   READY: {
-    label: "Pronto / Embalado",
-    bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    label: "Pronto",
+    bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
     text: "text-emerald-400",
     dot: "bg-emerald-400",
   },
   SHIPPED: {
     label: "Despachado",
-    bg: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-    text: "text-sky-400",
+    bg: "bg-zinc-900/70 border-zinc-800 text-zinc-300",
+    text: "text-zinc-300",
     dot: "bg-sky-400",
   },
   DELIVERED: {
     label: "Entregue",
-    bg: "bg-teal-500/10 text-teal-400 border-teal-500/20",
-    text: "text-teal-400",
-    dot: "bg-teal-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+    text: "text-emerald-400",
+    dot: "bg-emerald-400",
   },
   CANCELLED: {
     label: "Cancelado",
-    bg: "bg-red-500/10 text-red-400 border-red-500/20",
+    bg: "bg-red-500/10 border-red-500/20 text-red-400",
     text: "text-red-400",
     dot: "bg-red-400",
   },
