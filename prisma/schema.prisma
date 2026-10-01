@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. USUÁRIOS E CONTAS (RBAC)
+enum Role {
+  ADMIN
+  PRODUCTION
+  FINANCIAL
+  ATTENDANT
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  role      Role     @default(ADMIN)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+// 2. INSUMOS / MATÉRIA-PRIMA
+enum RawItemType {
+  BLANK_SHIRT
+  DTF_PRINT
+  PACKAGING
+  LABEL
+  GIFT
+}
+
+model RawItem {
+  id            String      @id @default(uuid())
+  sku           String      @unique
+  name          String
+  type          RawItemType
+  unit          String      @default("un") // un, m, kg
+  stockQuantity Int         @default(0)
+  minStock      Int         @default(10)
+  costPrice     Float       @default(0.0) // Custo de aquisição unitário
+
+  // Atributos específicos para Camisetas
+  shirtModel    String?     // ex: Streetwear Oversized 26.1, Casual 30.1 Penteada
+  shirtColor    String?     // ex: Preto, Off-White, Marrom, Chumbo, Azul Petróleo
+  shirtSize     String?     // ex: P, M, G, GG, XG
+
+  // Atributos específicos para Estampa DTF
+  dtfCode       String?     // ex: ART-CYBERPUNK-01, ART-JAPANESE-WAVE
+  dtfPreviewUrl String?     // URL da arte / mockup
+  dtfPrintSize  String?     // ex: A3 (30x42cm), A4 (21x30cm), Bolso (10x10cm)
+  dtfSupplier   String?     // Fornecedor de impressão DTF
+
+  // Fornecedor padrão opcional
+  supplierId    String?
+  supplier      Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  bomItems      ProductBOM[]
+  purchaseItems PurchaseOrderItem[]
+}
+
+// 3. PRODUTOS E VARIANTES
+model Product {
+  id          String           @id @default(uuid())
+  skuBase     String           @unique // ex: INK-OVERSIZED-CYBER
+  name        String           // ex: Camiseta Oversized Cyberpunk 2077
+  category    String           @default("Camisetas") // Camisetas, Hoodies, Acessórios
+  collection  String?          // ex: Drop Cyber Inverno 2026, Linha Essenciais
+  targetMargin Float           @default(50.0) // Margem alvo em %
+  imageUrl    String?
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  variants    ProductVariant[]
+}
+
+model ProductVariant {
+  id             String       @id @default(uuid())
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku            String       @unique // ex: INK-001-M-PRETO
+  title          String       // ex: M / Preto
+  size           String       // P, M, G, GG, XG
+  color          String       // Preto, Off-White, etc.
+  basePrice      Float        // Preço sugerido de venda padrão
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  bom            ProductBOM[]
+  orderItems     OrderItem[]
+}
+
+// 4. BILL OF MATERIALS (BOM)
+model ProductBOM {
+  id          String         @id @default(uuid())
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  rawItemId   String
+  rawItem     RawItem        @relation(fields: [rawItemId], references: [id], onDelete: Cascade)
+  quantity    Int            @default(1) // Quantidade consumida por variante (ex: 1 camiseta, 1 DTF, 1 tag)
+  notes       String?
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([variantId, rawItemId])
+}
+
+// 5. PEDIDOS E ITENS
+enum SalesChannel {
+  SHOPEE
+  SHEIN
+  TIKTOK
+  MANUAL
+}
+
+enum OrderStatus {
+  NEW
+  PAID
+  WAITING_PRODUCTION
+  IN_PRODUCTION
+  READY
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id              String         @id @default(uuid())
+  orderNumber     String         @unique // ex: #CI-10492 ou SHOPEE-883921
+  channel         SalesChannel   @default(MANUAL)
+  status          OrderStatus    @default(NEW)
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  shippingAddress String?
+
+  totalProducts   Float          @default(0.0)
+  shippingCost    Float          @default(0.0)
+  platformFee     Float          @default(0.0) // Taxas de comissão Shopee/Shein/TikTok
+  netAmount       Float          @default(0.0) // Valor líquido que entra para a Cordeiro Ink
+  estimatedCMV    Float          @default(0.0) // Custo de Mercadorias Vendidas (insumos)
+  netProfit       Float          @default(0.0) // netAmount - estimatedCMV
+
+  notes           String?
+  paidAt          DateTime?
+  shippedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  items           OrderItem[]
+  productionJob   ProductionJob?
+  financialTx     FinancialTransaction[]
+}
+
+model OrderItem {
+  id          String         @id @default(uuid())
+  orderId     String
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  quantity    Int            @default(1)
+  unitPrice   Float
+  unitCost    Float          @default(0.0)
+  total       Float
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// 6. FILA DE PRODUÇÃO (PRODUCTION JOB)
+enum JobPriority {
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model ProductionJob {
+  id              String      @id @default(uuid())
+  orderId         String      @unique
+  order           Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  priority        JobPriority @default(NORMAL)
+
+  // Checklist de Produção On-Demand Cordeiro Ink
+  stepBlankPicked Boolean     @default(false) // 1. Separar Camiseta Lisa do Estoque
+  stepDtfPicked   Boolean     @default(false) // 2. Separar e Cortar Estampa DTF
+  stepPressed     Boolean     @default(false) // 3. Prensagem Térmica (160°C / 15s)
+  stepQcPassed    Boolean     @default(false) // 4. Controle de Qualidade (alinhamento & aderência)
+  stepPacked      Boolean     @default(false) // 5. Embalagem (saco zip + tag + brinde)
+  stepCompleted   Boolean     @default(false) // 6. Concluído & Pronto para Expedição
+
+  stockDeducted   Boolean     @default(false) // Registra se a baixa automática do estoque já ocorreu
+
+  notes           String?
+  assignedTo      String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// 7. FORNECEDORES E COMPRAS
+model Supplier {
+  id          String          @id @default(uuid())
+  name        String          // ex: Malharia Menegotti, DTF Print Express SP, Pack Embalagens
+  category    String          // Tecido/Malha, Impressão DTF, Embalagens, Etiquetas
+  contactName String?
+  whatsapp    String?
+  email       String?
+  leadTimeDays Int            @default(5) // Prazo médio de entrega
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  rawItems    RawItem[]
+  purchaseOrders PurchaseOrder[]
+}
+
+enum PurchaseStatus {
+  DRAFT
+  ORDERED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id           String             @id @default(uuid())
+  orderCode    String             @unique // ex: PO-2026-004
+  supplierId   String
+  supplier     Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  status       PurchaseStatus     @default(DRAFT)
+  totalCost    Float              @default(0.0)
+  notes        String?
+  orderedAt    DateTime?
+  receivedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  items        PurchaseOrderItem[]
+  financialTx  FinancialTransaction[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  rawItemId       String
+  rawItem         RawItem       @relation(fields: [rawItemId], references: [id], onDelete: Restrict)
+  quantity        Int
+  unitCost        Float
+  totalCost       Float
+
+  createdAt       DateTime      @default(now())
+}
+
+// 8. TRANSAÇÕES FINANCEIRAS
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionCategory {
+  SALES_ORDER       // Receita líquida de vendas
+  RAW_MATERIALS     // Compra de matéria-prima (camisetas lisas, DTF)
+  PACKAGING_SUPPLIES// Embalagens, fitas, tags
+  PLATFORM_FEES     // Taxas Shopee, Shein, TikTok, gateway
+  SHIPPING          // Fretes e correios/jadlog
+  EQUIPMENT         // Prensa térmica, manutenção, teflon
+  MARKETING         // Anúncios Ads TikTok/Meta
+  OPERATIONAL       // Aluguel, energia, software
+}
+
+model FinancialTransaction {
+  id              String              @id @default(uuid())
+  type            TransactionType
+  category        TransactionCategory
+  amount          Float
+  description     String
+  date            DateTime            @default(now())
+  
+  orderId         String?
+  order           Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?      @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+// 9. AUDIT LOG
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // ex: "ORDER_STATUS_CHANGED", "STOCK_ADJUSTED", "PRODUCTION_COMPLETED"
+  entity      String   // ex: "Order", "RawItem", "ProductionJob"
+  entityId    String
+  oldPayload  String?  // JSON string
+  newPayload  String?  // JSON string
+  createdAt   DateTime @default(now())
+}
