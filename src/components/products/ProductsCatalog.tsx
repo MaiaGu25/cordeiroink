@@ -13,6 +13,24 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     products[0]?.id || null
   );
 
+  if (products.length === 0) {
+    return (
+      <div className="p-12 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 text-center space-y-3">
+        <div className="w-10 h-10 rounded-xl bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-center text-zinc-400 mx-auto">
+          <Shirt size={20} />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-zinc-200">
+            Modelo de Produção Sob Demanda Ativo
+          </h4>
+          <p className="text-xs text-zinc-500 max-w-md mx-auto mt-1">
+            Você não precisa de um catálogo prévio de produtos cadastrados. Crie encomendas diretamente na aba Pedidos definindo a camiseta lisa, a estampa DTF e os insumos na hora!
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {products.map((product) => {

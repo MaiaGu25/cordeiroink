@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search } from "lucide-react";
+import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search, Plus } from "lucide-react";
 import { BlankShirtsGrid } from "./BlankShirtsGrid";
 import { DtfCatalogGrid } from "./DtfCatalogGrid";
 import { PackagingList } from "./PackagingList";
 import { QuickStockModal } from "./QuickStockModal";
+import { NewDtfModal } from "./NewDtfModal";
 import { useRouter } from "next/navigation";
 
 interface InventoryViewProps {
@@ -24,6 +25,7 @@ export function InventoryView({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"SHIRTS" | "DTF" | "PACKAGING">("SHIRTS");
   const [selectedItemToAdjust, setSelectedItemToAdjust] = useState<any | null>(null);
+  const [isNewDtfOpen, setIsNewDtfOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const refreshData = () => {
@@ -99,19 +101,31 @@ export function InventoryView({
           </button>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-64">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-          />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar insumo ou código..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
-          />
+        {/* Search Bar & Action */}
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-full sm:w-60">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+            />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar insumo ou arte..."
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-zinc-600 transition-colors"
+            />
+          </div>
+
+          {activeTab === "DTF" && (
+            <button
+              onClick={() => setIsNewDtfOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Plus size={13} />
+              <span>Nova Arte DTF</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -142,6 +156,13 @@ export function InventoryView({
         item={selectedItemToAdjust}
         onClose={() => setSelectedItemToAdjust(null)}
         onStockUpdated={refreshData}
+      />
+
+      {/* New DTF Art Modal */}
+      <NewDtfModal
+        isOpen={isNewDtfOpen}
+        onClose={() => setIsNewDtfOpen(false)}
+        onCreated={refreshData}
       />
     </div>
   );

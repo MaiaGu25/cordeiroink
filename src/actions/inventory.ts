@@ -9,7 +9,11 @@ export async function getInventoryItems() {
     include: {
       supplier: true,
       _count: {
-        select: { bomItems: true },
+        select: {
+          bomItems: true,
+          orderItemBlankShirts: true,
+          orderItemDtfPrints: true,
+        },
       },
     },
     orderBy: [{ type: "asc" }, { name: "asc" }],
@@ -66,6 +70,40 @@ export async function adjustStock(rawItemId: string, newQuantity: number, reason
   revalidatePath("/estoque");
   revalidatePath("/");
   return updated;
+}
+
+export async function createDtfArtItem(data: {
+  name: string;
+  dtfCode?: string;
+  dtfPreviewUrl?: string;
+  dtfPrintSize?: string;
+  dtfSupplier?: string;
+  stockQuantity: number;
+  minStock?: number;
+  costPrice?: number;
+}) {
+  const count = await prisma.rawItem.count({ where: { type: RawItemType.DTF_PRINT } });
+  const code = data.dtfCode || `ART-${100 + count}`;
+  const cost = data.costPrice ?? (data.dtfPrintSize === "A4 (21x30cm)" ? 9.50 : data.dtfPrintSize === "Bolso" ? 4.50 : 13.90);
+
+  const item = await prisma.rawItem.create({
+    data: {
+      sku: `RAW-DTF-${code}`,
+      name: data.name,
+      type: RawItemType.DTF_PRINT,
+      dtfCode: code,
+      dtfPreviewUrl: data.dtfPreviewUrl,
+      dtfPrintSize: data.dtfPrintSize || "A3 (30x42cm)",
+      dtfSupplier: data.dtfSupplier || "Birô DTF Express",
+      costPrice: cost,
+      stockQuantity: data.stockQuantity || 0,
+      minStock: data.minStock ?? 5,
+    },
+  });
+
+  revalidatePath("/estoque");
+  revalidatePath("/");
+  return item;
 }
 
 export async function createRawItem(data: {

@@ -11,6 +11,9 @@ export async function getProductionJobs() {
         include: {
           items: {
             include: {
+              blankShirt: true,
+              dtfPrint: true,
+              packaging: true,
               variant: {
                 include: {
                   product: true,
@@ -80,6 +83,9 @@ export async function completeProductionJob(jobId: string) {
         include: {
           items: {
             include: {
+              blankShirt: true,
+              dtfPrint: true,
+              packaging: true,
               variant: {
                 include: {
                   bom: {
@@ -101,17 +107,55 @@ export async function completeProductionJob(jobId: string) {
   // Gatilho de Baixa Automática dos Insumos no Estoque (apenas se ainda não baixado)
   if (!job.stockDeducted) {
     for (const item of job.order.items) {
-      for (const bomItem of item.variant.bom) {
-        const quantityToDeduct = bomItem.quantity * item.quantity;
-        
+      // 1. Baixa da Camiseta Lisa utilizada
+      if (item.blankShirtId) {
         await prisma.rawItem.update({
-          where: { id: bomItem.rawItemId },
+          where: { id: item.blankShirtId },
           data: {
             stockQuantity: {
-              decrement: quantityToDeduct,
+              decrement: item.quantity,
             },
           },
         });
+      }
+
+      // 2. Baixa da Folha/Estampa DTF utilizada
+      if (item.dtfPrintId) {
+        await prisma.rawItem.update({
+          where: { id: item.dtfPrintId },
+          data: {
+            stockQuantity: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      // 3. Baixa da Embalagem/Tag utilizada
+      if (item.packagingId) {
+        await prisma.rawItem.update({
+          where: { id: item.packagingId },
+          data: {
+            stockQuantity: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      // 4. Se tiver BOM vinculado por variante legada
+      if (item.variant?.bom) {
+        for (const bomItem of item.variant.bom) {
+          const quantityToDeduct = bomItem.quantity * item.quantity;
+          await prisma.rawItem.update({
+            where: { id: bomItem.rawItemId },
+            data: {
+              stockQuantity: {
+                decrement: quantityToDeduct,
+              },
+            },
+          });
+        }
       }
     }
   }

@@ -10,13 +10,17 @@ import { useRouter } from "next/navigation";
 
 interface OrdersViewProps {
   initialOrders: any[];
-  variants: any[];
+  blankShirts: any[];
+  dtfPrints: any[];
+  packagings: any[];
   initialNewOrderModalOpen?: boolean;
 }
 
 export function OrdersView({
   initialOrders,
-  variants,
+  blankShirts,
+  dtfPrints,
+  packagings,
   initialNewOrderModalOpen = false,
 }: OrdersViewProps) {
   const router = useRouter();
@@ -135,7 +139,7 @@ export function OrdersView({
             className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
           >
             <Plus size={14} />
-            <span>Novo Pedido</span>
+            <span>Novo Pedido Sob Encomenda</span>
           </button>
         </div>
       </div>
@@ -166,7 +170,9 @@ export function OrdersView({
       <NewOrderModal
         isOpen={isNewOrderOpen}
         onClose={() => setIsNewOrderOpen(false)}
-        variants={variants}
+        blankShirts={blankShirts}
+        dtfPrints={dtfPrints}
+        packagings={packagings}
         onOrderCreated={refreshData}
       />
     </div>

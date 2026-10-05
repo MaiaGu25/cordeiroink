@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { OrderStatus, SalesChannel, JobPriority } from "@prisma/client";
+import { OrderStatus, SalesChannel, JobPriority, RawItemType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getOrders(filter?: {
@@ -33,6 +33,9 @@ export async function getOrders(filter?: {
     include: {
       items: {
         include: {
+          blankShirt: true,
+          dtfPrint: true,
+          packaging: true,
           variant: {
             include: {
               product: true,
@@ -52,6 +55,9 @@ export async function getOrderById(id: string) {
     include: {
       items: {
         include: {
+          blankShirt: true,
+          dtfPrint: true,
+          packaging: true,
           variant: {
             include: {
               product: true,
@@ -120,44 +126,107 @@ export async function createManualOrder(data: {
   customerPhone?: string;
   customerEmail?: string;
   shippingAddress?: string;
-  variantId: string;
+  channel?: SalesChannel;
+  itemTitle: string;
+  blankShirtId?: string;
+  dtfPrintId?: string;
+  packagingId?: string;
+  artTitle?: string;
+  artUrl?: string;
+  printSize?: string;
+  saveToDtfCatalog?: boolean;
   quantity: number;
   unitPrice: number;
   shippingCost?: number;
   notes?: string;
 }) {
-  const variant = await prisma.productVariant.findUnique({
-    where: { id: data.variantId },
-    include: {
-      bom: {
-        include: {
-          rawItem: true,
-        },
+  // 1. Busca os insumos reais consumidos para calcular o custo unitário na hora
+  let shirtCost = 0;
+  let shirtModel = "";
+  let shirtColor = "";
+  let shirtSize = "";
+
+  if (data.blankShirtId) {
+    const shirt = await prisma.rawItem.findUnique({
+      where: { id: data.blankShirtId },
+    });
+    if (shirt) {
+      shirtCost = shirt.costPrice;
+      shirtModel = shirt.shirtModel || "";
+      shirtColor = shirt.shirtColor || "";
+      shirtSize = shirt.shirtSize || "";
+    }
+  }
+
+  let dtfCost = 0;
+  if (data.dtfPrintId) {
+    const dtf = await prisma.rawItem.findUnique({
+      where: { id: data.dtfPrintId },
+    });
+    if (dtf) {
+      dtfCost = dtf.costPrice;
+    }
+  }
+
+  let packCost = 0;
+  if (data.packagingId) {
+    const pack = await prisma.rawItem.findUnique({
+      where: { id: data.packagingId },
+    });
+    if (pack) {
+      packCost = pack.costPrice;
+    }
+  }
+
+  // Se o usuário marcou para salvar a arte no banco de estampas, cadastra agora
+  let finalDtfId = data.dtfPrintId;
+  if (data.saveToDtfCatalog && data.artTitle && !data.dtfPrintId) {
+    const count = await prisma.rawItem.count({ where: { type: RawItemType.DTF_PRINT } });
+    const code = `ART-CUSTOM-${100 + count}`;
+    const newDtf = await prisma.rawItem.create({
+      data: {
+        sku: `RAW-DTF-${code}`,
+        name: data.artTitle,
+        type: RawItemType.DTF_PRINT,
+        dtfCode: code,
+        dtfPreviewUrl: data.artUrl,
+        dtfPrintSize: data.printSize || "A3 (30x42cm)",
+        dtfSupplier: "Birô DTF Express",
+        costPrice: data.printSize === "A4 (21x30cm)" ? 9.50 : data.printSize === "Bolso" ? 4.50 : 13.90,
+        stockQuantity: 0,
+        minStock: 5,
       },
-    },
-  });
+    });
+    finalDtfId = newDtf.id;
+    dtfCost = newDtf.costPrice;
+  }
 
-  if (!variant) throw new Error("Variante não encontrada");
-
-  // Calcula custo estimado pelo BOM
-  const unitCost = variant.bom.reduce((acc, item) => {
-    return acc + item.rawItem.costPrice * item.quantity;
-  }, 0);
-
-  const totalProducts = data.unitPrice * data.quantity;
+  const unitCost = shirtCost + dtfCost + packCost;
+  const quantity = Math.max(1, data.quantity || 1);
+  const totalProducts = data.unitPrice * quantity;
   const shippingCost = data.shippingCost || 0;
-  const platformFee = 0; // Venda manual / direta Pix sem comissão de marketplace!
-  const netAmount = totalProducts;
-  const estimatedCMV = unitCost * data.quantity;
+  const channel = data.channel || SalesChannel.MANUAL;
+
+  // Cálculo da comissão do canal caso venha de marketplace
+  let platformFee = 0;
+  if (channel === SalesChannel.SHOPEE) platformFee = totalProducts * 0.20 + 4.0;
+  else if (channel === SalesChannel.SHEIN) platformFee = totalProducts * 0.18;
+  else if (channel === SalesChannel.TIKTOK) platformFee = totalProducts * 0.15;
+
+  const netAmount = totalProducts - platformFee;
+  const estimatedCMV = unitCost * quantity;
   const netProfit = netAmount - estimatedCMV;
 
-  const count = await prisma.order.count();
-  const orderNumber = `CI-DIR-${1050 + count}`;
+  const countOrders = await prisma.order.count();
+  const orderNumber =
+    channel === SalesChannel.MANUAL
+      ? `CI-ENCOMENDA-${1001 + countOrders}`
+      : `${channel.substring(0, 3)}-${1001 + countOrders}`;
 
   const order = await prisma.order.create({
     data: {
       orderNumber,
-      channel: SalesChannel.MANUAL,
+      channel,
       status: OrderStatus.PAID,
       customerName: data.customerName,
       customerEmail: data.customerEmail,
@@ -174,8 +243,17 @@ export async function createManualOrder(data: {
       items: {
         create: [
           {
-            variantId: variant.id,
-            quantity: data.quantity,
+            title: data.itemTitle,
+            shirtModel: shirtModel || undefined,
+            shirtColor: shirtColor || undefined,
+            shirtSize: shirtSize || undefined,
+            artTitle: data.artTitle || undefined,
+            artMockupUrl: data.artUrl || undefined,
+            printSize: data.printSize || undefined,
+            blankShirtId: data.blankShirtId || undefined,
+            dtfPrintId: finalDtfId || undefined,
+            packagingId: data.packagingId || undefined,
+            quantity,
             unitPrice: data.unitPrice,
             unitCost,
             total: totalProducts,
@@ -185,26 +263,30 @@ export async function createManualOrder(data: {
       productionJob: {
         create: {
           priority: JobPriority.NORMAL,
-          notes: "Pedido de Venda Direta WhatsApp. Produção autorizada.",
+          notes: data.artTitle
+            ? `Estampa: ${data.artTitle} (${data.printSize || "A3"}). Arte: ${data.artUrl || "Ver anexo"}`
+            : "Arte personalizada sob encomenda.",
         },
       },
     },
   });
 
-  // Registra transação financeira correspondente
+  // Registra no financeiro se for receita
   await prisma.financialTransaction.create({
     data: {
       type: "INCOME",
       category: "SALES_ORDER",
       amount: netAmount,
-      description: `Venda Direta ${orderNumber} - ${data.customerName}`,
+      description: `Venda ${orderNumber} - ${data.customerName} (${data.itemTitle})`,
       orderId: order.id,
     },
   });
 
   revalidatePath("/pedidos");
   revalidatePath("/producao");
+  revalidatePath("/estoque");
   revalidatePath("/financeiro");
   revalidatePath("/");
+
   return order;
 }

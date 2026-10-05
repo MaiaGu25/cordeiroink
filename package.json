@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:sync": "node scripts/db-sync.js",
+    "db:push": "node scripts/db-sync.js && prisma db push",
+    "db:deploy": "node scripts/db-sync.js && prisma migrate deploy",
+    "db:seed": "node scripts/db-sync.js && npx tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:use:pg": "node -e \"const fs=require('fs'); let s=fs.readFileSync('prisma/schema.prisma','utf8'); s=s.replace(/provider\\s*=\\s*\\\"[^\\\"]+\\\"/m, 'provider = \\\"postgresql\\\"'); fs.writeFileSync('prisma/schema.prisma', s); console.log('✓ Prisma configurado para PostgreSQL');\" && npx prisma generate",
+    "db:use:sqlite": "node -e \"const fs=require('fs'); let s=fs.readFileSync('prisma/schema.prisma','utf8'); s=s.replace(/provider\\s*=\\s*\\\"[^\\\"]+\\\"/m, 'provider = \\\"sqlite\\\"'); fs.writeFileSync('prisma/schema.prisma', s); console.log('✓ Prisma configurado para SQLite');\" && npx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

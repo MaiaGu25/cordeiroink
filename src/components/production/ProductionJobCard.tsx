@@ -13,6 +13,7 @@ import {
   Sparkles,
   AlertCircle,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { updateProductionStep, completeProductionJob } from "@/actions/production";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
   const [isPending, startTransition] = useTransition();
 
   const order = job.order;
-  const channel = CHANNEL_CONFIG[order.channel] || { label: order.channel };
+  const channel = CHANNEL_CONFIG[order.channel] || { label: order.channel, dot: "bg-zinc-500" };
 
   const handleStepToggle = (
     stepKey: "stepBlankPicked" | "stepDtfPicked" | "stepPressed" | "stepQcPassed" | "stepPacked",
@@ -49,7 +50,7 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
       try {
         await completeProductionJob(job.id);
         toast.success(
-          `Produção de ${order.orderNumber} concluída! Estoque de insumos baixado automaticamente e pedido pronto para expedição.`
+          `Produção de ${order.orderNumber} concluída! Baixa nos insumos executada com sucesso.`
         );
         if (onRefresh) onRefresh();
       } catch (err: any) {
@@ -71,28 +72,27 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
 
   return (
     <div
-      className={`p-5 rounded-2xl bg-zinc-900/80 border transition-all shadow-sm flex flex-col justify-between ${
+      className={`p-5 rounded-2xl bg-zinc-900/40 border transition-all duration-200 shadow-sm flex flex-col justify-between ${
         job.stepCompleted
-          ? "border-emerald-500/30 bg-zinc-900/40 opacity-75"
+          ? "border-emerald-500/20 bg-zinc-900/20 opacity-70"
           : job.priority === "URGENT"
-          ? "border-red-500/40 shadow-red-950/20"
-          : "border-zinc-800 hover:border-zinc-700"
+          ? "border-red-500/30"
+          : "border-zinc-800/60 hover:border-zinc-700/80"
       }`}
     >
       <div>
         {/* Header: Order Number, Channel & Priority */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-bold text-amber-400">
+            <span className="font-mono text-sm font-bold text-zinc-100">
               {order.orderNumber}
             </span>
-            <span
-              className={`text-[9px] px-1.5 py-0.5 rounded font-semibold border ${channel.bg} ${channel.text} ${channel.border}`}
-            >
-              {channel.label}
-            </span>
+            <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-medium px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800">
+              <span className={`w-1.5 h-1.5 rounded-full ${channel.dot}`} />
+              <span>{channel.label}</span>
+            </div>
             {job.priority === "URGENT" && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-red-500/20 text-red-400 border border-red-500/30 uppercase animate-pulse">
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-red-500/10 text-red-400 border border-red-500/20 uppercase">
                 Urgente
               </span>
             )}
@@ -105,71 +105,109 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
 
         {/* Client & Date */}
         <div className="flex items-center justify-between text-xs text-zinc-300 mb-3">
-          <span className="font-semibold">{order.customerName}</span>
+          <span className="font-semibold text-zinc-200">{order.customerName}</span>
           <span className="text-[11px] text-zinc-500">
             {formatDate(order.paidAt || order.createdAt)}
           </span>
         </div>
 
         {/* Progress bar */}
-        <div className="w-full bg-zinc-950 rounded-full h-1.5 overflow-hidden border border-zinc-800 mb-4">
+        <div className="w-full bg-zinc-950 rounded-full h-1 overflow-hidden border border-zinc-850 mb-4">
           <div
             className={`h-full transition-all duration-300 ${
               job.stepCompleted
                 ? "bg-emerald-500"
                 : progressPercent >= 60
                 ? "bg-amber-400"
-                : "bg-blue-500"
+                : "bg-zinc-500"
             }`}
             style={{ width: `${job.stepCompleted ? 100 : progressPercent}%` }}
           />
         </div>
 
         {/* Items to Produce */}
-        <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 mb-4 space-y-2">
-          <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Shirt size={12} className="text-amber-400" />
-            Peça & Especificação DTF
+        <div className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-850 mb-4 space-y-2.5">
+          <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Shirt size={12} className="text-zinc-400" />
+            Especificação da Peça & Estampa
           </div>
-          {order.items?.map((item: any) => (
-            <div key={item.id} className="text-xs">
-              <div className="font-medium text-zinc-100 flex items-center justify-between">
-                <span>
-                  {item.quantity}x {item.variant?.product?.name}
-                </span>
-                <span className="font-mono text-amber-400 font-bold">
-                  {item.variant?.size} / {item.variant?.color}
-                </span>
-              </div>
-              <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
-                SKU: {item.variant?.sku}
-              </div>
 
-              {/* BOM details preview */}
-              {item.variant?.bom && item.variant.bom.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-zinc-900 text-[10px] text-zinc-400 space-y-0.5">
-                  <span className="text-zinc-500 font-semibold block">Insumos vinculados (BOM):</span>
-                  {item.variant.bom.map((b: any) => (
-                    <div key={b.id} className="flex justify-between text-zinc-400">
-                      <span>• {b.rawItem?.name}</span>
-                      <span className="font-mono text-zinc-400">{b.quantity} un</span>
-                    </div>
-                  ))}
+          {order.items?.map((item: any) => {
+            const itemTitle = item.title || item.variant?.product?.name || "Camiseta Personalizada";
+            const artImage = item.artMockupUrl || item.dtfPrint?.dtfPreviewUrl;
+
+            return (
+              <div key={item.id} className="text-xs space-y-2">
+                <div className="font-medium text-zinc-100 flex items-start justify-between gap-2">
+                  <span>
+                    {item.quantity}x {itemTitle}
+                  </span>
+                  {(item.shirtSize || item.variant?.size) && (
+                    <span className="font-mono text-zinc-200 font-bold px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 shrink-0">
+                      {item.shirtSize || item.variant?.size} • {item.shirtColor || item.variant?.color || "Preto"}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Arte e Mockup link */}
+                {(item.artTitle || item.artMockupUrl) && (
+                  <div className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] flex items-center justify-between">
+                    <div>
+                      <span className="text-zinc-400 block font-medium">
+                        Arte: {item.artTitle || "Personalizada"} ({item.printSize || "A3"})
+                      </span>
+                    </div>
+
+                    {item.artMockupUrl && (
+                      <a
+                        href={item.artMockupUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-400 hover:underline flex items-center gap-1 font-mono shrink-0"
+                      >
+                        <span>Abrir Arte</span>
+                        <ExternalLink size={10} />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Insumos a serem baixados */}
+                <div className="pt-2 border-t border-zinc-900 text-[10px] text-zinc-500 space-y-0.5 font-mono">
+                  <span className="text-zinc-400 font-sans block font-semibold mb-0.5">Baixa de estoque programada:</span>
+                  {item.blankShirt && (
+                    <div className="flex justify-between text-zinc-400">
+                      <span>• {item.blankShirt.name}</span>
+                      <span>{item.quantity} un</span>
+                    </div>
+                  )}
+                  {item.dtfPrint && (
+                    <div className="flex justify-between text-zinc-400">
+                      <span>• {item.dtfPrint.name}</span>
+                      <span>{item.quantity} un</span>
+                    </div>
+                  )}
+                  {item.packaging && (
+                    <div className="flex justify-between text-zinc-400">
+                      <span>• {item.packaging.name}</span>
+                      <span>{item.quantity} un</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
 
           {job.notes && (
-            <div className="mt-2 p-2 rounded bg-zinc-900 text-[11px] text-amber-300 border border-amber-500/20">
-              Obs Operador: {job.notes}
+            <div className="mt-2 p-2 rounded bg-zinc-900 text-[11px] text-zinc-300 border border-zinc-800">
+              Instrução Operador: {job.notes}
             </div>
           )}
         </div>
 
         {/* Interactive Checklist Steps */}
-        <div className="space-y-2 mb-4">
-          <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+        <div className="space-y-1.5 mb-4">
+          <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-2">
             Checklist Operacional de Montagem:
           </div>
 
@@ -178,17 +216,17 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending || job.stepCompleted}
             onClick={() => handleStepToggle("stepBlankPicked", job.stepBlankPicked)}
-            className={`w-full p-2 rounded-lg border text-left text-xs flex items-center justify-between transition cursor-pointer ${
+            className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition cursor-pointer ${
               job.stepBlankPicked
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                ? "bg-zinc-900/90 border-zinc-700 text-zinc-200"
+                : "bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:border-zinc-700"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
                   job.stepBlankPicked
-                    ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold"
+                    ? "bg-zinc-100 border-zinc-200 text-zinc-950 font-bold"
                     : "border-zinc-700 bg-zinc-900"
                 }`}
               >
@@ -203,23 +241,23 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending || job.stepCompleted}
             onClick={() => handleStepToggle("stepDtfPicked", job.stepDtfPicked)}
-            className={`w-full p-2 rounded-lg border text-left text-xs flex items-center justify-between transition cursor-pointer ${
+            className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition cursor-pointer ${
               job.stepDtfPicked
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                ? "bg-zinc-900/90 border-zinc-700 text-zinc-200"
+                : "bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:border-zinc-700"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
                   job.stepDtfPicked
-                    ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold"
+                    ? "bg-zinc-100 border-zinc-200 text-zinc-950 font-bold"
                     : "border-zinc-700 bg-zinc-900"
                 }`}
               >
                 {job.stepDtfPicked && <Check size={12} />}
               </div>
-              <span>2. Separar e Recortar Estampa DTF</span>
+              <span>2. Separar e Recortar Folha DTF</span>
             </div>
           </button>
 
@@ -228,17 +266,17 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending || job.stepCompleted}
             onClick={() => handleStepToggle("stepPressed", job.stepPressed)}
-            className={`w-full p-2 rounded-lg border text-left text-xs flex items-center justify-between transition cursor-pointer ${
+            className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition cursor-pointer ${
               job.stepPressed
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                : "bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:border-zinc-700"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
                   job.stepPressed
-                    ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold"
+                    ? "bg-amber-500 border-amber-400 text-zinc-950 font-bold"
                     : "border-zinc-700 bg-zinc-900"
                 }`}
               >
@@ -246,7 +284,7 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
               </div>
               <span className="flex items-center gap-1.5">
                 3. Prensagem Térmica (160°C / 15s)
-                <Flame size={12} className={job.stepPressed ? "text-emerald-400" : "text-amber-400"} />
+                <Flame size={12} className={job.stepPressed ? "text-amber-400" : "text-zinc-500"} />
               </span>
             </div>
           </button>
@@ -256,17 +294,17 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending || job.stepCompleted}
             onClick={() => handleStepToggle("stepQcPassed", job.stepQcPassed)}
-            className={`w-full p-2 rounded-lg border text-left text-xs flex items-center justify-between transition cursor-pointer ${
+            className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition cursor-pointer ${
               job.stepQcPassed
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                ? "bg-zinc-900/90 border-zinc-700 text-zinc-200"
+                : "bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:border-zinc-700"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
                   job.stepQcPassed
-                    ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold"
+                    ? "bg-zinc-100 border-zinc-200 text-zinc-950 font-bold"
                     : "border-zinc-700 bg-zinc-900"
                 }`}
               >
@@ -281,33 +319,33 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending || job.stepCompleted}
             onClick={() => handleStepToggle("stepPacked", job.stepPacked)}
-            className={`w-full p-2 rounded-lg border text-left text-xs flex items-center justify-between transition cursor-pointer ${
+            className={`w-full p-2 rounded-xl border text-left text-xs flex items-center justify-between transition cursor-pointer ${
               job.stepPacked
-                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                : "bg-zinc-950/50 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                ? "bg-zinc-900/90 border-zinc-700 text-zinc-200"
+                : "bg-zinc-950/40 border-zinc-800/60 text-zinc-400 hover:border-zinc-700"
             }`}
           >
             <div className="flex items-center gap-2.5">
               <div
                 className={`w-4 h-4 rounded flex items-center justify-center border ${
                   job.stepPacked
-                    ? "bg-emerald-500 border-emerald-400 text-zinc-950 font-bold"
+                    ? "bg-zinc-100 border-zinc-200 text-zinc-950 font-bold"
                     : "border-zinc-700 bg-zinc-900"
                 }`}
               >
                 {job.stepPacked && <Check size={12} />}
               </div>
-              <span>5. Embalagem (Saco Zip + Tag + Brinde)</span>
+              <span>5. Embalagem (Saco Zip + Tag)</span>
             </div>
           </button>
         </div>
       </div>
 
       {/* Footer / Final Completion Button with Stock Deduction Trigger */}
-      <div className="pt-3 border-t border-zinc-800">
+      <div className="pt-3 border-t border-zinc-850">
         {job.stepCompleted ? (
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-2">
-            <CheckCircle2 size={16} />
+          <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-2">
+            <CheckCircle2 size={15} />
             <span>Produção Concluída & Estoque Baixado</span>
           </div>
         ) : (
@@ -315,12 +353,12 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
             type="button"
             disabled={isPending}
             onClick={handleCompleteAll}
-            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
+            className="w-full py-2.5 px-3 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 transition shadow-sm cursor-pointer"
           >
             {isPending ? (
               <>
                 <Loader2 size={14} className="animate-spin" />
-                Processando Baixa de Estoque...
+                Processando Baixa de Insumos...
               </>
             ) : (
               <>

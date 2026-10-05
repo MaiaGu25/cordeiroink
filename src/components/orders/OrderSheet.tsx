@@ -24,6 +24,7 @@ import {
   DollarSign,
   Layers,
   ArrowRight,
+  ExternalLink,
 } from "lucide-react";
 
 interface OrderSheetProps {
@@ -87,7 +88,7 @@ export function OrderSheet({
           </SheetTitle>
 
           <SheetDescription>
-            Detalhes cadastrais, peças sob demanda e demonstrativo de margem líquida.
+            Detalhes cadastrais, peças sob encomenda e demonstrativo de margem líquida.
           </SheetDescription>
         </SheetHeader>
 
@@ -130,56 +131,108 @@ export function OrderSheet({
             </div>
           </div>
 
-          {/* Items & BOM */}
+          {/* Items & Insumos */}
           <div className="space-y-3">
             <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
               <ShoppingBag size={13} className="text-zinc-400" />
-              Peças & Ficha de Montagem (BOM)
+              Peças Sob Encomenda & Insumos Gastos
             </h4>
 
             <div className="space-y-2.5">
-              {order.items?.map((item: any) => (
-                <div
-                  key={item.id}
-                  className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/60 flex items-start justify-between gap-3 text-xs"
-                >
-                  <div className="flex items-start gap-3">
-                    {item.variant?.product?.imageUrl ? (
-                      <img
-                        src={item.variant.product.imageUrl}
-                        alt=""
-                        className="w-12 h-12 rounded-lg object-cover border border-zinc-800 shrink-0"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
-                        <ShoppingBag size={16} />
+              {order.items?.map((item: any) => {
+                const itemTitle = item.title || item.variant?.product?.name || "Camiseta Personalizada";
+                const previewImg = item.artMockupUrl || item.dtfPrint?.dtfPreviewUrl || item.variant?.product?.imageUrl;
+
+                return (
+                  <div
+                    key={item.id}
+                    className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/60 space-y-3 text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        {previewImg ? (
+                          <img
+                            src={previewImg}
+                            alt=""
+                            className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
+                            <ShoppingBag size={18} />
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-semibold text-zinc-200 block text-xs">
+                            {itemTitle}
+                          </span>
+                          {(item.shirtSize || item.variant?.size) && (
+                            <div className="flex items-center gap-2 mt-1 font-mono text-[11px] text-zinc-400">
+                              <span className="text-zinc-300 font-semibold px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
+                                {item.shirtSize || item.variant?.size} • {item.shirtColor || item.variant?.color || "Preto"}
+                              </span>
+                              {item.printSize && (
+                                <span className="text-zinc-500 font-mono">
+                                  {item.printSize}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {item.artMockupUrl && (
+                            <a
+                              href={item.artMockupUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-amber-400 hover:underline font-mono"
+                            >
+                              <span>Ver Arquivo da Arte</span>
+                              <ExternalLink size={10} />
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div>
-                      <span className="font-medium text-zinc-200 block">
-                        {item.variant?.product?.name || "Camiseta Personalizada"}
-                      </span>
-                      <div className="flex items-center gap-2 mt-0.5 font-mono text-[11px] text-zinc-400">
-                        <span>{item.variant?.sku}</span>
-                        <span>•</span>
-                        <span className="text-zinc-300 font-semibold">{item.variant?.title}</span>
+
+                      <div className="text-right shrink-0">
+                        <span className="font-mono font-bold text-zinc-100 block">
+                          {formatCurrency(item.total)}
+                        </span>
+                        <span className="font-mono text-[10px] text-zinc-500">
+                          {item.quantity}x {formatCurrency(item.unitPrice)}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-zinc-500 block mt-1">
-                        Custo CMV: {formatCurrency(item.unitCost)} / un
+                    </div>
+
+                    {/* Breakdown de Insumos gastos no item */}
+                    <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-850 space-y-1 text-[11px] font-mono">
+                      <span className="text-zinc-500 uppercase font-sans text-[10px] block font-semibold mb-1">
+                        Insumos Consumidos no Estoque:
                       </span>
+                      {item.blankShirt && (
+                        <div className="flex justify-between text-zinc-300">
+                          <span>• {item.blankShirt.name}</span>
+                          <span className="text-zinc-500">{formatCurrency(item.blankShirt.costPrice)}</span>
+                        </div>
+                      )}
+                      {item.dtfPrint && (
+                        <div className="flex justify-between text-zinc-300">
+                          <span>• {item.dtfPrint.name} ({item.dtfPrint.dtfPrintSize || "A3"})</span>
+                          <span className="text-zinc-500">{formatCurrency(item.dtfPrint.costPrice)}</span>
+                        </div>
+                      )}
+                      {item.packaging && (
+                        <div className="flex justify-between text-zinc-300">
+                          <span>• {item.packaging.name}</span>
+                          <span className="text-zinc-500">{formatCurrency(item.packaging.costPrice)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-zinc-400 pt-1 border-t border-zinc-900 font-semibold">
+                        <span>Custo Unitário Total (CMV):</span>
+                        <span className="text-amber-400/90">{formatCurrency(item.unitCost)}</span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="font-mono font-bold text-zinc-100 block">
-                      {formatCurrency(item.total)}
-                    </span>
-                    <span className="font-mono text-[10px] text-zinc-500">
-                      {item.quantity}x {formatCurrency(item.unitPrice)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -199,10 +252,12 @@ export function OrderSheet({
                 <span className="font-sans text-zinc-500">Frete Pago pelo Cliente:</span>
                 <span>+{formatCurrency(order.shippingCost)}</span>
               </div>
-              <div className="flex justify-between text-orange-400/90">
-                <span className="font-sans">Taxa do Marketplace ({channel.label}):</span>
-                <span>-{formatCurrency(order.platformFee)}</span>
-              </div>
+              {order.platformFee > 0 && (
+                <div className="flex justify-between text-orange-400/90">
+                  <span className="font-sans">Taxa do Marketplace ({channel.label}):</span>
+                  <span>-{formatCurrency(order.platformFee)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-zinc-200 border-t border-zinc-800/80 pt-2 font-semibold">
                 <span className="font-sans text-zinc-400">Valor Líquido Recebido:</span>
                 <span>{formatCurrency(order.netAmount)}</span>

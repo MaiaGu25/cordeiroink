@@ -61,6 +61,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         variant: {
           include: { product: true },
         },
+        blankShirt: true,
+        dtfPrint: true,
       },
     }),
   ]);
@@ -101,26 +103,31 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // Estoque crítico
   const criticalItems = rawItems.filter((i) => i.stockQuantity <= i.minStock);
 
-  // Produtos mais vendidos
+  // Peças / Modelos mais vendidos (suporta sob encomenda e catálogo)
   const productAgg: Record<
     string,
     { name: string; sku: string; category: string; unitsSold: number; totalRevenue: number; imageUrl?: string | null }
   > = {};
 
   orderItems.forEach((item) => {
-    const p = item.variant.product;
-    if (!productAgg[p.id]) {
-      productAgg[p.id] = {
-        name: p.name,
-        sku: p.skuBase,
-        category: p.category,
+    const key = item.variantId || item.title;
+    const name = item.title || item.variant?.product?.name || "Camiseta Personalizada";
+    const sku = item.variant?.sku || (item.blankShirt ? item.blankShirt.sku : "ENCOMENDA");
+    const category = item.shirtModel || item.variant?.product?.category || "Streetwear";
+    const imageUrl = item.artMockupUrl || item.dtfPrint?.dtfPreviewUrl || item.variant?.product?.imageUrl;
+
+    if (!productAgg[key]) {
+      productAgg[key] = {
+        name,
+        sku,
+        category,
         unitsSold: 0,
         totalRevenue: 0,
-        imageUrl: p.imageUrl,
+        imageUrl,
       };
     }
-    productAgg[p.id].unitsSold += item.quantity;
-    productAgg[p.id].totalRevenue += item.total;
+    productAgg[key].unitsSold += item.quantity;
+    productAgg[key].totalRevenue += item.total;
   });
 
   const topProducts = Object.values(productAgg).sort((a, b) => b.unitsSold - a.unitsSold);

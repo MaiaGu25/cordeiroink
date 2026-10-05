@@ -2,7 +2,7 @@
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/HoverCard";
 import { formatCurrency, STATUS_CONFIG } from "@/lib/utils";
-import { Shirt, Flame, CheckCircle2 } from "lucide-react";
+import { Shirt, Flame } from "lucide-react";
 
 interface OrderHoverPreviewProps {
   order: any;
@@ -12,9 +12,11 @@ interface OrderHoverPreviewProps {
 export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
   const status = STATUS_CONFIG[order.status] || { label: order.status };
   const firstItem = order.items?.[0];
-  const variant = firstItem?.variant;
-  const product = variant?.product;
   const job = order.productionJob;
+
+  const itemTitle = firstItem?.title || firstItem?.variant?.product?.name || "Camiseta Personalizada";
+  const previewImage = firstItem?.artMockupUrl || firstItem?.dtfPrint?.dtfPreviewUrl || firstItem?.variant?.product?.imageUrl;
+  const shirtLabel = firstItem?.shirtSize ? `${firstItem.shirtSize} • ${firstItem.shirtColor || "Preto"}` : firstItem?.variant?.title || "Tamanho padrão";
 
   return (
     <HoverCard openDelay={200} closeDelay={150}>
@@ -34,16 +36,16 @@ export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
             </span>
           </div>
           <span className="text-[10px] text-zinc-500 font-mono">
-            {order.items?.length || 1} {order.items?.length === 1 ? "item" : "itens"}
+            {order.items?.length || 1} {order.items?.length === 1 ? "peça" : "peças"}
           </span>
         </div>
 
         {/* Item with Photo and Size */}
         {firstItem && (
           <div className="flex items-start gap-3">
-            {product?.imageUrl ? (
+            {previewImage ? (
               <img
-                src={product.imageUrl}
+                src={previewImage}
                 alt=""
                 className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
               />
@@ -54,12 +56,12 @@ export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
             )}
 
             <div className="flex-1 min-w-0">
-              <span className="text-xs font-semibold text-zinc-200 block truncate">
-                {product?.name || "Camiseta Personalizada"}
+              <span className="text-xs font-semibold text-zinc-200 block truncate" title={itemTitle}>
+                {itemTitle}
               </span>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[11px] font-mono text-zinc-300 font-bold px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800">
-                  {variant?.size || "M"} • {variant?.color || "Preto"}
+                  {shirtLabel}
                 </span>
                 <span className="text-[10px] text-zinc-500 font-mono">
                   {firstItem.quantity} un
