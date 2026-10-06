@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search, Plus } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Shirt, Image as ImageIcon, Package, AlertTriangle, Search, Plus, Trash2, RotateCcw } from "lucide-react";
 import { BlankShirtsGrid } from "./BlankShirtsGrid";
 import { DtfCatalogGrid } from "./DtfCatalogGrid";
 import { PackagingList } from "./PackagingList";
 import { QuickStockModal } from "./QuickStockModal";
 import { NewDtfModal } from "./NewDtfModal";
+import { NewRawItemModal } from "./NewRawItemModal";
+import { resetDatabaseToZero } from "@/actions/inventory";
+import { RawItemType } from "@prisma/client";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface InventoryViewProps {
   blankShirts: any[];
@@ -23,13 +27,37 @@ export function InventoryView({
   criticalItems,
 }: InventoryViewProps) {
   const router = useRouter();
+  const [isResetPending, startResetTransition] = useTransition();
+
   const [activeTab, setActiveTab] = useState<"SHIRTS" | "DTF" | "PACKAGING">("SHIRTS");
   const [selectedItemToAdjust, setSelectedItemToAdjust] = useState<any | null>(null);
+  const [isNewRawItemOpen, setIsNewRawItemOpen] = useState(false);
   const [isNewDtfOpen, setIsNewDtfOpen] = useState(false);
+  const [newRawItemDefaultType, setNewRawItemDefaultType] = useState<RawItemType>(RawItemType.BLANK_SHIRT);
   const [searchTerm, setSearchTerm] = useState("");
 
   const refreshData = () => {
     router.refresh();
+  };
+
+  const handleOpenNewRawItem = (defaultType?: RawItemType) => {
+    const t = defaultType || (activeTab === "SHIRTS" ? RawItemType.BLANK_SHIRT : activeTab === "DTF" ? RawItemType.DTF_PRINT : RawItemType.PACKAGING);
+    setNewRawItemDefaultType(t);
+    setIsNewRawItemOpen(true);
+  };
+
+  const handleResetDatabase = () => {
+    if (confirm("ATENÇÃO: Deseja zerar completamente todos os dados do banco (insumos antigos, pedidos e histórico) para cadastrar seus dados reais de hoje? Esta ação não pode ser desfeita.")) {
+      startResetTransition(async () => {
+        try {
+          await resetDatabaseToZero();
+          toast.success("Banco de dados zerado com sucesso! Pronto para inserção real.");
+          router.refresh();
+        } catch (err: any) {
+          toast.error("Erro ao zerar banco: " + err.message);
+        }
+      });
+    }
   };
 
   const filterList = (list: any[]) => {
@@ -61,12 +89,12 @@ export function InventoryView({
       )}
 
       {/* Tabs & Search Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Navigation Tabs with refined monochromatic states */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80 overflow-x-auto">
           <button
             onClick={() => setActiveTab("SHIRTS")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
               activeTab === "SHIRTS"
                 ? "bg-zinc-800 text-zinc-100 shadow-sm"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -78,7 +106,7 @@ export function InventoryView({
 
           <button
             onClick={() => setActiveTab("DTF")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
               activeTab === "DTF"
                 ? "bg-zinc-800 text-zinc-100 shadow-sm"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -90,7 +118,7 @@ export function InventoryView({
 
           <button
             onClick={() => setActiveTab("PACKAGING")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
               activeTab === "PACKAGING"
                 ? "bg-zinc-800 text-zinc-100 shadow-sm"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -101,9 +129,9 @@ export function InventoryView({
           </button>
         </div>
 
-        {/* Search Bar & Action */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative w-full sm:w-60">
+        {/* Search Bar & Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative w-full sm:w-56">
             <Search
               size={14}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
@@ -117,23 +145,35 @@ export function InventoryView({
             />
           </div>
 
-          {activeTab === "DTF" && (
-            <button
-              onClick={() => setIsNewDtfOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
-            >
-              <Plus size={13} />
-              <span>Nova Arte DTF</span>
-            </button>
-          )}
+          {/* Reset Banco Button (Discreto e Seguro) */}
+          <button
+            type="button"
+            onClick={handleResetDatabase}
+            disabled={isResetPending}
+            title="Limpar todos os dados e começar do zero"
+            className="p-2 rounded-xl bg-zinc-900/60 hover:bg-red-950/40 border border-zinc-800/80 hover:border-red-900/50 text-zinc-500 hover:text-red-400 text-xs transition cursor-pointer flex items-center gap-1.5"
+          >
+            <RotateCcw size={13} className={isResetPending ? "animate-spin" : ""} />
+            <span className="hidden xl:inline text-[11px]">Zerar Banco</span>
+          </button>
+
+          {/* Primary Action Button: Cadastrar Insumo / Camiseta Lisa */}
+          <button
+            onClick={() => handleOpenNewRawItem()}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>+ Cadastrar Insumo / Camiseta Lisa</span>
+          </button>
         </div>
       </div>
 
-      {/* Tab Panels */}
+      {/* Tab Panels with empty handlers */}
       {activeTab === "SHIRTS" && (
         <BlankShirtsGrid
           items={filterList(blankShirts)}
           onAdjust={(item) => setSelectedItemToAdjust(item)}
+          onAddNew={() => handleOpenNewRawItem(RawItemType.BLANK_SHIRT)}
         />
       )}
 
@@ -141,6 +181,7 @@ export function InventoryView({
         <DtfCatalogGrid
           items={filterList(dtfPrints)}
           onAdjust={(item) => setSelectedItemToAdjust(item)}
+          onAddNew={() => handleOpenNewRawItem(RawItemType.DTF_PRINT)}
         />
       )}
 
@@ -148,8 +189,17 @@ export function InventoryView({
         <PackagingList
           items={filterList(supplies)}
           onAdjust={(item) => setSelectedItemToAdjust(item)}
+          onAddNew={() => handleOpenNewRawItem(RawItemType.PACKAGING)}
         />
       )}
+
+      {/* Modal de Cadastro de Insumo / Camiseta Lisa */}
+      <NewRawItemModal
+        isOpen={isNewRawItemOpen}
+        onClose={() => setIsNewRawItemOpen(false)}
+        onCreated={refreshData}
+        initialType={newRawItemDefaultType}
+      />
 
       {/* Quick Stock Modal */}
       <QuickStockModal

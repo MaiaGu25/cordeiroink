@@ -23,9 +23,36 @@ interface BlankShirtItem {
 interface BlankShirtsGridProps {
   items: BlankShirtItem[];
   onAdjust: (item: BlankShirtItem) => void;
+  onAddNew?: () => void;
 }
 
-export function BlankShirtsGrid({ items, onAdjust }: BlankShirtsGridProps) {
+export function BlankShirtsGrid({ items, onAdjust, onAddNew }: BlankShirtsGridProps) {
+  if (items.length === 0) {
+    return (
+      <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
+        <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <Shirt size={26} />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-zinc-200">
+            Nenhuma camiseta lisa cadastrada no estoque
+          </h4>
+          <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+            Cadastre os modelos (ex: Streetwear Oversized 26.1, Casual 30.1), cores e grade de tamanhos para controlar o saldo físico e calcular a margem dos pedidos.
+          </p>
+        </div>
+        {onAddNew && (
+          <button
+            onClick={onAddNew}
+            className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition shadow-sm cursor-pointer"
+          >
+            + Cadastrar Primeira Camiseta Lisa
+          </button>
+        )}
+      </div>
+    );
+  }
+
   // Agrupar por Modelo + Cor
   const groups: Record<
     string,

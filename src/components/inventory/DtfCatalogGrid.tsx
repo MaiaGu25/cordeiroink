@@ -19,9 +19,36 @@ interface DtfItem {
 interface DtfCatalogGridProps {
   items: DtfItem[];
   onAdjust: (item: DtfItem) => void;
+  onAddNew?: () => void;
 }
 
-export function DtfCatalogGrid({ items, onAdjust }: DtfCatalogGridProps) {
+export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProps) {
+  if (items.length === 0) {
+    return (
+      <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
+        <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <ImageIcon size={26} />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-zinc-200">
+            Nenhuma arte ou folha DTF cadastrada
+          </h4>
+          <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+            Cadastre as folhas de impressão DTF disponíveis (A3, A4, Bolso) ou estampas para controle de reposição e baixa automática.
+          </p>
+        </div>
+        {onAddNew && (
+          <button
+            onClick={onAddNew}
+            className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition shadow-sm cursor-pointer"
+          >
+            + Cadastrar Nova Arte / DTF
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
       {items.map((item) => {

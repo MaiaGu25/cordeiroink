@@ -130,6 +130,7 @@ export async function createManualOrder(data: {
   itemTitle: string;
   blankShirtId?: string;
   dtfPrintId?: string;
+  dtfCost?: number;
   packagingId?: string;
   artTitle?: string;
   artUrl?: string;
@@ -146,7 +147,7 @@ export async function createManualOrder(data: {
   let shirtColor = "";
   let shirtSize = "";
 
-  if (data.blankShirtId) {
+  if (data.blankShirtId && data.blankShirtId !== "none") {
     const shirt = await prisma.rawItem.findUnique({
       where: { id: data.blankShirtId },
     });
@@ -158,8 +159,8 @@ export async function createManualOrder(data: {
     }
   }
 
-  let dtfCost = 0;
-  if (data.dtfPrintId) {
+  let dtfCost = typeof data.dtfCost === "number" && !isNaN(data.dtfCost) ? data.dtfCost : 0;
+  if (dtfCost === 0 && data.dtfPrintId && data.dtfPrintId !== "none") {
     const dtf = await prisma.rawItem.findUnique({
       where: { id: data.dtfPrintId },
     });
@@ -169,7 +170,7 @@ export async function createManualOrder(data: {
   }
 
   let packCost = 0;
-  if (data.packagingId) {
+  if (data.packagingId && data.packagingId !== "none") {
     const pack = await prisma.rawItem.findUnique({
       where: { id: data.packagingId },
     });

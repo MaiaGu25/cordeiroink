@@ -16,9 +16,36 @@ interface SupplyItem {
 interface PackagingListProps {
   items: SupplyItem[];
   onAdjust: (item: SupplyItem) => void;
+  onAddNew?: () => void;
 }
 
-export function PackagingList({ items, onAdjust }: PackagingListProps) {
+export function PackagingList({ items, onAdjust, onAddNew }: PackagingListProps) {
+  if (items.length === 0) {
+    return (
+      <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
+        <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <Package size={26} />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-zinc-200">
+            Nenhuma embalagem ou insumo cadastrado
+          </h4>
+          <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
+            Cadastre os insumos de embalagem (sacos zip lock, envelopes, tags kraft, adesivos e brindes) para compor o custo de expedição dos pedidos.
+          </p>
+        </div>
+        {onAddNew && (
+          <button
+            onClick={onAddNew}
+            className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition shadow-sm cursor-pointer"
+          >
+            + Cadastrar Embalagem / Insumo
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {items.map((item) => {
