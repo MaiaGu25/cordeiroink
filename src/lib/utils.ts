@@ -44,6 +44,27 @@ export const CHANNEL_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; border: string; dot: string }
 > = {
+  WHATSAPP: {
+    label: "WhatsApp",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-400",
+    border: "border-emerald-500/20",
+    dot: "bg-emerald-400",
+  },
+  INSTAGRAM: {
+    label: "Instagram Direct",
+    bg: "bg-pink-500/10",
+    text: "text-pink-400",
+    border: "border-pink-500/20",
+    dot: "bg-pink-400",
+  },
+  MANUAL: {
+    label: "Venda Direta",
+    bg: "bg-zinc-900/60",
+    text: "text-zinc-300",
+    border: "border-zinc-800",
+    dot: "bg-emerald-500/80",
+  },
   SHOPEE: {
     label: "Shopee",
     bg: "bg-zinc-900/60",
@@ -64,13 +85,6 @@ export const CHANNEL_CONFIG: Record<
     text: "text-zinc-300",
     border: "border-zinc-800",
     dot: "bg-cyan-400/80",
-  },
-  MANUAL: {
-    label: "Whats Direct",
-    bg: "bg-zinc-900/60",
-    text: "text-zinc-300",
-    border: "border-zinc-800",
-    dot: "bg-emerald-500/80",
   },
 };
 

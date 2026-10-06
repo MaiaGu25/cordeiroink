@@ -1,7 +1,20 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
-import { X, Plus, Shirt, Image as ImageIcon, Package, Loader2, Sparkles, Link as LinkIcon, DollarSign, AlertCircle } from "lucide-react";
+import { useState, useTransition, useEffect, useRef } from "react";
+import {
+  X,
+  Plus,
+  Shirt,
+  Image as ImageIcon,
+  Loader2,
+  Upload,
+  Check,
+  DollarSign,
+  AlertCircle,
+  Trash2,
+  Flame,
+  Send,
+} from "lucide-react";
 import { createManualOrder } from "@/actions/orders";
 import { formatCurrency } from "@/lib/utils";
 import { SalesChannel } from "@prisma/client";
@@ -23,8 +36,8 @@ interface NewOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   blankShirts: RawOption[];
-  dtfPrints: RawOption[];
-  packagings: RawOption[];
+  dtfPrints?: RawOption[];
+  packagings?: RawOption[];
   onOrderCreated?: () => void;
 }
 
@@ -32,39 +45,35 @@ export function NewOrderModal({
   isOpen,
   onClose,
   blankShirts,
-  dtfPrints,
-  packagings,
   onOrderCreated,
 }: NewOrderModalProps) {
   const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Canal de Venda & Cliente
-  const [channel, setChannel] = useState<SalesChannel>(SalesChannel.MANUAL);
+  // 1. Origem da Venda
+  const [channel, setChannel] = useState<SalesChannel>(SalesChannel.WHATSAPP);
+
+  // 2. Cliente
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
-  const [shippingAddress, setShippingAddress] = useState("");
 
-  // 2. Arte e Encomenda
-  const [artTitle, setArtTitle] = useState("");
-  const [itemTitle, setItemTitle] = useState("");
-  const [printSize, setPrintSize] = useState("A3 (30x42cm)");
-  const [artUrl, setArtUrl] = useState("");
-  const [saveToDtfCatalog, setSaveToDtfCatalog] = useState(false);
-
-  // 3. Camiseta Lisa & Insumos
+  // 3. Camiseta Base
   const [selectedShirtId, setSelectedShirtId] = useState<string>(blankShirts[0]?.id || "");
-  const [selectedDtfId, setSelectedDtfId] = useState<string>("custom");
-  const [dtfCost, setDtfCost] = useState<number>(13.90);
-  const [selectedPackId, setSelectedPackId] = useState<string>(packagings[0]?.id || "none");
 
-  // 4. Valores e Quantidade
-  const [quantity, setQuantity] = useState(1);
+  // 4. Estampa / Arte
+  const [artTitle, setArtTitle] = useState("");
+  const [artUrl, setArtUrl] = useState("");
+  const [printSize, setPrintSize] = useState("A3 (30x42cm)");
+
+  // 5. Financeiro
   const [unitPrice, setUnitPrice] = useState<number>(99.90);
-  const [shippingCost, setShippingCost] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARTAO" | "DINHEIRO">("PIX");
+  const [isPaid, setIsPaid] = useState<boolean>(true);
+  const [dtfCost, setDtfCost] = useState<number>(13.90);
   const [notes, setNotes] = useState("");
 
-  // Atualiza default shirt se lista mudar
   useEffect(() => {
     if (blankShirts.length > 0 && !selectedShirtId) {
       setSelectedShirtId(blankShirts[0].id);
@@ -73,94 +82,113 @@ export function NewOrderModal({
 
   if (!isOpen) return null;
 
-  // Atualiza custo do DTF ao mudar o tamanho
   const handlePrintSizeChange = (newSize: string) => {
     setPrintSize(newSize);
-    if (selectedDtfId === "custom") {
-      if (newSize.includes("A4")) setDtfCost(9.50);
-      else if (newSize.includes("Bolso")) setDtfCost(4.50);
-      else setDtfCost(13.90);
+    if (newSize.includes("A3")) setDtfCost(13.90);
+    else if (newSize.includes("A4")) setDtfCost(9.50);
+    else if (newSize.includes("Bolso")) setDtfCost(4.50);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida (PNG, JPG, WEBP).");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "artes-clientes");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro no upload");
+
+      setArtUrl(data.url);
+      if (!artTitle) {
+        const cleanName = file.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[-_]/g, " ")
+          .trim();
+        setArtTitle(cleanName);
+      }
+      toast.success("Mockup/Arte carregada com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro no upload da arte: " + err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const chosenShirt = blankShirts.find((s) => s.id === selectedShirtId);
-  const chosenPack = packagings.find((p) => p.id === selectedPackId);
+  const handleClearImage = () => {
+    setArtUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
+  // Cálculos dinâmicos
+  const chosenShirt = blankShirts.find((s) => s.id === selectedShirtId);
   const shirtCost = chosenShirt ? chosenShirt.costPrice : 0;
   const currentDtfCost = dtfCost;
-  const packCost = chosenPack ? chosenPack.costPrice : 0;
-  const unitCost = shirtCost + currentDtfCost + packCost;
+  const totalCostUnit = shirtCost + currentDtfCost;
 
-  const totalProducts = unitPrice * quantity;
-  const totalBilled = totalProducts + shippingCost;
-
-  // Cálculo da comissão do canal
-  let feeRate = 0;
-  let fixedFee = 0;
-  if (channel === SalesChannel.SHOPEE) {
-    feeRate = 0.20;
-    fixedFee = 4.0;
-  } else if (channel === SalesChannel.SHEIN) {
-    feeRate = 0.18;
-  } else if (channel === SalesChannel.TIKTOK) {
-    feeRate = 0.15;
-  }
-
-  const estimatedFee = totalProducts * feeRate + fixedFee;
-  const netAmount = totalProducts - estimatedFee;
-  const estimatedCMV = unitCost * quantity;
-  const estimatedNetProfit = netAmount - estimatedCMV;
-  const profitMargin = totalProducts > 0 ? (estimatedNetProfit / totalProducts) * 100 : 0;
+  const totalCharged = unitPrice * quantity;
+  const totalCMV = totalCostUnit * quantity;
+  const netProfit = totalCharged - totalCMV;
+  const marginPercent = totalCharged > 0 ? (netProfit / totalCharged) * 100 : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!customerName.trim()) {
-      toast.error("Por favor, informe o nome do cliente.");
+      toast.error("Informe o nome do cliente.");
       return;
     }
 
     if (!customerPhone.trim()) {
-      toast.error("Por favor, informe o telefone/WhatsApp do cliente.");
+      toast.error("Informe o WhatsApp do cliente.");
       return;
     }
 
-    const finalTitle =
-      itemTitle.trim() ||
-      (artTitle.trim()
-        ? `Camiseta ${chosenShirt?.shirtModel || "Oversized"} - ${artTitle.trim()}`
-        : chosenShirt
-        ? `${chosenShirt.name} (Sob Encomenda)`
-        : "Camiseta Personalizada Sob Encomenda");
+    const shirtLabel = chosenShirt
+      ? `${chosenShirt.shirtModel || chosenShirt.name} ${chosenShirt.shirtColor || ""} ${chosenShirt.shirtSize || ""}`.trim()
+      : "Camiseta Lisa";
+
+    const finalItemTitle = artTitle.trim()
+      ? `${shirtLabel} — ${artTitle.trim()}`
+      : `${shirtLabel} (Personalizada)`;
 
     startTransition(async () => {
       try {
         await createManualOrder({
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
-          customerEmail: customerEmail.trim() || undefined,
-          shippingAddress: shippingAddress.trim() || undefined,
           channel,
-          itemTitle: finalTitle,
-          blankShirtId: selectedShirtId && selectedShirtId !== "none" ? selectedShirtId : undefined,
-          dtfPrintId: selectedDtfId !== "custom" && selectedDtfId !== "none" ? selectedDtfId : undefined,
+          paymentMethod,
+          isPaid,
+          itemTitle: finalItemTitle,
+          blankShirtId: selectedShirtId || undefined,
           dtfCost: Number(dtfCost) || 0,
-          packagingId: selectedPackId !== "none" ? selectedPackId : undefined,
           artTitle: artTitle.trim() || undefined,
           artUrl: artUrl.trim() || undefined,
           printSize,
-          saveToDtfCatalog,
           quantity: Number(quantity) || 1,
           unitPrice: Number(unitPrice) || 0,
-          shippingCost: Number(shippingCost) || 0,
           notes: notes.trim() || undefined,
         });
 
-        toast.success("Pedido cadastrado com sucesso! Enviado para a fila de Produção e Kanban.");
+        toast.success("Pedido Express criado! Enviado para a Fila de Prensagem.");
         if (onOrderCreated) onOrderCreated();
         onClose();
       } catch (err: any) {
-        toast.error("Erro ao criar pedido: " + err.message);
+        toast.error("Erro ao salvar pedido: " + err.message);
       }
     });
   };
@@ -168,330 +196,353 @@ export function NewOrderModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-900/40">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              <Plus size={16} />
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Flame size={16} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-zinc-100">
-                Novo Pedido Sob Encomenda (Arte Personalizada)
+              <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <span>+ Novo Pedido Express</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Sob Demanda
+                </span>
               </h3>
               <p className="text-xs text-zinc-500">
-                Lance pedidos da Shopee, Shein, TikTok ou WhatsApp com cálculo dinâmico de insumos e margem.
+                Cadastro ágil de vendas via WhatsApp e Instagram Direct sem burocracia.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
-          {/* 1. Canal de Venda & Cliente */}
-          <div className="space-y-3">
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">
-              1. Canal de Venda & Dados do Cliente
-            </span>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+          {/* 1. Origem da Venda (Pill Selector) */}
+          <div>
+            <label className="block text-zinc-400 mb-1.5 font-medium">Origem da Venda</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setChannel(SalesChannel.WHATSAPP)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 transition cursor-pointer font-semibold ${
+                  channel === SalesChannel.WHATSAPP
+                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-sm"
+                    : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>WhatsApp</span>
+              </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Canal de Venda *</label>
-                <select
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value as SalesChannel)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-zinc-700 font-medium"
-                >
-                  <option value={SalesChannel.MANUAL}>WhatsApp / Direto (0% taxa)</option>
-                  <option value={SalesChannel.SHOPEE}>Shopee (~20% + R$ 4,00)</option>
-                  <option value={SalesChannel.SHEIN}>Shein (~18% comissão)</option>
-                  <option value={SalesChannel.TIKTOK}>TikTok Shop (~15% comissão)</option>
-                </select>
-              </div>
+              <button
+                type="button"
+                onClick={() => setChannel(SalesChannel.INSTAGRAM)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 transition cursor-pointer font-semibold ${
+                  channel === SalesChannel.INSTAGRAM
+                    ? "bg-pink-500/10 border-pink-500/40 text-pink-400 shadow-sm"
+                    : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-pink-400" />
+                <span>Instagram Direct</span>
+              </button>
 
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Nome do Cliente *</label>
-                <input
-                  required
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="ex: Lucas Martins"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">WhatsApp / Telefone *</label>
-                <input
-                  required
-                  type="text"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="(11) 98765-4321"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Endereço de Entrega (Opcional)</label>
-                <input
-                  type="text"
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="Rua, número, bairro - Cidade/UF"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={() => setChannel(SalesChannel.MANUAL)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 transition cursor-pointer font-semibold ${
+                  channel === SalesChannel.MANUAL
+                    ? "bg-zinc-800 border-zinc-700 text-zinc-100 shadow-sm"
+                    : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                <span>Balcão / Outro</span>
+              </button>
             </div>
           </div>
 
-          {/* 2. Arte / Descrição da Estampa */}
-          <div className="space-y-3 pt-3 border-t border-zinc-850">
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">
-              2. Arte & Estampa Sob Encomenda
-            </span>
+          {/* 2. Cliente */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-zinc-400 mb-1 font-medium">Nome do Cliente *</label>
+              <input
+                required
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="ex: João Pedro"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
+              />
+            </div>
 
             <div>
-              <label className="block text-zinc-400 mb-1 font-medium">
-                Arte / Descrição da Estampa Sob Encomenda *
+              <label className="block text-zinc-400 mb-1 font-medium">WhatsApp / Telefone *</label>
+              <input
+                required
+                type="text"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="(11) 98765-4321"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 font-mono"
+              />
+            </div>
+          </div>
+
+          {/* 3. Camiseta Base do Estoque */}
+          <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-zinc-300 font-semibold flex items-center gap-1.5">
+                <Shirt size={14} className="text-amber-400" />
+                <span>Camiseta Base (Estoque Físico) *</span>
+              </label>
+              {chosenShirt && (
+                <span className="text-[11px] font-mono text-zinc-400">
+                  Custo: {formatCurrency(chosenShirt.costPrice)}
+                </span>
+              )}
+            </div>
+
+            <select
+              value={selectedShirtId}
+              onChange={(e) => setSelectedShirtId(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 focus:outline-none focus:border-zinc-700 font-medium"
+            >
+              {blankShirts.length === 0 ? (
+                <option value="">Nenhuma camiseta cadastrada no estoque (cadastre em /estoque)</option>
+              ) : (
+                blankShirts.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.shirtModel || s.name} {s.shirtColor || ""} {s.shirtSize || ""} — Saldo: {s.stockQuantity} un ({formatCurrency(s.costPrice)})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* 4. Estampa & Upload da Arte do WhatsApp */}
+          <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
+            <div>
+              <label className="block text-zinc-300 font-semibold mb-1">
+                Nome / Descrição da Estampa Encomendada *
               </label>
               <input
                 required
                 type="text"
                 value={artTitle}
                 onChange={(e) => setArtTitle(e.target.value)}
-                placeholder="ex: Estampa Caveira Cyberpunk Costas (Neon)"
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
+                placeholder="ex: Dragão Oriental Neon Costas"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Tamanho da Impressão</label>
-                <select
-                  value={printSize}
-                  onChange={(e) => handlePrintSizeChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-zinc-700"
-                >
-                  <option value="A3 (30x42cm)">A3 (30x42cm) — Estampa Grande</option>
-                  <option value="A4 (21x30cm)">A4 (21x30cm) — Estampa Média</option>
-                  <option value="Bolso (10x10cm)">Bolso (10x10cm) — Logo Peito</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium flex items-center gap-1.5">
-                  <LinkIcon size={12} className="text-zinc-500" />
-                  <span>Link da Arte / Mockup (Drive, Imgur, etc.)</span>
-                </label>
-                <input
-                  type="url"
-                  value={artUrl}
-                  onChange={(e) => setArtUrl(e.target.value)}
-                  placeholder="https://drive.google.com/... ou https://..."
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 font-mono text-[11px] focus:outline-none focus:border-zinc-700"
-                />
-              </div>
-            </div>
-
-            {artTitle && (
-              <label className="flex items-center gap-2 cursor-pointer pt-1 text-zinc-400 hover:text-zinc-200 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={saveToDtfCatalog}
-                  onChange={(e) => setSaveToDtfCatalog(e.target.checked)}
-                  className="rounded bg-zinc-950 border-zinc-800 text-amber-500 accent-amber-500"
-                />
-                <span>Salvar esta arte no Banco de Estampas para reuso futuro</span>
+            {/* Upload Mockup WhatsApp */}
+            <div>
+              <label className="block text-zinc-400 mb-1.5 font-medium">
+                Upload da Arte / Mockup Enviado pelo Cliente
               </label>
-            )}
-          </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
 
-          {/* 3. Camiseta Lisa & Custo do DTF */}
-          <div className="space-y-3 pt-3 border-t border-zinc-850">
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">
-              3. Insumos Consumidos & Custos
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Dropdown Camiseta Lisa do Estoque */}
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium flex items-center justify-between">
-                  <span>Camiseta Lisa Utilizada *</span>
-                  {chosenShirt && (
-                    <span className="text-[10px] text-zinc-500 font-mono">
-                      Custo: {formatCurrency(chosenShirt.costPrice)}
-                    </span>
-                  )}
-                </label>
-                <select
-                  value={selectedShirtId}
-                  onChange={(e) => setSelectedShirtId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-zinc-700"
+              {artUrl ? (
+                <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={artUrl}
+                      alt="Arte do cliente"
+                      className="w-12 h-12 object-cover rounded-lg border border-zinc-850 shrink-0"
+                    />
+                    <div className="truncate">
+                      <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                        <Check size={11} /> Arte salva em public/uploads/artes-clientes
+                      </span>
+                      <span className="text-[10px] text-zinc-500 font-mono truncate block">
+                        {artUrl}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearImage}
+                    className="p-1.5 text-zinc-500 hover:text-red-400 transition cursor-pointer"
+                    title="Remover imagem"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-4 rounded-xl border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-950/60 hover:bg-zinc-950 transition flex items-center justify-center gap-3 cursor-pointer ${
+                    isUploading ? "opacity-60 pointer-events-none" : ""
+                  }`}
                 >
-                  {blankShirts.length === 0 ? (
-                    <option value="">Nenhuma camiseta cadastrada no estoque</option>
+                  {isUploading ? (
+                    <div className="flex items-center gap-2 text-zinc-400">
+                      <Loader2 size={16} className="animate-spin text-amber-400" />
+                      <span>Salvando arte do WhatsApp...</span>
+                    </div>
                   ) : (
-                    blankShirts.map((shirt) => (
-                      <option key={shirt.id} value={shirt.id}>
-                        {shirt.name} (Saldo: {shirt.stockQuantity} un) — {formatCurrency(shirt.costPrice)}
-                      </option>
-                    ))
+                    <>
+                      <Upload size={16} className="text-zinc-500" />
+                      <span className="text-xs text-zinc-300">
+                        Clique para anexar o print/arquivo que o cliente enviou
+                      </span>
+                    </>
                   )}
-                </select>
-                {blankShirts.length === 0 && (
-                  <p className="text-[10px] text-amber-400/80 mt-1 flex items-center gap-1">
-                    <AlertCircle size={10} />
-                    Cadastre suas camisetas em Estoque para abater o saldo físico.
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
+            </div>
 
-              {/* Custo do DTF / Impressão */}
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium flex items-center justify-between">
-                  <span>Custo do DTF / Impressão (R$) *</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">por peça</span>
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    step="0.10"
-                    min={0}
-                    value={dtfCost}
-                    onChange={(e) => setDtfCost(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono focus:outline-none focus:border-zinc-700"
-                  />
-                </div>
-                {/* Quick Presets for DTF Cost */}
-                <div className="flex gap-1.5 mt-1.5">
+            {/* Tamanho da Estampa */}
+            <div>
+              <label className="block text-zinc-400 mb-1.5 font-medium">Tamanho da Estampa</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "A3 (Costas)", size: "A3 (30x42cm)", cost: 13.90 },
+                  { label: "A4 (Frente)", size: "A4 (21x30cm)", cost: 9.50 },
+                  { label: "Bolso (Peito)", size: "Bolso (10x10cm)", cost: 4.50 },
+                ].map((item) => (
                   <button
                     type="button"
-                    onClick={() => setDtfCost(13.90)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/60 transition font-mono"
+                    key={item.size}
+                    onClick={() => handlePrintSizeChange(item.size)}
+                    className={`py-2 px-2 rounded-xl border text-center transition cursor-pointer flex flex-col items-center justify-center ${
+                      printSize === item.size
+                        ? "bg-amber-500/10 border-amber-500/40 text-amber-300 font-bold shadow-sm"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                    }`}
                   >
-                    A3 (R$ 13,90)
+                    <span className="text-xs">{item.label}</span>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      R$ {item.cost.toFixed(2)}
+                    </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setDtfCost(9.50)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/60 transition font-mono"
-                  >
-                    A4 (R$ 9,50)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDtfCost(4.50)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/60 transition font-mono"
-                  >
-                    Bolso (R$ 4,50)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDtfCost(0)}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800/60 transition font-mono"
-                  >
-                    Sem DTF (R$ 0)
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* 4. Valores & Margem em Tempo Real */}
-          <div className="space-y-3 pt-3 border-t border-zinc-850">
-            <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wider block">
-              4. Precificação Cobrada do Cliente & Margem Real
-            </span>
-
-            <div className="grid grid-cols-3 gap-3">
+          {/* 5. Financeiro da Venda */}
+          <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Quantidade</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
-                />
-              </div>
-
-              <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Valor Cobrado (R$)</label>
+                <label className="block text-zinc-300 font-semibold mb-1">
+                  Valor Total Cobrado (R$) *
+                </label>
                 <input
                   type="number"
                   step="0.50"
                   min={0}
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono text-base font-bold focus:outline-none focus:border-zinc-700"
                 />
               </div>
 
               <div>
-                <label className="block text-zinc-400 mb-1 font-medium">Frete Cobrado (R$)</label>
+                <label className="block text-zinc-400 mb-1 font-medium">Custo Estimado do DTF (R$)</label>
                 <input
                   type="number"
-                  step="0.50"
+                  step="0.10"
                   min={0}
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
+                  value={dtfCost}
+                  onChange={(e) => setDtfCost(parseFloat(e.target.value) || 0)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono focus:outline-none focus:border-zinc-700"
                 />
               </div>
             </div>
 
-            {/* Live Financial Breakdown Card */}
-            <div className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-              <div className="space-y-0.5">
-                <span className="text-zinc-500 block text-[11px]">CMV Insumos:</span>
-                <span className="text-zinc-300 font-semibold">{formatCurrency(estimatedCMV)}</span>
-                <span className="text-[10px] text-zinc-600 block">
+            {/* Método & Status do Pagamento */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="block text-zinc-400 mb-1 font-medium">Método de Pagamento</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(["PIX", "CARTAO", "DINHEIRO"] as const).map((m) => (
+                    <button
+                      type="button"
+                      key={m}
+                      onClick={() => setPaymentMethod(m)}
+                      className={`py-1.5 px-2 rounded-lg border text-center text-xs font-semibold transition cursor-pointer ${
+                        paymentMethod === m
+                          ? "bg-zinc-800 border-zinc-600 text-zinc-100 shadow-sm"
+                          : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      {m === "PIX" ? "Pix" : m === "CARTAO" ? "Cartão" : "Dinheiro"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 mb-1 font-medium">Status do Pagamento</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsPaid(true)}
+                    className={`py-1.5 px-2 rounded-lg border text-center text-xs font-semibold transition cursor-pointer ${
+                      isPaid
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    ✓ Pago (Confirmado)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPaid(false)}
+                    className={`py-1.5 px-2 rounded-lg border text-center text-xs font-semibold transition cursor-pointer ${
+                      !isPaid
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-300 font-bold"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400"
+                    }`}
+                  >
+                    Pendente
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Financial Margin Box */}
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 flex items-center justify-between font-mono text-xs">
+              <div>
+                <span className="text-[10px] text-zinc-500 block uppercase">Custos Insumos</span>
+                <span className="text-zinc-300 font-semibold">
+                  {formatCurrency(totalCMV)}
+                </span>
+                <span className="text-[10px] text-zinc-500 block">
                   (R$ {shirtCost.toFixed(2)} malha + R$ {currentDtfCost.toFixed(2)} dtf)
                 </span>
               </div>
 
-              <div className="space-y-0.5 text-center">
-                <span className="text-zinc-500 block text-[11px]">Taxas ({channel}):</span>
-                <span className="text-zinc-400 font-semibold">{formatCurrency(estimatedFee)}</span>
-                <span className="text-[10px] text-zinc-600 block">
-                  Líq. Venda: {formatCurrency(netAmount)}
+              <div className="text-right">
+                <span className="text-[10px] text-emerald-500 block uppercase font-bold">
+                  Lucro Líquido Real
+                </span>
+                <span className="text-emerald-400 font-bold text-base">
+                  {formatCurrency(netProfit)}
+                </span>
+                <span className="text-[10px] text-emerald-500 block">
+                  {marginPercent.toFixed(0)}% de margem no bolso
                 </span>
               </div>
-
-              <div className="space-y-0.5 text-right">
-                <span className="text-emerald-500 block text-[11px] font-bold">Lucro Líquido Real:</span>
-                <span className="text-emerald-400 font-bold text-sm">
-                  {formatCurrency(estimatedNetProfit)} ({profitMargin.toFixed(0)}%)
-                </span>
-                <span className="text-[10px] text-emerald-600 block">
-                  No bolso por peça: R$ {(estimatedNetProfit / quantity).toFixed(2)}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-zinc-400 mb-1 font-medium">
-                Observações para a Fila de Produção / Prensagem
-              </label>
-              <textarea
-                rows={2}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="ex: Prensagem a 160°C por 15s nas costas, centralizada 7cm abaixo da gola."
-                className="w-full px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
-              />
             </div>
           </div>
 
@@ -500,22 +551,25 @@ export function NewOrderModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition"
+              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
+              disabled={isPending || isUploading}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
             >
               {isPending ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Criando Pedido...
+                  Salvando Pedido...
                 </>
               ) : (
-                <>Criar Pedido e Liberar Produção</>
+                <>
+                  <Flame size={15} />
+                  Criar Pedido & Liberar Prensagem
+                </>
               )}
             </button>
           </div>

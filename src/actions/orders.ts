@@ -127,6 +127,8 @@ export async function createManualOrder(data: {
   customerEmail?: string;
   shippingAddress?: string;
   channel?: SalesChannel;
+  paymentMethod?: string;
+  isPaid?: boolean;
   itemTitle: string;
   blankShirtId?: string;
   dtfPrintId?: string;
@@ -193,22 +195,22 @@ export async function createManualOrder(data: {
         dtfPreviewUrl: data.artUrl,
         dtfPrintSize: data.printSize || "A3 (30x42cm)",
         dtfSupplier: "Birô DTF Express",
-        costPrice: data.printSize === "A4 (21x30cm)" ? 9.50 : data.printSize === "Bolso" ? 4.50 : 13.90,
+        costPrice: dtfCost || (data.printSize === "A4 (21x30cm)" ? 9.50 : data.printSize === "Bolso" ? 4.50 : 13.90),
         stockQuantity: 0,
         minStock: 5,
       },
     });
     finalDtfId = newDtf.id;
-    dtfCost = newDtf.costPrice;
   }
 
   const unitCost = shirtCost + dtfCost + packCost;
   const quantity = Math.max(1, data.quantity || 1);
   const totalProducts = data.unitPrice * quantity;
   const shippingCost = data.shippingCost || 0;
-  const channel = data.channel || SalesChannel.MANUAL;
+  const channel = data.channel || SalesChannel.WHATSAPP;
+  const isPaid = data.isPaid !== false; // Padrão: Pago
 
-  // Cálculo da comissão do canal caso venha de marketplace
+  // Taxas de canal
   let platformFee = 0;
   if (channel === SalesChannel.SHOPEE) platformFee = totalProducts * 0.20 + 4.0;
   else if (channel === SalesChannel.SHEIN) platformFee = totalProducts * 0.18;
@@ -219,20 +221,26 @@ export async function createManualOrder(data: {
   const netProfit = netAmount - estimatedCMV;
 
   const countOrders = await prisma.order.count();
-  const orderNumber =
-    channel === SalesChannel.MANUAL
-      ? `CI-ENCOMENDA-${1001 + countOrders}`
-      : `${channel.substring(0, 3)}-${1001 + countOrders}`;
+  const prefix =
+    channel === SalesChannel.WHATSAPP
+      ? "WPP"
+      : channel === SalesChannel.INSTAGRAM
+      ? "DIR"
+      : channel === SalesChannel.MANUAL
+      ? "CI"
+      : channel.substring(0, 3);
+  const orderNumber = `#${prefix}-${1001 + countOrders}`;
 
   const order = await prisma.order.create({
     data: {
       orderNumber,
       channel,
-      status: OrderStatus.PAID,
+      status: OrderStatus.WAITING_PRODUCTION,
       customerName: data.customerName,
       customerEmail: data.customerEmail,
       customerPhone: data.customerPhone,
       shippingAddress: data.shippingAddress,
+      paymentMethod: data.paymentMethod || "PIX",
       totalProducts,
       shippingCost,
       platformFee,
@@ -240,7 +248,7 @@ export async function createManualOrder(data: {
       estimatedCMV,
       netProfit,
       notes: data.notes,
-      paidAt: new Date(),
+      paidAt: isPaid ? new Date() : null,
       items: {
         create: [
           {
@@ -266,22 +274,24 @@ export async function createManualOrder(data: {
           priority: JobPriority.NORMAL,
           notes: data.artTitle
             ? `Estampa: ${data.artTitle} (${data.printSize || "A3"}). Arte: ${data.artUrl || "Ver anexo"}`
-            : "Arte personalizada sob encomenda.",
+            : "Arte sob encomenda via WhatsApp/Direct.",
         },
       },
     },
   });
 
-  // Registra no financeiro se for receita
-  await prisma.financialTransaction.create({
-    data: {
-      type: "INCOME",
-      category: "SALES_ORDER",
-      amount: netAmount,
-      description: `Venda ${orderNumber} - ${data.customerName} (${data.itemTitle})`,
-      orderId: order.id,
-    },
-  });
+  // Registra no financeiro se estiver pago
+  if (isPaid) {
+    await prisma.financialTransaction.create({
+      data: {
+        type: "INCOME",
+        category: "SALES_ORDER",
+        amount: totalProducts + shippingCost,
+        description: `Venda ${orderNumber} - ${data.customerName} (${data.paymentMethod || "Pix"})`,
+        orderId: order.id,
+      },
+    });
+  }
 
   revalidatePath("/pedidos");
   revalidatePath("/producao");

@@ -125,10 +125,12 @@ model ProductBOM {
 
 // 5. PEDIDOS E ITENS SOB ENCOMENDA
 enum SalesChannel {
+  WHATSAPP
+  INSTAGRAM
+  MANUAL
   SHOPEE
   SHEIN
   TIKTOK
-  MANUAL
 }
 
 enum OrderStatus {
@@ -145,12 +147,13 @@ enum OrderStatus {
 model Order {
   id              String         @id @default(uuid())
   orderNumber     String         @unique // ex: #CI-10492 ou SHOPEE-883921
-  channel         SalesChannel   @default(MANUAL)
-  status          OrderStatus    @default(NEW)
+  channel         SalesChannel   @default(WHATSAPP)
+  status          OrderStatus    @default(WAITING_PRODUCTION)
   customerName    String
   customerEmail   String?
   customerPhone   String?
   shippingAddress String?
+  paymentMethod   String?        @default("PIX") // PIX, CARTAO, DINHEIRO
 
   totalProducts   Float          @default(0.0)
   shippingCost    Float          @default(0.0)
