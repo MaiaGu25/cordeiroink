@@ -27,7 +27,7 @@ export function DashboardHeaderAction({ blankShirts }: DashboardHeaderActionProp
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs tracking-tight transition-all duration-150 flex items-center justify-center gap-2 shadow-sm hover:shadow-amber-500/20 active:scale-[0.98]"
+        className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold text-xs tracking-tight transition-all duration-150 flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm hover:shadow-amber-500/20 active:scale-[0.98] w-full sm:w-auto"
       >
         <Zap size={14} className="fill-zinc-950" />
         <span>+ Novo Pedido Express</span>

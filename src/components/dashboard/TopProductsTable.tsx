@@ -38,13 +38,13 @@ export function TopProductsTable({ products }: TopProductsTableProps) {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto rounded-xl">
+          <table className="w-full text-left text-xs whitespace-nowrap min-w-[380px]">
             <thead>
               <tr className="border-b border-zinc-800/60 text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
-                <th className="pb-3 font-medium">Modelo / SKU</th>
-                <th className="pb-3 font-medium text-center">Unidades</th>
-                <th className="pb-3 font-medium text-right">Faturamento</th>
+                <th className="px-2 py-2.5 sm:px-3 sm:py-3 font-medium">Modelo / SKU</th>
+                <th className="px-2 py-2.5 sm:px-3 sm:py-3 font-medium text-center">Unidades</th>
+                <th className="px-2 py-2.5 sm:px-3 sm:py-3 font-medium text-right">Faturamento</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/40">
@@ -53,7 +53,7 @@ export function TopProductsTable({ products }: TopProductsTableProps) {
                   key={p.sku}
                   className="hover:bg-zinc-800/20 transition-colors group"
                 >
-                  <td className="py-3">
+                  <td className="px-2 py-2.5 sm:px-3 sm:py-3">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-[10px] text-zinc-600 w-3">
                         {index + 1}
@@ -62,15 +62,15 @@ export function TopProductsTable({ products }: TopProductsTableProps) {
                         <img
                           src={p.imageUrl}
                           alt={p.name}
-                          className="w-9 h-9 rounded-lg object-cover border border-zinc-800"
+                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover border border-zinc-800 shrink-0"
                         />
                       ) : (
-                        <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
                           <Shirt size={14} />
                         </div>
                       )}
-                      <div>
-                        <span className="font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors block truncate max-w-[210px]">
+                      <div className="min-w-0">
+                        <span className="font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors block truncate max-w-[180px] sm:max-w-[240px]">
                           {p.name}
                         </span>
                         <span className="font-mono text-[10px] text-zinc-500">
@@ -79,10 +79,10 @@ export function TopProductsTable({ products }: TopProductsTableProps) {
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 text-center font-mono font-medium text-zinc-300">
+                  <td className="px-2 py-2.5 sm:px-3 sm:py-3 text-center font-mono font-medium text-zinc-300">
                     {p.unitsSold} un
                   </td>
-                  <td className="py-3 text-right font-mono font-semibold text-emerald-400/90">
+                  <td className="px-2 py-2.5 sm:px-3 sm:py-3 text-right font-mono font-semibold text-emerald-400/90">
                     {formatCurrency(p.totalRevenue)}
                   </td>
                 </tr>

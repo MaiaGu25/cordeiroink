@@ -43,14 +43,14 @@ export function FinanceView({ dre, transactions }: FinanceViewProps) {
           Extrato das Últimas Transações Realizadas
         </h3>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto rounded-xl">
+          <table className="w-full text-left text-xs whitespace-nowrap min-w-[520px]">
             <thead>
               <tr className="border-b border-zinc-800 text-[11px] text-zinc-400 uppercase tracking-wider font-semibold">
-                <th className="pb-3 font-medium">Data / Hora</th>
-                <th className="pb-3 font-medium">Descrição / Origem</th>
-                <th className="pb-3 font-medium">Categoria</th>
-                <th className="pb-3 font-medium text-right">Valor (BRL)</th>
+                <th className="px-2.5 py-2.5 sm:px-3 sm:py-3 font-medium">Data / Hora</th>
+                <th className="px-2.5 py-2.5 sm:px-3 sm:py-3 font-medium">Descrição / Origem</th>
+                <th className="px-2.5 py-2.5 sm:px-3 sm:py-3 font-medium">Categoria</th>
+                <th className="px-2.5 py-2.5 sm:px-3 sm:py-3 font-medium text-right">Valor (BRL)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
@@ -59,19 +59,19 @@ export function FinanceView({ dre, transactions }: FinanceViewProps) {
 
                 return (
                   <tr key={tx.id} className="hover:bg-zinc-800/30 transition">
-                    <td className="py-3 text-zinc-400 font-mono text-[11px] whitespace-nowrap">
+                    <td className="px-2.5 py-2.5 sm:px-3 sm:py-3 text-zinc-400 font-mono text-[11px] whitespace-nowrap">
                       {formatDate(tx.date)}
                     </td>
-                    <td className="py-3 text-zinc-200 font-medium">
+                    <td className="px-2.5 py-2.5 sm:px-3 sm:py-3 text-zinc-200 font-medium whitespace-nowrap">
                       {tx.description}
                     </td>
-                    <td className="py-3 whitespace-nowrap">
+                    <td className="px-2.5 py-2.5 sm:px-3 sm:py-3 whitespace-nowrap">
                       <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-950 text-zinc-400 border border-zinc-800">
                         {tx.category}
                       </span>
                     </td>
                     <td
-                      className={`py-3 text-right font-mono font-bold whitespace-nowrap ${
+                      className={`px-2.5 py-2.5 sm:px-3 sm:py-3 text-right font-mono font-bold whitespace-nowrap ${
                         isIncome ? "text-emerald-400" : "text-red-400"
                       }`}
                     >

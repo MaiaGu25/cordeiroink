@@ -194,13 +194,13 @@ export function NewOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
-        className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-[96%] sm:w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-900/40">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-800/80 bg-zinc-900/40 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <Flame size={16} />
@@ -213,7 +213,7 @@ export function NewOrderModal({
                 </span>
               </h3>
               <p className="text-xs text-zinc-500">
-                Cadastro ágil de vendas via WhatsApp e Instagram Direct sem burocracia.
+                Cadastro ágil de vendas via WhatsApp e Instagram Direct.
               </p>
             </div>
           </div>
@@ -226,11 +226,12 @@ export function NewOrderModal({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
-          {/* 1. Origem da Venda (Pill Selector) */}
-          <div>
-            <label className="block text-zinc-400 mb-1.5 font-medium">Origem da Venda</label>
-            <div className="grid grid-cols-3 gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+          <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+            {/* 1. Origem da Venda (Pill Selector) */}
+            <div>
+              <label className="block text-zinc-400 mb-1.5 font-medium">Origem da Venda</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setChannel(SalesChannel.WHATSAPP)}
@@ -545,20 +546,21 @@ export function NewOrderModal({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer Action */}
-          <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2.5">
+          {/* Sticky Pinned Footer Action */}
+          <div className="p-3 sm:p-4 border-t border-zinc-800 bg-zinc-950 shrink-0 flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer text-xs"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isPending || isUploading}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold transition shadow-sm flex items-center gap-2 cursor-pointer text-xs"
             >
               {isPending ? (
                 <>

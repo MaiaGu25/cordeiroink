@@ -19,16 +19,16 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800/60 bg-zinc-900/30 backdrop-blur-sm shadow-sm">
-      <table className="w-full text-left text-xs">
+    <div className="overflow-x-auto rounded-2xl border border-zinc-800/60 bg-zinc-900/30 backdrop-blur-sm shadow-sm">
+      <table className="w-full text-left text-xs whitespace-nowrap min-w-[600px]">
         <thead>
           <tr className="border-b border-zinc-800/60 bg-zinc-950/40 text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">
-            <th className="px-6 py-4">Pedido</th>
-            <th className="px-6 py-4">Canal</th>
-            <th className="px-6 py-4">Cliente</th>
-            <th className="px-6 py-4 text-right">Líquido / Lucro Real</th>
-            <th className="px-6 py-4 text-center">Status</th>
-            <th className="px-6 py-4 text-right">
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4">Pedido</th>
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4">Canal</th>
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4">Cliente</th>
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4 text-right">Líquido / Lucro Real</th>
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4 text-center">Status</th>
+            <th className="px-3.5 py-3 sm:px-6 sm:py-4 text-right">
               <span className="sr-only">Ações</span>
             </th>
           </tr>
@@ -51,7 +51,7 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
                 className="hover:bg-zinc-850/50 hover:bg-zinc-800/20 transition-all duration-150 cursor-pointer group"
               >
                 {/* 1. Pedido (com HoverCard flutuante revelando foto, tamanho e status de prensagem) */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                   <OrderHoverPreview order={order}>
                     <div className="inline-flex items-center gap-2 cursor-pointer">
                       <span className="font-mono font-semibold text-zinc-200 group-hover:text-amber-400 transition-colors">
@@ -65,7 +65,7 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
                 </td>
 
                 {/* 2. Canal */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 rounded-full ${channel.dot}`} />
                     <span className="text-zinc-300 font-medium">
@@ -75,14 +75,14 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
                 </td>
 
                 {/* 3. Cliente */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 whitespace-nowrap">
                   <span className="font-medium text-zinc-200">
                     {order.customerName}
                   </span>
                 </td>
 
                 {/* 4. Valor Líquido / Lucro Real */}
-                <td className="px-6 py-4 text-right whitespace-nowrap font-mono">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 text-right whitespace-nowrap font-mono">
                   <div className="font-semibold text-zinc-200">
                     {formatCurrency(order.netAmount)}
                   </div>
@@ -92,7 +92,7 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
                 </td>
 
                 {/* 5. Status */}
-                <td className="px-6 py-4 text-center whitespace-nowrap">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 text-center whitespace-nowrap">
                   <span
                     className={`inline-flex items-center text-[10px] px-2.5 py-0.5 rounded-full font-medium border ${status.bg}`}
                   >
@@ -101,7 +101,7 @@ export function OrdersTable({ orders, onSelectOrder }: OrdersTableProps) {
                 </td>
 
                 {/* Seta discreta indicando que abre gaveta lateral */}
-                <td className="px-6 py-4 text-right whitespace-nowrap text-zinc-600 group-hover:text-zinc-300 transition-colors">
+                <td className="px-3.5 py-3 sm:px-6 sm:py-4 text-right whitespace-nowrap text-zinc-600 group-hover:text-zinc-300 transition-colors">
                   <ChevronRight size={14} className="inline group-hover:translate-x-0.5 transition-transform" />
                 </td>
               </tr>

@@ -74,14 +74,14 @@ export function OrdersKanban({ orders, onSelectOrder, onRefresh }: OrdersKanbanP
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4 overflow-x-auto pb-4">
+    <div className="flex md:grid flex-nowrap md:flex-none overflow-x-auto md:overflow-visible snap-x md:snap-none md:grid-cols-3 xl:grid-cols-5 gap-4 pb-4">
       {KANBAN_COLUMNS.map((col) => {
         const columnOrders = orders.filter((o) => col.statusList.includes(o.status));
 
         return (
           <div
             key={col.key}
-            className="flex flex-col rounded-2xl bg-zinc-900/30 border border-zinc-800/50 p-3 min-w-[240px] h-[72vh]"
+            className="flex flex-col rounded-2xl bg-zinc-900/30 border border-zinc-800/50 p-3 w-[82vw] min-w-[270px] max-w-[320px] md:w-auto md:min-w-0 md:max-w-none shrink-0 md:shrink snap-center h-[72vh]"
           >
             {/* Column Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/60">
