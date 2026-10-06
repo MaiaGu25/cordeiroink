@@ -31,10 +31,10 @@ export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProp
         </div>
         <div>
           <h4 className="text-sm font-semibold text-zinc-200">
-            Nenhuma arte ou folha DTF cadastrada
+            Nenhum item cadastrado ainda. Clique no botão acima para adicionar.
           </h4>
           <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
-            Cadastre as folhas de impressão DTF disponíveis (A3, A4, Bolso) ou estampas para controle de reposição e baixa automática.
+            Cadastre as estampas DTF e artes enviadas para controle de saldo de folhas e vinculação às peças sob encomenda.
           </p>
         </div>
         {onAddNew && (
@@ -42,7 +42,7 @@ export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProp
             onClick={onAddNew}
             className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition shadow-sm cursor-pointer"
           >
-            + Cadastrar Nova Arte / DTF
+            + Nova Estampa / DTF
           </button>
         )}
       </div>
@@ -61,17 +61,21 @@ export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProp
             className="group relative rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-zinc-700/80 overflow-hidden cursor-pointer transition-all duration-300 ease-out shadow-sm hover:shadow-xl hover:shadow-black/50 flex flex-col"
           >
             {/* Clean Visual Image Container with Smooth Hover Zoom */}
-            <div className="relative h-64 w-full bg-zinc-950 overflow-hidden">
+            <div className="relative h-64 w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
               {item.dtfPreviewUrl ? (
                 <img
                   src={item.dtfPreviewUrl}
                   alt={item.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                  onError={(e) => {
+                    // Fallback se a imagem quebrar
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
                   <ImageIcon size={32} />
-                  <span className="text-[10px] mt-1 font-mono">Sem Arte</span>
+                  <span className="text-[10px] mt-1 font-mono">Sem Imagem</span>
                 </div>
               )}
 

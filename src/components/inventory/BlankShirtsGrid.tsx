@@ -35,10 +35,10 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew }: BlankShirtsGridPr
         </div>
         <div>
           <h4 className="text-sm font-semibold text-zinc-200">
-            Nenhuma camiseta lisa cadastrada no estoque
+            Nenhum item cadastrado ainda. Clique no botão acima para adicionar.
           </h4>
           <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
-            Cadastre os modelos (ex: Streetwear Oversized 26.1, Casual 30.1), cores e grade de tamanhos para controlar o saldo físico e calcular a margem dos pedidos.
+            Cadastre seus modelos de camiseta (ex: Tradicional 30.1, Oversized), cores e tamanhos para controlar seu estoque real.
           </p>
         </div>
         {onAddNew && (
@@ -46,7 +46,7 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew }: BlankShirtsGridPr
             onClick={onAddNew}
             className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition shadow-sm cursor-pointer"
           >
-            + Cadastrar Primeira Camiseta Lisa
+            + Cadastrar Camiseta Lisa
           </button>
         )}
       </div>

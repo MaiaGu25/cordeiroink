@@ -28,10 +28,10 @@ export function PackagingList({ items, onAdjust, onAddNew }: PackagingListProps)
         </div>
         <div>
           <h4 className="text-sm font-semibold text-zinc-200">
-            Nenhuma embalagem ou insumo cadastrado
+            Nenhum item cadastrado ainda. Clique no botão acima para adicionar.
           </h4>
           <p className="text-xs text-zinc-500 mt-1 max-w-md mx-auto">
-            Cadastre os insumos de embalagem (sacos zip lock, envelopes, tags kraft, adesivos e brindes) para compor o custo de expedição dos pedidos.
+            Cadastre os insumos de embalagem (sacos zip lock, tags kraft, adesivos e brindes) para compor o custo de expedição dos pedidos.
           </p>
         </div>
         {onAddNew && (

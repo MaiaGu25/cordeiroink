@@ -134,3 +134,54 @@ export async function createPurchaseOrder(data: {
   revalidatePath("/compras");
   return po;
 }
+
+export async function createSupplier(data: {
+  name: string;
+  category: string;
+  contactName?: string;
+  whatsapp?: string;
+  email?: string;
+  pixKey?: string;
+  notes?: string;
+  leadTimeDays?: number;
+}) {
+  const supplier = await prisma.supplier.create({
+    data: {
+      name: data.name,
+      category: data.category,
+      contactName: data.contactName,
+      whatsapp: data.whatsapp,
+      email: data.email,
+      pixKey: data.pixKey,
+      notes: data.notes,
+      leadTimeDays: data.leadTimeDays || 3,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      action: "SUPPLIER_CREATED",
+      entity: "Supplier",
+      entityId: supplier.id,
+      newPayload: JSON.stringify({
+        name: supplier.name,
+        category: supplier.category,
+        whatsapp: supplier.whatsapp,
+      }),
+    },
+  });
+
+  revalidatePath("/compras");
+  revalidatePath("/estoque");
+  return supplier;
+}
+
+export async function deleteSupplier(id: string) {
+  await prisma.supplier.delete({
+    where: { id },
+  });
+
+  revalidatePath("/compras");
+  revalidatePath("/estoque");
+  return { success: true };
+}

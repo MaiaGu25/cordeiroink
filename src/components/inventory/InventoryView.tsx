@@ -18,6 +18,7 @@ interface InventoryViewProps {
   dtfPrints: any[];
   supplies: any[];
   criticalItems: any[];
+  suppliers?: any[];
 }
 
 export function InventoryView({
@@ -25,6 +26,7 @@ export function InventoryView({
   dtfPrints,
   supplies,
   criticalItems,
+  suppliers = [],
 }: InventoryViewProps) {
   const router = useRouter();
   const [isResetPending, startResetTransition] = useTransition();
@@ -157,14 +159,32 @@ export function InventoryView({
             <span className="hidden xl:inline text-[11px]">Zerar Banco</span>
           </button>
 
-          {/* Primary Action Button: Cadastrar Insumo / Camiseta Lisa */}
-          <button
-            onClick={() => handleOpenNewRawItem()}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <Plus size={14} />
-            <span>+ Cadastrar Insumo / Camiseta Lisa</span>
-          </button>
+          {/* Primary Action Buttons per Tab */}
+          {activeTab === "DTF" ? (
+            <button
+              onClick={() => setIsNewDtfOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>+ Nova Estampa / DTF</span>
+            </button>
+          ) : activeTab === "SHIRTS" ? (
+            <button
+              onClick={() => handleOpenNewRawItem(RawItemType.BLANK_SHIRT)}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>+ Cadastrar Camiseta Lisa</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => handleOpenNewRawItem(RawItemType.PACKAGING)}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs transition-colors shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>+ Cadastrar Embalagem / Insumo</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -213,6 +233,7 @@ export function InventoryView({
         isOpen={isNewDtfOpen}
         onClose={() => setIsNewDtfOpen(false)}
         onCreated={refreshData}
+        suppliers={suppliers}
       />
     </div>
   );

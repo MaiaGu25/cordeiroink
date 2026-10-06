@@ -248,6 +248,8 @@ model Supplier {
   contactName String?
   whatsapp    String?
   email       String?
+  pixKey      String?
+  notes       String?
   leadTimeDays Int            @default(5)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

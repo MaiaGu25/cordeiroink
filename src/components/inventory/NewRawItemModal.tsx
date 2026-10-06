@@ -14,11 +14,12 @@ interface NewRawItemModalProps {
 }
 
 const SHIRT_MODEL_SUGGESTIONS = [
+  "Camiseta Tradicional 30.1",
+  "Camiseta Oversized Streetwear",
   "Streetwear Oversized 26.1",
   "Casual 30.1 Penteada",
   "Heavyweight 28.1",
   "Moletom Canguru 3 Cabos",
-  "Regata Oversized",
 ];
 
 const SHIRT_COLOR_SUGGESTIONS = [

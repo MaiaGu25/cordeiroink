@@ -5,19 +5,25 @@ import { RawItemType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getInventoryItems() {
-  const items = await prisma.rawItem.findMany({
-    include: {
-      supplier: true,
-      _count: {
-        select: {
-          bomItems: true,
-          orderItemBlankShirts: true,
-          orderItemDtfPrints: true,
+  const [items, suppliersList] = await Promise.all([
+    prisma.rawItem.findMany({
+      include: {
+        supplier: true,
+        _count: {
+          select: {
+            bomItems: true,
+            orderItemBlankShirts: true,
+            orderItemDtfPrints: true,
+          },
         },
       },
-    },
-    orderBy: [{ type: "asc" }, { name: "asc" }],
-  });
+      orderBy: [{ type: "asc" }, { name: "asc" }],
+    }),
+    prisma.supplier.findMany({
+      select: { id: true, name: true, category: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const blankShirts = items.filter((i) => i.type === RawItemType.BLANK_SHIRT);
   const dtfPrints = items.filter((i) => i.type === RawItemType.DTF_PRINT);
@@ -36,6 +42,7 @@ export async function getInventoryItems() {
     dtfPrints,
     supplies,
     criticalItems,
+    suppliers: suppliersList,
   };
 }
 
@@ -259,6 +266,7 @@ export async function resetDatabaseToZero() {
   await prisma.productVariant.deleteMany();
   await prisma.product.deleteMany();
   await prisma.rawItem.deleteMany();
+  await prisma.supplier.deleteMany();
 
   // Garante que o administrador existe para uso
   const admin = await prisma.user.findFirst({

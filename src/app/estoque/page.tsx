@@ -4,7 +4,7 @@ import { InventoryView } from "@/components/inventory/InventoryView";
 export const dynamic = "force-dynamic";
 
 export default async function EstoquePage() {
-  const { blankShirts, dtfPrints, supplies, criticalItems } =
+  const { blankShirts, dtfPrints, supplies, criticalItems, suppliers } =
     await getInventoryItems();
 
   return (
@@ -28,6 +28,7 @@ export default async function EstoquePage() {
         dtfPrints={dtfPrints}
         supplies={supplies}
         criticalItems={criticalItems}
+        suppliers={suppliers}
       />
     </div>
   );
