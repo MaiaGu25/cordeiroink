@@ -21,9 +21,9 @@ function getDatabaseUrl() {
 
 const dbUrl = getDatabaseUrl();
 const targetProvider =
-  dbUrl.startsWith("postgres://") || dbUrl.startsWith("postgresql://")
-    ? "postgresql"
-    : "sqlite";
+  dbUrl.startsWith("file:")
+    ? "sqlite"
+    : "postgresql";
 
 let schema = fs.readFileSync(schemaPath, "utf-8");
 const currentMatch = schema.match(/provider\s*=\s*"([^"]+)"/g);
