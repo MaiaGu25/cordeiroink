@@ -1,11 +1,24 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, TransactionType, TransactionCategory } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function getProductionJobs() {
   return await prisma.productionJob.findMany({
+    where: {
+      stepCompleted: false,
+      order: {
+        status: {
+          in: [
+            OrderStatus.PAID,
+            OrderStatus.WAITING_PRODUCTION,
+            OrderStatus.IN_PRODUCTION,
+          ],
+        },
+      },
+    },
     include: {
       order: {
         include: {
@@ -184,15 +197,22 @@ export async function completeProductionJob(jobId: string) {
   });
 
   // Registra no Audit Log
+  const user = await getCurrentUser();
   await prisma.auditLog.create({
     data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      orderId: job.orderId,
       action: "PRODUCTION_COMPLETED_STOCK_DEDUCTED",
       entity: "ProductionJob",
       entityId: jobId,
+      details: `Produção 100% concluída e insumos baixados do estoque por ${user.name}`,
       newPayload: JSON.stringify({
         orderNumber: job.order.orderNumber,
         stockDeducted: true,
         completedAt: new Date(),
+        completedBy: user.name,
       }),
     },
   });
@@ -200,6 +220,103 @@ export async function completeProductionJob(jobId: string) {
   revalidatePath("/producao");
   revalidatePath("/pedidos");
   revalidatePath("/estoque");
+  revalidatePath("/historico");
+  revalidatePath("/");
+
+  return updatedJob;
+}
+
+export async function registerProductionLoss(jobId: string, reason: string) {
+  if (!reason || !reason.trim()) {
+    throw new Error("Informe o motivo da perda ou retrabalho para auditoria.");
+  }
+
+  const user = await getCurrentUser();
+  const job = await prisma.productionJob.findUnique({
+    where: { id: jobId },
+    include: {
+      order: {
+        include: {
+          items: {
+            include: {
+              blankShirt: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!job) throw new Error("Ordem de produção não encontrada");
+
+  // Localiza a camiseta usada no primeiro item do pedido
+  const firstItem = job.order.items[0];
+  const blankShirtId = firstItem?.blankShirtId;
+  const blankShirt = firstItem?.blankShirt;
+
+  // 1. Desconta imediatamente +1 camiseta do estoque físico
+  if (blankShirtId) {
+    await prisma.rawItem.update({
+      where: { id: blankShirtId },
+      data: {
+        stockQuantity: {
+          decrement: 1,
+        },
+      },
+    });
+  }
+
+  // 2. Incrementa o contador de retrabalhos da OS
+  const updatedJob = await prisma.productionJob.update({
+    where: { id: jobId },
+    data: {
+      reworkCount: {
+        increment: 1,
+      },
+      lossReason: reason.trim(),
+    },
+  });
+
+  // 3. Registra transação financeira como despesa operacional da perda
+  const lossCost = blankShirt?.costPrice || 25.0;
+  await prisma.financialTransaction.create({
+    data: {
+      type: TransactionType.EXPENSE,
+      category: TransactionCategory.OPERATIONAL,
+      amount: lossCost,
+      description: `Perda/Retrabalho na Prensa: Pedido ${job.order.orderNumber} - Motivo: ${reason.trim()}`,
+      orderId: job.orderId,
+    },
+  });
+
+  // 4. Registra no AuditLog
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      orderId: job.orderId,
+      action: "REWORK_LOGGED",
+      entity: "ProductionJob",
+      entityId: jobId,
+      details: `Perda/Retrabalho registrado por ${user.name}. Motivo: "${reason.trim()}". Descontada +1 camiseta (${
+        blankShirt?.name || "Camiseta Lisa"
+      }) do estoque físico.`,
+      newPayload: JSON.stringify({
+        orderNumber: job.order.orderNumber,
+        lossReason: reason.trim(),
+        reworkCount: job.reworkCount + 1,
+        lossCost,
+        loggedBy: user.name,
+      }),
+    },
+  });
+
+  revalidatePath("/producao");
+  revalidatePath("/estoque");
+  revalidatePath("/financeiro");
+  revalidatePath("/pedidos");
+  revalidatePath("/historico");
   revalidatePath("/");
 
   return updatedJob;

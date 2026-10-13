@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   Sheet,
   SheetContent,
@@ -25,7 +25,14 @@ import {
   Layers,
   ArrowRight,
   ExternalLink,
+  Edit,
+  XCircle,
+  Clock,
+  RotateCcw,
 } from "lucide-react";
+import { OrderTimeline } from "./OrderTimeline";
+import { EditOrderModal } from "./EditOrderModal";
+import { CancelOrderModal } from "./CancelOrderModal";
 
 interface OrderSheetProps {
   order: any | null;
@@ -41,6 +48,8 @@ export function OrderSheet({
   onOrderUpdated,
 }: OrderSheetProps) {
   const [isPending, startTransition] = useTransition();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   if (!order) return null;
 
@@ -94,6 +103,47 @@ export function OrderSheet({
 
         {/* Content Body */}
         <div className="flex-1 p-6 space-y-6">
+          {/* Cancellation Banner */}
+          {order.status === "CANCELLED" && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-900/50 text-xs text-red-200 space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-red-400 text-sm">
+                <XCircle size={16} />
+                <span>Pedido Cancelado</span>
+              </div>
+              <p className="text-[11px] text-zinc-300">
+                Cancelado em {formatDate(order.cancelledAt)} por{" "}
+                <strong className="text-zinc-100">{order.cancelledBy || "Operador"}</strong>.
+              </p>
+              {order.cancelReason && (
+                <div className="mt-1 pt-1.5 border-t border-red-900/40 text-[11px] text-red-300 italic">
+                  Motivo: &ldquo;{order.cancelReason}&rdquo;
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Actions: Edit & Cancel */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditOpen(true)}
+              disabled={order.status === "CANCELLED"}
+              className="flex-1 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Edit size={13} className="text-amber-400" />
+              <span>Editar Pedido</span>
+            </button>
+
+            {order.status !== "CANCELLED" && (
+              <button
+                onClick={() => setIsCancelOpen(true)}
+                className="py-2 px-3 rounded-xl bg-zinc-900 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-900/50 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <XCircle size={13} className="text-red-400" />
+                <span>Cancelar</span>
+              </button>
+            )}
+          </div>
+
           {/* Customer & Delivery Section */}
           <div className="space-y-3">
             <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -272,12 +322,21 @@ export function OrderSheet({
               </div>
             </div>
           </div>
+
+          {/* Trilha de Auditoria & Histórico */}
+          <div className="space-y-3 pt-2 border-t border-zinc-850">
+            <h4 className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock size={13} className="text-zinc-400" />
+              Histórico & Trilha de Auditoria
+            </h4>
+            <OrderTimeline logs={order.auditLogs} />
+          </div>
         </div>
 
         {/* Footer / Quick Status Actions */}
         <SheetFooter className="flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            {order.status !== "PAID" && (
+            {order.status !== "CANCELLED" && order.status !== "PAID" && (
               <button
                 disabled={isPending}
                 onClick={() => handleStatusChange(OrderStatus.PAID)}
@@ -286,7 +345,7 @@ export function OrderSheet({
                 Marcar Pago
               </button>
             )}
-            {order.status !== "IN_PRODUCTION" && (
+            {order.status !== "CANCELLED" && order.status !== "IN_PRODUCTION" && (
               <button
                 disabled={isPending}
                 onClick={() => handleStatusChange(OrderStatus.IN_PRODUCTION)}
@@ -295,7 +354,7 @@ export function OrderSheet({
                 Pôr na Prensa
               </button>
             )}
-            {order.status !== "READY" && (
+            {order.status !== "CANCELLED" && order.status !== "READY" && (
               <button
                 disabled={isPending}
                 onClick={() => handleStatusChange(OrderStatus.READY)}
@@ -304,7 +363,7 @@ export function OrderSheet({
                 Pronto / Embalado
               </button>
             )}
-            {order.status !== "SHIPPED" && (
+            {order.status !== "CANCELLED" && order.status !== "SHIPPED" && (
               <button
                 disabled={isPending}
                 onClick={() => handleStatusChange(OrderStatus.SHIPPED)}
@@ -323,6 +382,28 @@ export function OrderSheet({
           </button>
         </SheetFooter>
       </SheetContent>
+
+      {/* Edit Order Modal */}
+      <EditOrderModal
+        order={order}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        onSaved={() => {
+          if (onOrderUpdated) onOrderUpdated();
+          onClose();
+        }}
+      />
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        order={order}
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
+        onCancelled={() => {
+          if (onOrderUpdated) onOrderUpdated();
+          onClose();
+        }}
+      />
     </Sheet>
   );
 }

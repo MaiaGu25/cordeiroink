@@ -16,13 +16,14 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  role      Role     @default(ADMIN)
-  avatarUrl String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  supabaseUid String?  @unique
+  name        String
+  email       String   @unique
+  role        Role     @default(ADMIN)
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   auditLogs AuditLog[]
 }
@@ -60,6 +61,8 @@ model RawItem {
   // Fornecedor padrão opcional
   supplierId    String?
   supplier      Supplier?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  isActive      Boolean     @default(true)
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -165,12 +168,16 @@ model Order {
   notes           String?
   paidAt          DateTime?
   shippedAt       DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  cancelledBy     String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   items           OrderItem[]
   productionJob   ProductionJob?
   financialTx     FinancialTransaction[]
+  auditLogs       AuditLog[]
 }
 
 // ITEM DO PEDIDO: Adaptado para artes sob encomenda sem catálogo prévio
@@ -234,6 +241,8 @@ model ProductionJob {
   stepCompleted   Boolean     @default(false) // 6. Concluído & Baixa de Estoque
 
   stockDeducted   Boolean     @default(false)
+  reworkCount     Int         @default(0)
+  lossReason      String?
 
   notes           String?
   assignedTo      String?
@@ -337,9 +346,14 @@ model AuditLog {
   id          String   @id @default(uuid())
   userId      String?
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action      String
+  userName    String?
+  userEmail   String?
+  action      String   // ORDER_CREATED, ORDER_UPDATED, ORDER_CANCELLED, REWORK_LOGGED, PRODUCTION_COMPLETED, STOCK_ADJUSTED, etc.
   entity      String
   entityId    String
+  orderId     String?
+  order       Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  details     String?  // Human readable description
   oldPayload  String?
   newPayload  String?
   createdAt   DateTime @default(now())

@@ -1,11 +1,14 @@
 "use client";
 
-import { X, User, MapPin, Phone, Mail, ShoppingBag, ShieldCheck, Flame, ArrowRight, DollarSign } from "lucide-react";
+import { X, User, MapPin, Phone, Mail, ShoppingBag, ShieldCheck, Flame, ArrowRight, DollarSign, Edit, XCircle, Clock } from "lucide-react";
 import { formatCurrency, formatDate, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
 import { OrderStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/actions/orders";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
+import { OrderTimeline } from "./OrderTimeline";
+import { EditOrderModal } from "./EditOrderModal";
+import { CancelOrderModal } from "./CancelOrderModal";
 
 interface OrderDetailModalProps {
   order: any | null;
@@ -15,6 +18,8 @@ interface OrderDetailModalProps {
 
 export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetailModalProps) {
   const [isPending, startTransition] = useTransition();
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   if (!order) return null;
 
@@ -74,6 +79,47 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
 
         {/* Modal Content Scrollable */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Cancellation Banner */}
+          {order.status === "CANCELLED" && (
+            <div className="p-4 rounded-xl bg-red-950/30 border border-red-900/50 text-xs text-red-200 space-y-1.5">
+              <div className="flex items-center gap-2 font-bold text-red-400 text-sm">
+                <XCircle size={16} />
+                <span>Pedido Cancelado</span>
+              </div>
+              <p className="text-[11px] text-zinc-300">
+                Cancelado em {formatDate(order.cancelledAt)} por{" "}
+                <strong className="text-zinc-100">{order.cancelledBy || "Operador"}</strong>.
+              </p>
+              {order.cancelReason && (
+                <div className="mt-1 pt-1.5 border-t border-red-900/40 text-[11px] text-red-300 italic">
+                  Motivo: &ldquo;{order.cancelReason}&rdquo;
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Actions: Edit & Cancel */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditOpen(true)}
+              disabled={order.status === "CANCELLED"}
+              className="flex-1 py-2 px-3 rounded-xl bg-zinc-950 hover:bg-zinc-800 text-zinc-200 border border-zinc-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Edit size={13} className="text-amber-400" />
+              <span>Editar Pedido</span>
+            </button>
+
+            {order.status !== "CANCELLED" && (
+              <button
+                onClick={() => setIsCancelOpen(true)}
+                className="py-2 px-3 rounded-xl bg-zinc-950 hover:bg-red-950/40 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-900/50 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
+              >
+                <XCircle size={13} className="text-red-400" />
+                <span>Cancelar</span>
+              </button>
+            )}
+          </div>
+
           {/* Customer & Shipping Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-xl bg-zinc-950/50 border border-zinc-800 space-y-2">
@@ -139,14 +185,14 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
                     )}
                     <div>
                       <div className="text-xs font-semibold text-zinc-100">
-                        {item.variant?.product?.name || "Produto"}
+                        {item.variant?.product?.name || item.title || "Produto"}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] font-mono text-zinc-400">
-                          SKU: {item.variant?.sku}
+                          SKU: {item.variant?.sku || "ENCOMENDA"}
                         </span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-300">
-                          {item.variant?.title}
+                          {item.variant?.title || item.shirtSize || "M"}
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-500 mt-1">
@@ -198,6 +244,15 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
               <span className="font-mono">{formatCurrency(order.netProfit)}</span>
             </div>
           </div>
+
+          {/* Trilha de Auditoria & Histórico */}
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock size={13} className="text-zinc-400" />
+              Histórico & Trilha de Auditoria
+            </h4>
+            <OrderTimeline logs={order.auditLogs} />
+          </div>
         </div>
 
         {/* Modal Actions Footer: Quick Status Transitions */}
@@ -205,7 +260,7 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
           <div className="flex items-center gap-2">
             <span className="text-xs text-zinc-400">Alterar Status:</span>
             <div className="flex flex-wrap gap-1.5">
-              {order.status !== "PAID" && (
+              {order.status !== "CANCELLED" && order.status !== "PAID" && (
                 <button
                   disabled={isPending}
                   onClick={() => handleStatusChange(OrderStatus.PAID)}
@@ -214,7 +269,7 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
                   Marcar Pago
                 </button>
               )}
-              {order.status !== "IN_PRODUCTION" && (
+              {order.status !== "CANCELLED" && order.status !== "IN_PRODUCTION" && (
                 <button
                   disabled={isPending}
                   onClick={() => handleStatusChange(OrderStatus.IN_PRODUCTION)}
@@ -223,7 +278,7 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
                   Pôr na Produção
                 </button>
               )}
-              {order.status !== "READY" && (
+              {order.status !== "CANCELLED" && order.status !== "READY" && (
                 <button
                   disabled={isPending}
                   onClick={() => handleStatusChange(OrderStatus.READY)}
@@ -232,7 +287,7 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
                   Pronto / Embalado
                 </button>
               )}
-              {order.status !== "SHIPPED" && (
+              {order.status !== "CANCELLED" && order.status !== "SHIPPED" && (
                 <button
                   disabled={isPending}
                   onClick={() => handleStatusChange(OrderStatus.SHIPPED)}
@@ -252,6 +307,28 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
           </button>
         </div>
       </div>
+
+      {/* Edit Order Modal */}
+      <EditOrderModal
+        order={order}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        onSaved={() => {
+          if (onOrderUpdated) onOrderUpdated();
+          onClose();
+        }}
+      />
+
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        order={order}
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
+        onCancelled={() => {
+          if (onOrderUpdated) onOrderUpdated();
+          onClose();
+        }}
+      />
     </div>
   );
 }

@@ -13,12 +13,15 @@ import {
   Truck,
   TrendingUp,
   Sparkles,
+  History,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
 import { GlobalCommandSearch } from "./GlobalCommandSearch";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import {
   Sheet,
   SheetContent,
@@ -58,6 +61,11 @@ export function Topbar({
       icon: Flame,
       badge: inProductionCount > 0 ? inProductionCount : undefined,
       badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
+    },
+    {
+      label: "Histórico & Arquivo",
+      href: "/historico",
+      icon: History,
     },
     {
       label: "Estoque & Insumos",
@@ -319,24 +327,38 @@ export function Topbar({
             </div>
           </div>
 
-          {/* User Session Profile */}
-          <div className="p-3 border-t border-zinc-800/80 flex items-center gap-3">
-            <div className="relative">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                alt="Mateus Cordeiro"
-                className="w-8 h-8 rounded-full object-cover border border-zinc-700"
-              />
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-zinc-950 rounded-full" />
+          {/* User Session Profile & Sign Out */}
+          <div className="p-3 border-t border-zinc-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-3 truncate">
+              <div className="relative shrink-0">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                  alt="Mateus Cordeiro"
+                  className="w-8 h-8 rounded-full object-cover border border-zinc-700"
+                />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-zinc-950 rounded-full" />
+              </div>
+              <div className="flex flex-col truncate">
+                <span className="text-xs font-semibold text-zinc-200 truncate">
+                  Mateus Cordeiro
+                </span>
+                <span className="text-[10px] text-amber-400 uppercase font-medium">
+                  Admin / Fundador
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col truncate">
-              <span className="text-xs font-semibold text-zinc-200 truncate">
-                Mateus Cordeiro
-              </span>
-              <span className="text-[10px] text-amber-400 uppercase font-medium">
-                Admin / Fundador
-              </span>
-            </div>
+
+            <button
+              onClick={async () => {
+                const supabase = createClient();
+                await supabase.auth.signOut();
+                window.location.href = "/login";
+              }}
+              title="Sair do sistema (Logout)"
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition cursor-pointer"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </SheetContent>
       </Sheet>

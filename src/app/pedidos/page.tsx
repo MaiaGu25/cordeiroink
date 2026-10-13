@@ -28,6 +28,9 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
           },
         },
         productionJob: true,
+        auditLogs: {
+          orderBy: { createdAt: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),

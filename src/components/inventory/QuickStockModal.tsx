@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Package, Loader2 } from "lucide-react";
+import { X, Package, Loader2, Edit } from "lucide-react";
 import { adjustStock } from "@/actions/inventory";
 import { toast } from "sonner";
 
@@ -9,12 +9,14 @@ interface QuickStockModalProps {
   item: any | null;
   onClose: () => void;
   onStockUpdated?: () => void;
+  onOpenEdit?: (item: any) => void;
 }
 
 export function QuickStockModal({
   item,
   onClose,
   onStockUpdated,
+  onOpenEdit,
 }: QuickStockModalProps) {
   const [isPending, startTransition] = useTransition();
   const [newQuantity, setNewQuantity] = useState<number>(
@@ -135,28 +137,44 @@ export function QuickStockModal({
             </select>
           </div>
 
-          <div className="pt-4 border-t border-zinc-800 flex items-center justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  Salvando Ajuste...
-                </>
-              ) : (
-                <>Confirmar Ajuste</>
-              )}
-            </button>
+          <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-2.5">
+            {onOpenEdit ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenEdit(item);
+                }}
+                className="px-3 py-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Edit size={12} />
+                <span>Editar Dados</span>
+              </button>
+            ) : <div />}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Salvando Ajuste...
+                  </>
+                ) : (
+                  <>Confirmar Ajuste</>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

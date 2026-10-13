@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { RawItemType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function getInventoryItems() {
   const [items, suppliersList] = await Promise.all([
@@ -47,6 +48,7 @@ export async function getInventoryItems() {
 }
 
 export async function adjustStock(rawItemId: string, newQuantity: number, reason?: string) {
+  const user = await getCurrentUser();
   const current = await prisma.rawItem.findUnique({
     where: { id: rawItemId },
   });
@@ -62,14 +64,21 @@ export async function adjustStock(rawItemId: string, newQuantity: number, reason
 
   await prisma.auditLog.create({
     data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
       action: "STOCK_ADJUSTED",
       entity: "RawItem",
       entityId: rawItemId,
+      details: `Ajuste manual de estoque de "${current.name}": de ${current.stockQuantity} para ${newQuantity} (${
+        diff > 0 ? "+" : ""
+      }${diff} un) por ${user.name}. Motivo: ${reason || "Balanço físico"}`,
       oldPayload: JSON.stringify({ stockQuantity: current.stockQuantity }),
       newPayload: JSON.stringify({
         stockQuantity: newQuantity,
         difference: diff,
         reason: reason || "Ajuste manual de inventário",
+        adjustedBy: user.name,
       }),
     },
   });
@@ -303,4 +312,136 @@ export async function resetDatabaseToZero() {
   revalidatePath("/");
 
   return { success: true, message: "Banco zerado com sucesso!" };
+}
+
+export async function updateRawItem(id: string, data: {
+  name?: string;
+  shirtModel?: string;
+  shirtColor?: string;
+  shirtSize?: string;
+  dtfCode?: string;
+  dtfPrintSize?: string;
+  dtfSupplier?: string;
+  costPrice?: number;
+  minStock?: number;
+  isActive?: boolean;
+}) {
+  const user = await getCurrentUser();
+  const existing = await prisma.rawItem.findUnique({ where: { id } });
+  if (!existing) throw new Error("Insumo não encontrado");
+
+  const updated = await prisma.rawItem.update({
+    where: { id },
+    data: {
+      name: data.name ?? existing.name,
+      shirtModel: data.shirtModel ?? existing.shirtModel,
+      shirtColor: data.shirtColor ?? existing.shirtColor,
+      shirtSize: data.shirtSize ?? existing.shirtSize,
+      dtfCode: data.dtfCode ?? existing.dtfCode,
+      dtfPrintSize: data.dtfPrintSize ?? existing.dtfPrintSize,
+      dtfSupplier: data.dtfSupplier ?? existing.dtfSupplier,
+      costPrice: data.costPrice !== undefined ? data.costPrice : existing.costPrice,
+      minStock: data.minStock !== undefined ? data.minStock : existing.minStock,
+      isActive: data.isActive !== undefined ? data.isActive : existing.isActive,
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "RAW_ITEM_UPDATED",
+      entity: "RawItem",
+      entityId: id,
+      details: `Insumo "${updated.name}" atualizado por ${user.name}`,
+      oldPayload: JSON.stringify(existing),
+      newPayload: JSON.stringify(updated),
+    },
+  });
+
+  revalidatePath("/estoque");
+  revalidatePath("/pedidos");
+  revalidatePath("/producao");
+  revalidatePath("/");
+  return updated;
+}
+
+export async function deleteRawItem(id: string) {
+  const user = await getCurrentUser();
+  const item = await prisma.rawItem.findUnique({
+    where: { id },
+    include: {
+      _count: {
+        select: {
+          orderItemBlankShirts: true,
+          orderItemDtfPrints: true,
+          orderItemPackagings: true,
+          bomItems: true,
+          purchaseItems: true,
+        },
+      },
+    },
+  });
+
+  if (!item) throw new Error("Insumo não encontrado");
+
+  const usages =
+    item._count.orderItemBlankShirts +
+    item._count.orderItemDtfPrints +
+    item._count.orderItemPackagings +
+    item._count.bomItems +
+    item._count.purchaseItems;
+
+  if (usages > 0) {
+    throw new Error(
+      `O insumo "${item.name}" possui histórico em ${usages} pedido(s) ou registros do sistema e não pode ser excluído permanentemente para não corromper relatórios passados. Utilize a opção de Inativar/Arquivar.`
+    );
+  }
+
+  await prisma.rawItem.delete({ where: { id } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "RAW_ITEM_DELETED",
+      entity: "RawItem",
+      entityId: id,
+      details: `Insumo "${item.name}" (${item.sku}) excluído definitivamente por ${user.name}`,
+    },
+  });
+
+  revalidatePath("/estoque");
+  revalidatePath("/pedidos");
+  revalidatePath("/producao");
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function toggleRawItemActive(id: string, isActive: boolean) {
+  const user = await getCurrentUser();
+  const updated = await prisma.rawItem.update({
+    where: { id },
+    data: { isActive },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      action: isActive ? "RAW_ITEM_ACTIVATED" : "RAW_ITEM_DEACTIVATED",
+      entity: "RawItem",
+      entityId: id,
+      details: `Insumo "${updated.name}" ${isActive ? "ativado" : "inativado/arquivado"} por ${user.name}`,
+    },
+  });
+
+  revalidatePath("/estoque");
+  revalidatePath("/pedidos");
+  revalidatePath("/producao");
+  revalidatePath("/");
+  return updated;
 }

@@ -8,6 +8,7 @@ import { PackagingList } from "./PackagingList";
 import { QuickStockModal } from "./QuickStockModal";
 import { NewDtfModal } from "./NewDtfModal";
 import { NewRawItemModal } from "./NewRawItemModal";
+import { EditRawItemModal } from "./EditRawItemModal";
 import { resetDatabaseToZero } from "@/actions/inventory";
 import { RawItemType } from "@prisma/client";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,7 @@ export function InventoryView({
 
   const [activeTab, setActiveTab] = useState<"SHIRTS" | "DTF" | "PACKAGING">("SHIRTS");
   const [selectedItemToAdjust, setSelectedItemToAdjust] = useState<any | null>(null);
+  const [selectedItemToEdit, setSelectedItemToEdit] = useState<any | null>(null);
   const [isNewRawItemOpen, setIsNewRawItemOpen] = useState(false);
   const [isNewDtfOpen, setIsNewDtfOpen] = useState(false);
   const [newRawItemDefaultType, setNewRawItemDefaultType] = useState<RawItemType>(RawItemType.BLANK_SHIRT);
@@ -226,6 +228,15 @@ export function InventoryView({
         item={selectedItemToAdjust}
         onClose={() => setSelectedItemToAdjust(null)}
         onStockUpdated={refreshData}
+        onOpenEdit={(item) => setSelectedItemToEdit(item)}
+      />
+
+      {/* Edit Raw Item Modal */}
+      <EditRawItemModal
+        item={selectedItemToEdit}
+        isOpen={Boolean(selectedItemToEdit)}
+        onClose={() => setSelectedItemToEdit(null)}
+        onUpdated={refreshData}
       />
 
       {/* New DTF Art Modal */}
