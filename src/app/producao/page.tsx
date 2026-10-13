@@ -11,14 +11,14 @@ export default async function ProducaoPage() {
       <div>
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-            Fila de Produção & Prensagem Térmica DTF
+            Fila de Produção
           </h1>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            {jobs.filter((j) => !j.stepCompleted).length} na prensa / ateliê
+            {jobs.filter((j) => !j.stepCompleted).length} em produção
           </span>
         </div>
         <p className="text-xs text-zinc-400 mt-1">
-          Acompanhamento operacional por peça: separação de camiseta, corte da estampa DTF, prensagem a 160°C, QC e baixa automática de estoque.
+          Acompanhamento manual das peças sob encomenda: separação de camiseta, estampa DTF e embalagem.
         </p>
       </div>
 

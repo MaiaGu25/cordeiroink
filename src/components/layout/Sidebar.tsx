@@ -17,7 +17,7 @@ import {
   History,
   LogOut,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,6 +34,18 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserEmail(data.user.email ?? null);
+        setUserName(data.user.user_metadata?.name ?? data.user.user_metadata?.full_name ?? null);
+      }
+    });
+  }, []);
 
   const menuItems = [
     {
@@ -127,20 +139,6 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Quick Production Status Badge */}
-      {!collapsed && (
-        <div className="mx-3 mt-3 p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-zinc-400">Prensa Térmica #1:</span>
-          </div>
-          <span className="font-medium text-emerald-400">160°C Pronta</span>
-        </div>
-      )}
-
       {/* Navigation Links */}
       <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {menuItems.map((item) => {
@@ -228,18 +226,16 @@ export function Sidebar({
         >
           <div className="flex items-center gap-3 truncate">
             <div className="relative shrink-0">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                alt="Mateus Cordeiro"
-                className="w-8 h-8 rounded-full object-cover border border-zinc-700"
-              />
+              <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-sm font-bold text-amber-400 select-none">
+                {(userName ?? userEmail ?? "?")[0].toUpperCase()}
+              </div>
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-zinc-950 rounded-full" />
             </div>
 
             {!collapsed && (
               <div className="flex flex-col truncate">
                 <span className="text-xs font-semibold text-zinc-200 truncate">
-                  Mateus Cordeiro
+                  {userName ?? userEmail ?? "Usuário"}
                 </span>
                 <span className="text-[10px] text-amber-400 uppercase font-medium">
                   Admin / Fundador

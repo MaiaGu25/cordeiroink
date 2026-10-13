@@ -186,32 +186,32 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <TopProductsTable products={topProducts} />
       </div>
 
-      {/* Dock Rápido da Prensa Térmica */}
-      <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/60 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-center text-amber-400/90">
-            <Flame size={15} />
+      {/* Acesso Rápido: Fila de Produção */}
+      {shirtsToPrintToday > 0 && (
+        <div className="p-5 rounded-2xl bg-zinc-900/30 border border-zinc-800/60 backdrop-blur-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-zinc-800/60 border border-zinc-700/60 flex items-center justify-center text-amber-400/90">
+              <Flame size={15} />
+            </div>
+            <div>
+              <span className="font-medium text-zinc-200">Fila de Produção</span>
+              <p className="text-zinc-500 text-[11px]">
+                {shirtsToPrintToday} {shirtsToPrintToday === 1 ? "peça aguardando produção" : "peças aguardando produção"} no ateliê.
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="font-medium text-zinc-200">
-              Fila da Prensa Térmica
-            </span>
-            <p className="text-zinc-500 text-[11px]">
-              {shirtsToPrintToday} {shirtsToPrintToday === 1 ? "camiseta aguardando ou em prensagem" : "camisetas aguardando ou em prensagem"} no ateliê.
-            </p>
-          </div>
-        </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-          <Link
-            href="/producao"
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-          >
-            Abrir Fila de Produção <ArrowUpRight size={13} />
-          </Link>
-          <DashboardHeaderAction blankShirts={blankShirts} />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
+            <Link
+              href="/producao"
+              className="w-full sm:w-auto px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+            >
+              Abrir Fila de Produção <ArrowUpRight size={13} />
+            </Link>
+            <DashboardHeaderAction blankShirts={blankShirts} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
