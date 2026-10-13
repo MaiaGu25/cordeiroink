@@ -29,11 +29,15 @@ export async function POST(req: NextRequest) {
     const fileName = `${safeBaseName}-${Date.now()}${ext}`;
 
     // 1. Upload para Supabase Storage (Produção / Vercel)
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "")
+      .replace(/\/rest\/v1\/?$/, "")
+      .replace(/\/$/, "");
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseAnonKey) {
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    if (supabaseUrl && supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
       const storagePath = `${targetFolder}/${fileName}`;
       const contentType = file.type || "image/png";
 
