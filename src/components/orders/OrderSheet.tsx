@@ -82,7 +82,19 @@ export function OrderSheet({
         }
       }}
     >
-      <SheetContent className="overflow-y-auto">
+      <SheetContent
+        className="overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          if (isEditOpen || isCancelOpen) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          if (isEditOpen || isCancelOpen) {
+            e.preventDefault();
+          }
+        }}
+      >
         {/* Header */}
         <SheetHeader>
           <div className="flex items-center gap-2 mb-1">

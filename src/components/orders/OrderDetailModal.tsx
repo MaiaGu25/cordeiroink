@@ -40,6 +40,7 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
   };
 
   const handleClose = () => {
+    if (isEditOpen || isCancelOpen) return;
     setIsEditOpen(false);
     setIsCancelOpen(false);
     onClose();
@@ -53,6 +54,8 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
       <div
         className="w-[96%] sm:w-full max-w-2xl bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-800 bg-zinc-950/60 shrink-0">
