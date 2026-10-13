@@ -72,7 +72,16 @@ export function OrderSheet({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          setIsEditOpen(false);
+          setIsCancelOpen(false);
+          onClose();
+        }
+      }}
+    >
       <SheetContent className="overflow-y-auto">
         {/* Header */}
         <SheetHeader>
@@ -383,8 +392,9 @@ export function OrderSheet({
         </SheetFooter>
       </SheetContent>
 
-      {/* Edit Order Modal */}
+      {/* Edit Order Modal — key forces full remount when order changes */}
       <EditOrderModal
+        key={`edit-${order.id}`}
         order={order}
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
@@ -394,8 +404,9 @@ export function OrderSheet({
         }}
       />
 
-      {/* Cancel Order Modal */}
+      {/* Cancel Order Modal — key forces full remount when order changes */}
       <CancelOrderModal
+        key={`cancel-${order.id}`}
         order={order}
         isOpen={isCancelOpen}
         onClose={() => setIsCancelOpen(false)}

@@ -12,6 +12,21 @@ interface EditOrderModalProps {
   onSaved?: () => void;
 }
 
+function getDefaults(order: any | null) {
+  const firstItem = order?.items?.[0];
+  return {
+    customerName: order?.customerName ?? "",
+    customerPhone: order?.customerPhone ?? "",
+    customerEmail: order?.customerEmail ?? "",
+    shippingAddress: order?.shippingAddress ?? "",
+    paymentMethod: order?.paymentMethod ?? "PIX",
+    notes: order?.notes ?? "",
+    itemTitle: firstItem?.title ?? "",
+    printSize: firstItem?.printSize ?? "A3 (30x42cm)",
+    unitPrice: firstItem?.unitPrice ?? 0,
+  };
+}
+
 export function EditOrderModal({
   order,
   isOpen,
@@ -20,34 +35,37 @@ export function EditOrderModal({
 }: EditOrderModalProps) {
   const [isPending, startTransition] = useTransition();
 
-  const firstItem = order?.items?.[0];
+  const defaults = getDefaults(order);
+  const [customerName, setCustomerName] = useState(defaults.customerName);
+  const [customerPhone, setCustomerPhone] = useState(defaults.customerPhone);
+  const [customerEmail, setCustomerEmail] = useState(defaults.customerEmail);
+  const [shippingAddress, setShippingAddress] = useState(defaults.shippingAddress);
+  const [paymentMethod, setPaymentMethod] = useState(defaults.paymentMethod);
+  const [notes, setNotes] = useState(defaults.notes);
+  const [itemTitle, setItemTitle] = useState(defaults.itemTitle);
+  const [printSize, setPrintSize] = useState(defaults.printSize);
+  const [unitPrice, setUnitPrice] = useState<number>(defaults.unitPrice);
 
-  const [customerName, setCustomerName] = useState(order?.customerName || "");
-  const [customerPhone, setCustomerPhone] = useState(order?.customerPhone || "");
-  const [customerEmail, setCustomerEmail] = useState(order?.customerEmail || "");
-  const [shippingAddress, setShippingAddress] = useState(order?.shippingAddress || "");
-  const [paymentMethod, setPaymentMethod] = useState(order?.paymentMethod || "PIX");
-  const [notes, setNotes] = useState(order?.notes || "");
-  const [itemTitle, setItemTitle] = useState(firstItem?.title || "");
-  const [printSize, setPrintSize] = useState(firstItem?.printSize || "A3 (30x42cm)");
-  const [unitPrice, setUnitPrice] = useState<number>(firstItem?.unitPrice || 0);
-
+  // Sync all fields whenever order changes (different order selected) OR modal opens
   useEffect(() => {
-    if (order) {
-      setCustomerName(order.customerName || "");
-      setCustomerPhone(order.customerPhone || "");
-      setCustomerEmail(order.customerEmail || "");
-      setShippingAddress(order.shippingAddress || "");
-      setPaymentMethod(order.paymentMethod || "PIX");
-      setNotes(order.notes || "");
-      const it = order.items?.[0];
-      setItemTitle(it?.title || "");
-      setPrintSize(it?.printSize || "A3 (30x42cm)");
-      setUnitPrice(it?.unitPrice || 0);
-    }
-  }, [order]);
+    const d = getDefaults(order);
+    setCustomerName(d.customerName);
+    setCustomerPhone(d.customerPhone);
+    setCustomerEmail(d.customerEmail);
+    setShippingAddress(d.shippingAddress);
+    setPaymentMethod(d.paymentMethod);
+    setNotes(d.notes);
+    setItemTitle(d.itemTitle);
+    setPrintSize(d.printSize);
+    setUnitPrice(d.unitPrice);
+  }, [order?.id, isOpen]);
 
   if (!isOpen || !order) return null;
+
+  const handleClose = () => {
+    // Fields will be re-synced on next open via useEffect; no manual reset needed here
+    onClose();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +87,7 @@ export function EditOrderModal({
 
         toast.success(`Pedido ${order.orderNumber} atualizado com sucesso!`);
         if (onSaved) onSaved();
-        onClose();
+        handleClose();
       } catch (err: any) {
         toast.error("Erro ao salvar alterações: " + err.message);
       }
@@ -77,7 +95,10 @@ export function EditOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={handleClose}
+    >
       <div
         className="w-full max-w-lg bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
@@ -98,7 +119,8 @@ export function EditOrderModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={handleClose}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
           >
             <X size={16} />
@@ -109,10 +131,11 @@ export function EditOrderModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+              <label htmlFor="edit-customer-name" className="block text-xs font-semibold text-zinc-300 mb-1">
                 Nome do Cliente *
               </label>
               <input
+                id="edit-customer-name"
                 required
                 type="text"
                 value={customerName}
@@ -122,10 +145,11 @@ export function EditOrderModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-phone" className="block text-xs font-medium text-zinc-400 mb-1">
                 WhatsApp / Telefone
               </label>
               <input
+                id="edit-phone"
                 type="text"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
@@ -134,10 +158,11 @@ export function EditOrderModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-email" className="block text-xs font-medium text-zinc-400 mb-1">
                 E-mail (opcional)
               </label>
               <input
+                id="edit-email"
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
@@ -146,10 +171,11 @@ export function EditOrderModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-address" className="block text-xs font-medium text-zinc-400 mb-1">
                 Endereço de Entrega / Instrução
               </label>
               <input
+                id="edit-address"
                 type="text"
                 value={shippingAddress}
                 onChange={(e) => setShippingAddress(e.target.value)}
@@ -160,10 +186,11 @@ export function EditOrderModal({
 
           <div className="pt-2 border-t border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-item-title" className="block text-xs font-medium text-zinc-400 mb-1">
                 Descrição da Peça / Estampa
               </label>
               <input
+                id="edit-item-title"
                 type="text"
                 value={itemTitle}
                 onChange={(e) => setItemTitle(e.target.value)}
@@ -172,13 +199,14 @@ export function EditOrderModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-print-size" className="block text-xs font-medium text-zinc-400 mb-1">
                 Tamanho da Folha DTF
               </label>
               <select
+                id="edit-print-size"
                 value={printSize}
                 onChange={(e) => setPrintSize(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 <option value="A3 (30x42cm)">A3 (Costas grande - 30x42cm)</option>
                 <option value="A4 (21x30cm)">A4 (Frente peito - 21x30cm)</option>
@@ -188,10 +216,11 @@ export function EditOrderModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+              <label htmlFor="edit-unit-price" className="block text-xs font-semibold text-zinc-300 mb-1">
                 Preço Unitário Cobrado (R$) *
               </label>
               <input
+                id="edit-unit-price"
                 required
                 type="number"
                 step="0.01"
@@ -203,13 +232,14 @@ export function EditOrderModal({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-payment" className="block text-xs font-medium text-zinc-400 mb-1">
                 Forma de Pagamento
               </label>
               <select
+                id="edit-payment"
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
               >
                 <option value="PIX">Pix</option>
                 <option value="CARTAO">Cartão de Crédito / Débito</option>
@@ -219,14 +249,15 @@ export function EditOrderModal({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
+              <label htmlFor="edit-notes" className="block text-xs font-medium text-zinc-400 mb-1">
                 Observações internas
               </label>
               <textarea
+                id="edit-notes"
                 rows={2}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700 resize-none"
               />
             </div>
           </div>
@@ -235,7 +266,7 @@ export function EditOrderModal({
           <div className="pt-3 border-t border-zinc-800 flex items-center justify-end gap-2.5">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium transition cursor-pointer"
             >
               Cancelar

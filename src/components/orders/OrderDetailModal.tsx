@@ -39,8 +39,17 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
     });
   };
 
+  const handleClose = () => {
+    setIsEditOpen(false);
+    setIsCancelOpen(false);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={handleClose}
+    >
       <div
         className="w-[96%] sm:w-full max-w-2xl bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -308,25 +317,27 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
         </div>
       </div>
 
-      {/* Edit Order Modal */}
+      {/* Edit Order Modal — key forces full remount when order changes */}
       <EditOrderModal
+        key={`edit-${order.id}`}
         order={order}
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         onSaved={() => {
           if (onOrderUpdated) onOrderUpdated();
-          onClose();
+          handleClose();
         }}
       />
 
-      {/* Cancel Order Modal */}
+      {/* Cancel Order Modal — key forces full remount when order changes */}
       <CancelOrderModal
+        key={`cancel-${order.id}`}
         order={order}
         isOpen={isCancelOpen}
         onClose={() => setIsCancelOpen(false)}
         onCancelled={() => {
           if (onOrderUpdated) onOrderUpdated();
-          onClose();
+          handleClose();
         }}
       />
     </div>
