@@ -1,25 +1,38 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Sora } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Topbar } from "@/components/layout/Topbar";
+import { AppShell } from "@/components/layout/AppShell";
 import { Toaster } from "sonner";
 import { prisma } from "@/lib/prisma";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sora = Sora({
   subsets: ["latin"],
+  variable: "--font-sora",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const justSerif = localFont({
+  src: [
+    {
+      path: "../../public/fonts/JUSTSerif-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/JUSTSerif-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-just-serif",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Cordeiro Ink Hub | ERP & Operações Sob Demanda",
+  title: "Cordeiro Ink | Streetwear Autêntico & Estamparia Sob Demanda",
   description:
-    "Sistema Operacional Integrado de Estamparia, Fila de Produção DTF e Gestão de Marketplace da Cordeiro Ink.",
+    "Marca de streetwear premium, camisetas oversized 100% algodão heavyweight e estamparia personalizada sob demanda.",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,7 +42,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Coleta dados em tempo real para os badges da navegação
+  // Coleta dados em tempo real para os badges da navegação interna do ERP
   const [activeOrdersCount, inProductionCount, allRawItems] = await Promise.all([
     prisma.order.count({
       where: {
@@ -51,26 +64,15 @@ export default async function RootLayout({
   ).length;
 
   return (
-    <html lang="pt-BR" className="dark">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-zinc-100 flex h-screen overflow-hidden selection:bg-amber-500/30 selection:text-amber-200`}
-      >
-        <Sidebar
+    <html lang="pt-BR" className={`${sora.variable} ${justSerif.variable}`}>
+      <body className="font-sans antialiased min-h-screen">
+        <AppShell
           activeOrdersCount={activeOrdersCount}
           inProductionCount={inProductionCount}
           criticalStockCount={criticalStockCount}
-        />
-
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-black">
-          <Topbar
-            criticalCount={criticalStockCount}
-            activeOrdersCount={activeOrdersCount}
-            inProductionCount={inProductionCount}
-          />
-          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 bg-black">
-            {children}
-          </main>
-        </div>
+        >
+          {children}
+        </AppShell>
 
         <Toaster
           theme="dark"

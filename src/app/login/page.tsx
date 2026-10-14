@@ -41,7 +41,7 @@ export default function LoginPage() {
 
         if (data.session) {
           toast.success("Conta criada e sessão iniciada com sucesso!");
-          router.push("/");
+          router.push("/admin");
           router.refresh();
         } else {
           toast.success(
@@ -64,7 +64,7 @@ export default function LoginPage() {
         }
 
         toast.success("Login realizado com sucesso! Bem-vindo ao Hub.");
-        router.push("/");
+        router.push("/admin");
         router.refresh();
       }
     } catch (err: any) {

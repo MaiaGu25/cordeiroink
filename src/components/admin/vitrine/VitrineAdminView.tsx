@@ -1,0 +1,874 @@
+"use client";
+
+import { useState, useTransition, useRef } from "react";
+import {
+  Sparkles,
+  Plus,
+  Image as ImageIcon,
+  Trash2,
+  Edit2,
+  Power,
+  Upload,
+  Loader2,
+  X,
+  ExternalLink,
+  MessageCircle,
+  Check,
+  Eye,
+} from "lucide-react";
+import {
+  createCatalogItem,
+  updateCatalogItem,
+  deleteCatalogItem,
+  uploadStorefrontFile,
+} from "@/actions/storefront";
+import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+interface CatalogItem {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number;
+  imageUrl: string;
+  category: string;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+interface LeadQuote {
+  id: string;
+  customerName: string;
+  whatsapp: string;
+  shirtModel: string;
+  size: string;
+  customDesignUrl: string | null;
+  notes: string | null;
+  status: string;
+  createdAt: Date;
+}
+
+interface VitrineAdminViewProps {
+  initialItems: CatalogItem[];
+  initialLeads: LeadQuote[];
+}
+
+export function VitrineAdminView({
+  initialItems,
+  initialLeads,
+}: VitrineAdminViewProps) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS">("CATALOG");
+
+  // Estados de Novo Item
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false);
+
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState<number | "">("");
+  const [category, setCategory] = useState("Oversized Heavyweight");
+  const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados de Edição
+  const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editPrice, setEditPrice] = useState<number | "">("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado de Exclusão
+  const [itemToDelete, setItemToDelete] = useState<CatalogItem | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "catalog");
+
+    try {
+      const res = await uploadStorefrontFile(formData);
+      if (res.success && res.url) {
+        if (isEdit) {
+          setEditImageUrl(res.url);
+        } else {
+          setImageUrl(res.url);
+        }
+        toast.success("Foto do produto enviada com sucesso!");
+      } else {
+        toast.error(res.error || "Erro no upload da imagem");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !imageUrl || price === "") {
+      toast.error("Preencha título, preço e envie uma imagem do produto.");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        await createCatalogItem({
+          title,
+          price: Number(price),
+          category,
+          description,
+          imageUrl,
+        });
+
+        toast.success(`Peça "${title}" cadastrada na vitrine!`);
+        setIsNewModalOpen(false);
+        setTitle("");
+        setPrice("");
+        setDescription("");
+        setImageUrl("");
+        router.refresh();
+      } catch (err: any) {
+        toast.error("Erro ao salvar produto: " + err.message);
+      }
+    });
+  };
+
+  const handleOpenEdit = (item: CatalogItem) => {
+    setEditingItem(item);
+    setEditTitle(item.title);
+    setEditPrice(item.price);
+    setEditCategory(item.category);
+    setEditDescription(item.description || "");
+    setEditImageUrl(item.imageUrl);
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    startTransition(async () => {
+      try {
+        await updateCatalogItem(editingItem.id, {
+          title: editTitle,
+          price: Number(editPrice),
+          category: editCategory,
+          description: editDescription,
+          imageUrl: editImageUrl,
+        });
+
+        toast.success(`Peça "${editTitle}" atualizada!`);
+        setEditingItem(null);
+        router.refresh();
+      } catch (err: any) {
+        toast.error("Erro ao atualizar: " + err.message);
+      }
+    });
+  };
+
+  const handleToggleActive = (item: CatalogItem) => {
+    startTransition(async () => {
+      try {
+        await updateCatalogItem(item.id, {
+          isActive: !item.isActive,
+        });
+        toast.success(
+          `Item ${!item.isActive ? "ativado na vitrine" : "inativado e oculto da vitrine"}!`
+        );
+        router.refresh();
+      } catch (err: any) {
+        toast.error("Erro ao alterar visibilidade: " + err.message);
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    if (!itemToDelete) return;
+    startTransition(async () => {
+      try {
+        await deleteCatalogItem(itemToDelete.id);
+        toast.success("Produto removido do catálogo.");
+        setItemToDelete(null);
+        router.refresh();
+      } catch (err: any) {
+        toast.error("Erro ao excluir: " + err.message);
+      }
+    });
+  };
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
+              <Sparkles size={22} className="text-amber-400" />
+              <span>Gerenciar Vitrine Pública</span>
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 font-semibold">
+              Loja & Catálogo
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">
+            Cadastre os produtos exibidos na vitrine streetwear pública (/) e monitore os orçamentos recebidos.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition"
+          >
+            <Eye size={14} />
+            <span>Ver Vitrine ao Vivo</span>
+          </a>
+
+          <button
+            onClick={() => setIsNewModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>+ Novo Produto na Vitrine</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex items-center gap-2 p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80 w-fit">
+        <button
+          onClick={() => setActiveTab("CATALOG")}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            activeTab === "CATALOG"
+              ? "bg-zinc-800 text-zinc-100 shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          <Sparkles size={14} />
+          <span>Peças do Catálogo ({initialItems.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("LEADS")}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            activeTab === "LEADS"
+              ? "bg-zinc-800 text-zinc-100 shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          <MessageCircle size={14} />
+          <span>Orçamentos Personalizados ({initialLeads.length})</span>
+        </button>
+      </div>
+
+      {/* Content: Catálogo */}
+      {activeTab === "CATALOG" && (
+        <div className="space-y-4">
+          {initialItems.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 flex flex-col items-center justify-center gap-3">
+              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+                <ImageIcon size={28} />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-200">
+                Nenhum produto cadastrado na vitrine ainda
+              </h3>
+              <p className="text-xs text-zinc-500 max-w-sm">
+                Cadastre suas peças premium com foto, título e preço para que apareçam na página inicial da marca.
+              </p>
+              <button
+                onClick={() => setIsNewModalOpen(true)}
+                className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                + Adicionar Primeiro Produto
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {initialItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`rounded-2xl border transition overflow-hidden flex flex-col justify-between group ${
+                    item.isActive
+                      ? "bg-zinc-900/40 border-zinc-800/80 hover:border-zinc-700"
+                      : "bg-zinc-950/40 border-zinc-800/40 opacity-60"
+                  }`}
+                >
+                  <div>
+                    {/* Imagem do Produto */}
+                    <div className="relative aspect-[3/4] w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute top-2.5 right-2.5">
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full border backdrop-blur-md font-semibold ${
+                            item.isActive
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                              : "bg-zinc-800/80 text-zinc-400 border-zinc-700"
+                          }`}
+                        >
+                          {item.isActive ? "Ativo na Loja" : "Inativo"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Detalhes */}
+                    <div className="p-4 space-y-1">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
+                        {item.category}
+                      </span>
+                      <h4 className="text-sm font-semibold text-zinc-100 truncate">
+                        {item.title}
+                      </h4>
+                      {item.description && (
+                        <p className="text-xs text-zinc-400 line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                      <p className="text-sm font-mono font-bold text-amber-400 pt-1">
+                        {formatCurrency(item.price)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="p-3 bg-zinc-950/60 border-t border-zinc-800/60 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(item)}
+                      title={item.isActive ? "Desativar da vitrine" : "Ativar na vitrine"}
+                      className={`p-1.5 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer ${
+                        item.isActive
+                          ? "text-emerald-400 hover:bg-emerald-500/10"
+                          : "text-zinc-500 hover:bg-zinc-800"
+                      }`}
+                    >
+                      <Power size={13} />
+                      <span className="text-[11px]">{item.isActive ? "Pausar" : "Ativar"}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(item)}
+                        title="Editar produto"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition cursor-pointer"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setItemToDelete(item)}
+                        title="Excluir produto"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Content: Orçamentos / Leads */}
+      {activeTab === "LEADS" && (
+        <div className="space-y-4">
+          {initialLeads.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 flex flex-col items-center justify-center gap-3">
+              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+                <MessageCircle size={28} />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-200">
+                Nenhum orçamento personalizado recebido ainda
+              </h3>
+              <p className="text-xs text-zinc-500 max-w-sm">
+                Quando os clientes preencherem o formulário "Personalize sua Peça" na vitrine pública, os contatos e arquivos aparecerão aqui.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-zinc-800 overflow-hidden bg-zinc-900/30">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-zinc-950/80 border-b border-zinc-800 text-[11px] font-mono uppercase text-zinc-400">
+                    <tr>
+                      <th className="px-4 py-3">Cliente</th>
+                      <th className="px-4 py-3">WhatsApp</th>
+                      <th className="px-4 py-3">Modelo</th>
+                      <th className="px-4 py-3">Tamanho</th>
+                      <th className="px-4 py-3">Arte Enviada</th>
+                      <th className="px-4 py-3">Data</th>
+                      <th className="px-4 py-3 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60">
+                    {initialLeads.map((lead) => {
+                      const cleanPhone = lead.whatsapp.replace(/\D/g, "");
+                      const waLink = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
+                        `Olá ${lead.customerName}! Recebemos seu pedido de camiseta personalizada (${lead.shirtModel} - Tam ${lead.size}) na Cordeiro Ink.`
+                      )}`;
+
+                      return (
+                        <tr key={lead.id} className="hover:bg-zinc-900/50 transition">
+                          <td className="px-4 py-3 font-semibold text-zinc-100">
+                            {lead.customerName}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-zinc-300">
+                            {lead.whatsapp}
+                          </td>
+                          <td className="px-4 py-3 text-zinc-300">
+                            {lead.shirtModel}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-zinc-300 font-bold">
+                            {lead.size}
+                          </td>
+                          <td className="px-4 py-3">
+                            {lead.customDesignUrl ? (
+                              <a
+                                href={lead.customDesignUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-[11px] font-mono transition"
+                              >
+                                <ExternalLink size={11} />
+                                <span>Ver Arte</span>
+                              </a>
+                            ) : (
+                              <span className="text-zinc-600 font-mono">Sem arquivo</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-zinc-500">
+                            {new Date(lead.createdAt).toLocaleDateString("pt-BR")}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition"
+                            >
+                              <MessageCircle size={12} />
+                              <span>Conversar no WhatsApp</span>
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Adicionar Novo Produto */}
+      {isNewModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => !isPending && setIsNewModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Sparkles size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-zinc-100">
+                  Cadastrar Peça na Vitrine
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsNewModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate} className="space-y-4">
+              {/* Upload de Imagem */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Foto do Produto *
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, false)}
+                  className="hidden"
+                />
+
+                {imageUrl ? (
+                  <div className="relative aspect-[3/4] w-40 rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                    <img
+                      src={imageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-6 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={24} className="animate-spin text-amber-400" />
+                        <span className="text-xs text-zinc-400 font-mono">
+                          Fazendo upload para o Supabase Storage...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={24} className="text-zinc-500" />
+                        <div>
+                          <p className="text-xs font-semibold text-zinc-300">
+                            Clique para subir a foto da peça
+                          </p>
+                          <p className="text-[10px] text-zinc-500 mt-0.5">
+                            PNG, JPG ou WEBP (Bucket público storefront)
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Título & Preço */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Título da Peça *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ex: Heavyweight Oversized Tee"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Preço de Venda (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                    placeholder="Ex: 149.90"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                  Categoria
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="Oversized Heavyweight">Oversized Heavyweight (26.1 / 30.1)</option>
+                  <option value="Camisetas Streetwear">Camisetas Streetwear Tradicionais</option>
+                  <option value="Moletom & Hoodie">Moletom & Hoodie Premium</option>
+                  <option value="Edição Limitada">Edição Limitada</option>
+                </select>
+              </div>
+
+              {/* Descrição */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                  Descrição / Composição (Opcional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Ex: 100% Algodão penteado 260gsm, corte streetwear oversized com gola canelada de 3cm."
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsNewModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending || isUploading}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isPending ? "Cadastrando..." : "Publicar na Vitrine"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Editar Produto */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => !isPending && setEditingItem(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Edit2 size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-zinc-100">
+                  Editar Peça da Vitrine
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-4">
+              {/* Imagem Atual / Trocar */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                  Foto do Produto
+                </label>
+                <input
+                  ref={editFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, true)}
+                  className="hidden"
+                />
+
+                <div className="flex items-center gap-4">
+                  <div className="relative aspect-[3/4] w-24 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 shrink-0">
+                    <img
+                      src={editImageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => editFileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin" />
+                          <span>Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={12} />
+                          <span>Trocar Foto</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      Armazenado no bucket público do Supabase
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Título & Preço */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Título da Peça *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">
+                    Preço (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+              </div>
+
+              {/* Categoria */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                  Categoria
+                </label>
+                <select
+                  value={editCategory}
+                  onChange={(e) => setEditCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="Oversized Heavyweight">Oversized Heavyweight (26.1 / 30.1)</option>
+                  <option value="Camisetas Streetwear">Camisetas Streetwear Tradicionais</option>
+                  <option value="Moletom & Hoodie">Moletom & Hoodie Premium</option>
+                  <option value="Edição Limitada">Edição Limitada</option>
+                </select>
+              </div>
+
+              {/* Descrição */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">
+                  Descrição / Detalhes
+                </label>
+                <textarea
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isPending ? "Salvando..." : "Salvar Alterações"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Exclusão de Produto */}
+      {itemToDelete && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => !isPending && setItemToDelete(null)}
+        >
+          <div
+            className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                  <Trash2 size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-100">
+                    Remover Peça da Vitrine
+                  </h3>
+                  <p className="text-xs text-zinc-400">{itemToDelete.title}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Tem certeza que deseja excluir esta peça da vitrine? Ela deixará de ser exibida para os clientes no catálogo online.
+            </p>
+
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setItemToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {isPending ? "Excluindo..." : "Confirmar Exclusão"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

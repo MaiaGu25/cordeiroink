@@ -57,8 +57,13 @@ export function Topbar({
   const menuItems = [
     {
       label: "Dashboard",
-      href: "/",
+      href: "/admin",
       icon: LayoutDashboard,
+    },
+    {
+      label: "Vitrine & Catálogo",
+      href: "/admin/vitrine",
+      icon: Sparkles,
     },
     {
       label: "Pedidos",

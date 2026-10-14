@@ -358,3 +358,30 @@ model AuditLog {
   newPayload  String?
   createdAt   DateTime @default(now())
 }
+
+// 10. VITRINE PÚBLICA & CATÁLOGO
+model CatalogItem {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  price       Float
+  imageUrl    String
+  category    String   @default("Camisetas")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 11. ORÇAMENTOS PERSONALIZADOS (LEADS DA VITRINE)
+model LeadQuote {
+  id              String   @id @default(uuid())
+  customerName    String
+  whatsapp        String
+  shirtModel      String   // T-shirt tradicional, Oversized, Moletom, etc.
+  size            String   // P, M, G, GG, XG, etc.
+  customDesignUrl String?  // URL da arte enviada pelo cliente
+  notes           String?
+  status          String   @default("PENDING") // PENDING, CONTACTED, CONVERTED, ARCHIVED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

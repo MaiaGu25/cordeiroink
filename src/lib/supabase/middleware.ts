@@ -41,19 +41,21 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
+  const isStorefront = pathname === "/";
   const isPublicApi = pathname.startsWith("/api/upload") || pathname.startsWith("/api/reset-db");
+  const isPublicRoute = isStorefront || isLoginPage || isPublicApi;
 
-  // Se o usuário não estiver logado e tentar acessar uma rota privada
-  if (!user && !isLoginPage && !isPublicApi) {
+  // Se o usuário não estiver logado e tentar acessar uma rota privada (/admin/*, /pedidos, /estoque, etc.)
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Se o usuário já estiver logado e acessar /login, manda para o dashboard
+  // Se o usuário já estiver logado e acessar /login, manda para o dashboard operacional (/admin)
   if (user && isLoginPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/admin";
     return NextResponse.redirect(url);
   }
 
