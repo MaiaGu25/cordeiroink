@@ -72,29 +72,16 @@ export function OrderSheet({
   };
 
   return (
-    <Sheet
-      open={isOpen}
-      onOpenChange={(open) => {
-        if (!open) {
-          setIsEditOpen(false);
-          setIsCancelOpen(false);
-          onClose();
-        }
-      }}
-    >
-      <SheetContent
-        className="overflow-y-auto"
-        onPointerDownOutside={(e) => {
-          if (isEditOpen || isCancelOpen) {
-            e.preventDefault();
-          }
-        }}
-        onInteractOutside={(e) => {
-          if (isEditOpen || isCancelOpen) {
-            e.preventDefault();
+    <>
+      <Sheet
+        open={isOpen && !isEditOpen && !isCancelOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            onClose();
           }
         }}
       >
+        <SheetContent className="overflow-y-auto">
         {/* Header */}
         <SheetHeader>
           <div className="flex items-center gap-2 mb-1">
@@ -403,30 +390,37 @@ export function OrderSheet({
           </button>
         </SheetFooter>
       </SheetContent>
+      </Sheet>
 
-      {/* Edit Order Modal — key forces full remount when order changes */}
-      <EditOrderModal
-        key={`edit-${order.id}`}
-        order={order}
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        onSaved={() => {
-          if (onOrderUpdated) onOrderUpdated();
-          onClose();
-        }}
-      />
+      {/* Edit Order Modal — renderizado fora do Sheet para evitar conflitos de foco e pointer */}
+      {order && (
+        <EditOrderModal
+          key={`edit-${order.id}`}
+          order={order}
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          onSaved={() => {
+            setIsEditOpen(false);
+            if (onOrderUpdated) onOrderUpdated();
+            onClose();
+          }}
+        />
+      )}
 
-      {/* Cancel Order Modal — key forces full remount when order changes */}
-      <CancelOrderModal
-        key={`cancel-${order.id}`}
-        order={order}
-        isOpen={isCancelOpen}
-        onClose={() => setIsCancelOpen(false)}
-        onCancelled={() => {
-          if (onOrderUpdated) onOrderUpdated();
-          onClose();
-        }}
-      />
-    </Sheet>
+      {/* Cancel Order Modal — renderizado fora do Sheet */}
+      {order && (
+        <CancelOrderModal
+          key={`cancel-${order.id}`}
+          order={order}
+          isOpen={isCancelOpen}
+          onClose={() => setIsCancelOpen(false)}
+          onCancelled={() => {
+            setIsCancelOpen(false);
+            if (onOrderUpdated) onOrderUpdated();
+            onClose();
+          }}
+        />
+      )}
+    </>
   );
 }
