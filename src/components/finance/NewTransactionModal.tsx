@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { X, Plus, DollarSign, Loader2 } from "lucide-react";
 import { addTransaction } from "@/actions/finance";
 import { TransactionCategory, TransactionType } from "@prisma/client";
@@ -17,7 +17,7 @@ const CATEGORIES = [
   { value: TransactionCategory.PACKAGING_SUPPLIES, label: "Embalagens e Tags" },
   { value: TransactionCategory.PLATFORM_FEES, label: "Taxas e Comissões de Marketplace" },
   { value: TransactionCategory.SHIPPING, label: "Frete / Envios" },
-  { value: TransactionCategory.EQUIPMENT, label: "Equipamentos / Manutenção de Prensa" },
+  { value: TransactionCategory.EQUIPMENT, label: "Equipamentos & Ferramentas do Ateliê" },
   { value: TransactionCategory.MARKETING, label: "Marketing / Ads" },
   { value: TransactionCategory.OPERATIONAL, label: "Operacional (Energia, Aluguel, Software)" },
   { value: TransactionCategory.SALES_ORDER, label: "Venda de Produtos (Receita)" },
@@ -35,6 +35,16 @@ export function NewTransactionModal({
   );
   const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState("");
+
+  // Limpeza de estado (State Cleanup) ao fechar o modal
+  useEffect(() => {
+    if (!isOpen) {
+      setType(TransactionType.EXPENSE);
+      setCategory(TransactionCategory.RAW_MATERIALS);
+      setAmount(0);
+      setDescription("");
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -67,10 +77,12 @@ export function NewTransactionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className="w-[96%] sm:w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/60">
           <div className="flex items-center gap-2.5">

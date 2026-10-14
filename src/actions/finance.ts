@@ -58,12 +58,16 @@ export async function getFinancialData() {
   };
 }
 
+import { getCurrentUser } from "@/lib/auth";
+
 export async function addTransaction(data: {
   type: TransactionType;
   category: TransactionCategory;
   amount: number;
   description: string;
 }) {
+  const user = await getCurrentUser();
+
   const tx = await prisma.financialTransaction.create({
     data: {
       type: data.type,
@@ -71,6 +75,24 @@ export async function addTransaction(data: {
       amount: data.amount,
       description: data.description,
       date: new Date(),
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "TRANSACTION_CREATED",
+      entity: "FinancialTransaction",
+      entityId: tx.id,
+      details: `Lançamento manual (${data.type === TransactionType.INCOME ? "Receita" : "Despesa"}) de R$ ${data.amount.toFixed(2)} registrado por ${user.name}`,
+      newPayload: JSON.stringify({
+        type: data.type,
+        category: data.category,
+        amount: data.amount,
+        description: data.description,
+      }),
     },
   });
 

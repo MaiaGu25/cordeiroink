@@ -82,10 +82,10 @@ export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
               {job?.stepCompleted
                 ? "Prensada & Embalada"
                 : job?.stepPressed
-                ? "Prensagem OK (160°C)"
+                ? "Estampa Aplicada"
                 : job?.stepBlankPicked
                 ? "Camiseta Separada"
-                : "Aguardando Prensa"}
+                : "Aguardando Produção"}
             </span>
           </div>
         </div>

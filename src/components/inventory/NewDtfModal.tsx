@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { X, Plus, Image as ImageIcon, Loader2, Upload, Check, AlertCircle, Trash2 } from "lucide-react";
 import { createDtfArtItem } from "@/actions/inventory";
 import { toast } from "sonner";
@@ -25,6 +25,21 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
   const [stockQuantity, setStockQuantity] = useState(0);
   const [minStock, setMinStock] = useState(5);
   const [costPrice, setCostPrice] = useState(13.90);
+
+  // Limpeza de estado (State Cleanup) ao fechar o modal
+  useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setDtfCode("");
+      setDtfPrintSize("A3 (30x42cm)");
+      setDtfPreviewUrl("");
+      setDtfSupplier("");
+      setStockQuantity(0);
+      setMinStock(5);
+      setCostPrice(13.90);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -112,10 +127,12 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className="w-[96%] sm:w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-800/80 bg-zinc-900/40 shrink-0">
           <div className="flex items-center gap-2.5">

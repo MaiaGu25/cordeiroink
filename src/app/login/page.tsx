@@ -123,7 +123,7 @@ export default function LoginPage() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="ex: Mateus Cordeiro"
+                    placeholder="ex: Seu Nome Completo"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500 transition-colors"
                   />
                 </div>

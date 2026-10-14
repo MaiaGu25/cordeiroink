@@ -53,7 +53,7 @@ export default async function RootLayout({
   return (
     <html lang="pt-BR" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-zinc-100 flex h-screen overflow-hidden selection:bg-amber-500/30 selection:text-amber-200`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-zinc-100 flex h-screen overflow-hidden selection:bg-amber-500/30 selection:text-amber-200`}
       >
         <Sidebar
           activeOrdersCount={activeOrdersCount}
@@ -61,13 +61,13 @@ export default async function RootLayout({
           criticalStockCount={criticalStockCount}
         />
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-zinc-950">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-black">
           <Topbar
             criticalCount={criticalStockCount}
             activeOrdersCount={activeOrdersCount}
             inProductionCount={inProductionCount}
           />
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#09090b]">
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 bg-black">
             {children}
           </main>
         </div>

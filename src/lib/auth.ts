@@ -17,25 +17,23 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     } = await supabase.auth.getUser();
 
     if (!user || !user.email) {
-      // Fallback padrão se chamado em ambiente sem sessão ativa
-      const defaultUser = await prisma.user.findFirst({
-        where: { email: "mateus@cordeiroink.com.br" },
-      });
+      // Fallback dinâmico: busca o primeiro usuário cadastrado ou operador genérico
+      const firstUser = await prisma.user.findFirst();
 
-      if (defaultUser) {
+      if (firstUser) {
         return {
-          id: defaultUser.id,
-          supabaseUid: defaultUser.supabaseUid || undefined,
-          email: defaultUser.email,
-          name: defaultUser.name,
-          role: defaultUser.role,
+          id: firstUser.id,
+          supabaseUid: firstUser.supabaseUid || undefined,
+          email: firstUser.email,
+          name: firstUser.name,
+          role: firstUser.role,
         };
       }
 
       return {
         id: "operador-sistema",
-        email: "mateus@cordeiroink.com.br",
-        name: "Mateus Cordeiro",
+        email: "operador@cordeiroink.com.br",
+        name: "Operador do Ateliê",
         role: "ADMIN",
       };
     }
@@ -79,10 +77,20 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     };
   } catch (error) {
     console.error("Erro ao obter usuário autenticado:", error);
+    const firstUser = await prisma.user.findFirst().catch(() => null);
+    if (firstUser) {
+      return {
+        id: firstUser.id,
+        supabaseUid: firstUser.supabaseUid || undefined,
+        email: firstUser.email,
+        name: firstUser.name,
+        role: firstUser.role,
+      };
+    }
     return {
       id: "operador-sistema",
-      email: "mateus@cordeiroink.com.br",
-      name: "Mateus Cordeiro",
+      email: "operador@cordeiroink.com.br",
+      name: "Operador do Ateliê",
       role: "ADMIN",
     };
   }

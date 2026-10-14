@@ -259,10 +259,12 @@ export function ProductionJobCard({ job, onRefresh }: ProductionJobCardProps) {
 
       {/* Modal de Confirmação de Perda / Retrabalho */}
       {isLossModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div
             className="w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/60">
               <div className="flex items-center gap-2.5">

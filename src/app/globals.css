@@ -2,18 +2,18 @@
 
 @layer base {
   :root {
-    --background: #09090b;
+    --background: #000000;
     --foreground: #fafafa;
-    --card: #121215;
+    --card: #09090b;
     --card-foreground: #fafafa;
     --border: #27272a;
-    --input: #27272a;
+    --input: #18181b;
     --ring: #d97706;
   }
 }
 
 body {
-  background-color: #09090b;
+  background-color: #000000;
   color: #f4f4f5;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
@@ -26,7 +26,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #09090b;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {

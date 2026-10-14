@@ -74,11 +74,27 @@ export function NewOrderModal({
   const [dtfCost, setDtfCost] = useState<number>(13.90);
   const [notes, setNotes] = useState("");
 
+  // Limpeza de estado (State Cleanup) ao fechar o modal
   useEffect(() => {
-    if (blankShirts.length > 0 && !selectedShirtId) {
+    if (!isOpen) {
+      setChannel(SalesChannel.WHATSAPP);
+      setCustomerName("");
+      setCustomerPhone("");
+      setSelectedShirtId(blankShirts[0]?.id || "");
+      setArtTitle("");
+      setArtUrl("");
+      setPrintSize("A3 (30x42cm)");
+      setUnitPrice(99.90);
+      setQuantity(1);
+      setPaymentMethod("PIX");
+      setIsPaid(true);
+      setDtfCost(13.90);
+      setNotes("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else if (blankShirts.length > 0 && !selectedShirtId) {
       setSelectedShirtId(blankShirts[0].id);
     }
-  }, [blankShirts, selectedShirtId]);
+  }, [isOpen, blankShirts]);
 
   if (!isOpen) return null;
 
@@ -194,10 +210,12 @@ export function NewOrderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         className="w-[96%] sm:w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-zinc-800/80 bg-zinc-900/40 shrink-0">

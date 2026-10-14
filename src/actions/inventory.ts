@@ -277,18 +277,18 @@ export async function resetDatabaseToZero() {
   await prisma.rawItem.deleteMany();
   await prisma.supplier.deleteMany();
 
-  // Garante que o administrador existe para uso
+  // Garante que o administrador autenticado existe para uso
+  const user = await getCurrentUser();
   const admin = await prisma.user.findFirst({
-    where: { email: "mateus@cordeiroink.com.br" },
+    where: { email: user.email },
   });
 
   if (!admin) {
     await prisma.user.create({
       data: {
-        name: "Mateus Cordeiro",
-        email: "mateus@cordeiroink.com.br",
+        name: user.name,
+        email: user.email,
         role: "ADMIN",
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
       },
     });
   }

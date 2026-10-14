@@ -29,7 +29,10 @@ export async function getPurchases() {
   return { purchaseOrders, suppliers };
 }
 
+import { getCurrentUser } from "@/lib/auth";
+
 export async function receivePurchaseOrder(poId: string) {
+  const user = await getCurrentUser();
   const po = await prisma.purchaseOrder.findUnique({
     where: { id: poId },
     include: {
@@ -82,9 +85,13 @@ export async function receivePurchaseOrder(poId: string) {
   // 4. Audit Log
   await prisma.auditLog.create({
     data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
       action: "PURCHASE_ORDER_RECEIVED_STOCK_ADDED",
       entity: "PurchaseOrder",
       entityId: poId,
+      details: `Ordem de compra ${po.orderCode} recebida por ${user.name}. Insumos adicionados ao estoque.`,
       newPayload: JSON.stringify({
         orderCode: po.orderCode,
         supplier: po.supplier.name,
@@ -145,6 +152,8 @@ export async function createSupplier(data: {
   notes?: string;
   leadTimeDays?: number;
 }) {
+  const user = await getCurrentUser();
+
   const supplier = await prisma.supplier.create({
     data: {
       name: data.name,
@@ -160,9 +169,13 @@ export async function createSupplier(data: {
 
   await prisma.auditLog.create({
     data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
       action: "SUPPLIER_CREATED",
       entity: "Supplier",
       entityId: supplier.id,
+      details: `Fornecedor "${supplier.name}" cadastrado por ${user.name}`,
       newPayload: JSON.stringify({
         name: supplier.name,
         category: supplier.category,
@@ -177,8 +190,22 @@ export async function createSupplier(data: {
 }
 
 export async function deleteSupplier(id: string) {
-  await prisma.supplier.delete({
+  const user = await getCurrentUser();
+
+  const deleted = await prisma.supplier.delete({
     where: { id },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "SUPPLIER_DELETED",
+      entity: "Supplier",
+      entityId: id,
+      details: `Fornecedor "${deleted.name}" excluído por ${user.name}`,
+    },
   });
 
   revalidatePath("/compras");
