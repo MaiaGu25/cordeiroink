@@ -13,8 +13,8 @@ import {
   X,
   ExternalLink,
   MessageCircle,
-  Check,
   Eye,
+  Palette,
 } from "lucide-react";
 import {
   createCatalogItem,
@@ -22,9 +22,18 @@ import {
   deleteCatalogItem,
   uploadStorefrontFile,
 } from "@/actions/storefront";
+import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constants";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+interface CatalogVariant {
+  id: string;
+  catalogItemId: string;
+  colorName: string;
+  hexCode: string;
+  imageUrl: string;
+}
 
 interface CatalogItem {
   id: string;
@@ -35,6 +44,7 @@ interface CatalogItem {
   category: string;
   isActive: boolean;
   createdAt: Date;
+  variants?: CatalogVariant[];
 }
 
 interface LeadQuote {
@@ -61,31 +71,38 @@ export function VitrineAdminView({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS">("CATALOG");
 
-  // Estados de Novo Item
+  // Estados de Criação
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingVariantIndex, setUploadingVariantIndex] = useState<number | null>(null);
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState<number | "">("");
-  const [category, setCategory] = useState("Oversized Heavyweight");
+  const [category, setCategory] = useState<string>("Adulto");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [variants, setVariants] = useState<VariantInput[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de Edição
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPrice, setEditPrice] = useState<number | "">("");
-  const [editCategory, setEditCategory] = useState("");
+  const [editCategory, setEditCategory] = useState<string>("Adulto");
   const [editDescription, setEditDescription] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
+  const [editVariants, setEditVariants] = useState<VariantInput[]>([]);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
   // Estado de Exclusão
   const [itemToDelete, setItemToDelete] = useState<CatalogItem | null>(null);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  // Upload de Imagem Principal
+  const handleMainFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEdit = false
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -102,7 +119,7 @@ export function VitrineAdminView({
         } else {
           setImageUrl(res.url);
         }
-        toast.success("Foto do produto enviada com sucesso!");
+        toast.success("Foto principal enviada com sucesso!");
       } else {
         toast.error(res.error || "Erro no upload da imagem");
       }
@@ -113,10 +130,69 @@ export function VitrineAdminView({
     }
   };
 
+  // Upload de Imagem de Variação de Cor
+  const handleVariantFileUpload = async (
+    file: File,
+    index: number,
+    isEdit = false
+  ) => {
+    setUploadingVariantIndex(index);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "catalog");
+
+    try {
+      const res = await uploadStorefrontFile(formData);
+      if (res.success && res.url) {
+        if (isEdit) {
+          setEditVariants((prev) => {
+            const next = [...prev];
+            next[index] = { ...next[index], imageUrl: res.url! };
+            return next;
+          });
+        } else {
+          setVariants((prev) => {
+            const next = [...prev];
+            next[index] = { ...next[index], imageUrl: res.url! };
+            return next;
+          });
+        }
+        toast.success("Foto da variação enviada com sucesso!");
+      } else {
+        toast.error(res.error || "Erro no upload da foto da variação");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + err.message);
+    } finally {
+      setUploadingVariantIndex(null);
+    }
+  };
+
+  const handleAddVariant = (isEdit = false) => {
+    const newVar: VariantInput = {
+      colorName: "",
+      hexCode: "#000000",
+      imageUrl: "",
+    };
+    if (isEdit) {
+      setEditVariants((prev) => [...prev, newVar]);
+    } else {
+      setVariants((prev) => [...prev, newVar]);
+    }
+  };
+
+  const handleRemoveVariant = (index: number, isEdit = false) => {
+    if (isEdit) {
+      setEditVariants((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setVariants((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !imageUrl || price === "") {
-      toast.error("Preencha título, preço e envie uma imagem do produto.");
+      toast.error("Preencha título, preço e envie a foto principal do produto.");
       return;
     }
 
@@ -128,14 +204,16 @@ export function VitrineAdminView({
           category,
           description,
           imageUrl,
+          variants,
         });
 
-        toast.success(`Peça "${title}" cadastrada na vitrine!`);
+        toast.success(`Peça "${title}" cadastrada na vitrine com variações!`);
         setIsNewModalOpen(false);
         setTitle("");
         setPrice("");
         setDescription("");
         setImageUrl("");
+        setVariants([]);
         router.refresh();
       } catch (err: any) {
         toast.error("Erro ao salvar produto: " + err.message);
@@ -150,6 +228,14 @@ export function VitrineAdminView({
     setEditCategory(item.category);
     setEditDescription(item.description || "");
     setEditImageUrl(item.imageUrl);
+    setEditVariants(
+      (item.variants || []).map((v) => ({
+        id: v.id,
+        colorName: v.colorName,
+        hexCode: v.hexCode,
+        imageUrl: v.imageUrl,
+      }))
+    );
   };
 
   const handleUpdate = (e: React.FormEvent) => {
@@ -164,9 +250,10 @@ export function VitrineAdminView({
           category: editCategory,
           description: editDescription,
           imageUrl: editImageUrl,
+          variants: editVariants,
         });
 
-        toast.success(`Peça "${editTitle}" atualizada!`);
+        toast.success(`Peça "${editTitle}" e variações atualizadas!`);
         setEditingItem(null);
         router.refresh();
       } catch (err: any) {
@@ -216,11 +303,11 @@ export function VitrineAdminView({
               <span>Gerenciar Vitrine Pública</span>
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 font-semibold">
-              Loja & Catálogo
+              Loja & Variações
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Cadastre os produtos exibidos na vitrine streetwear pública (/) e monitore os orçamentos recebidos.
+            Cadastre produtos com variações de cores/fotos, organize por categoria (Adulto, Infantil, Oversized, Feminina, Regata) e veja os orçamentos.
           </p>
         </div>
 
@@ -236,7 +323,15 @@ export function VitrineAdminView({
           </a>
 
           <button
-            onClick={() => setIsNewModalOpen(true)}
+            onClick={() => {
+              setIsNewModalOpen(true);
+              setTitle("");
+              setPrice("");
+              setCategory("Adulto");
+              setDescription("");
+              setImageUrl("");
+              setVariants([]);
+            }}
             className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
           >
             <Plus size={15} />
@@ -284,7 +379,7 @@ export function VitrineAdminView({
                 Nenhum produto cadastrado na vitrine ainda
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm">
-                Cadastre suas peças premium com foto, título e preço para que apareçam na página inicial da marca.
+                Cadastre suas peças com múltiplas cores, fotos e categorias para exibição na vitrine online.
               </p>
               <button
                 onClick={() => setIsNewModalOpen(true)}
@@ -320,27 +415,46 @@ export function VitrineAdminView({
                               : "bg-zinc-800/80 text-zinc-400 border-zinc-700"
                           }`}
                         >
-                          {item.isActive ? "Ativo na Loja" : "Inativo"}
+                          {item.isActive ? "Ativo" : "Inativo"}
                         </span>
                       </div>
                     </div>
 
                     {/* Detalhes */}
-                    <div className="p-4 space-y-1">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
-                        {item.category}
-                      </span>
+                    <div className="p-4 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-amber-400/90 font-semibold">
+                          {item.category}
+                        </span>
+                        <span className="text-xs font-mono font-bold text-zinc-100">
+                          {formatCurrency(item.price)}
+                        </span>
+                      </div>
+
                       <h4 className="text-sm font-semibold text-zinc-100 truncate">
                         {item.title}
                       </h4>
-                      {item.description && (
-                        <p className="text-xs text-zinc-400 line-clamp-2">
-                          {item.description}
-                        </p>
+
+                      {/* Swatches de Cores */}
+                      {item.variants && item.variants.length > 0 ? (
+                        <div className="flex items-center gap-1.5 pt-1">
+                          {item.variants.map((v) => (
+                            <span
+                              key={v.id || v.colorName}
+                              title={`${v.colorName} (${v.hexCode})`}
+                              className="w-3.5 h-3.5 rounded-full border border-zinc-700 shadow-sm shrink-0"
+                              style={{ backgroundColor: v.hexCode }}
+                            />
+                          ))}
+                          <span className="text-[10px] text-zinc-500 font-mono ml-1">
+                            {item.variants.length} {item.variants.length === 1 ? "cor" : "cores"}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-600 font-mono block pt-1">
+                          Sem variações de cor adicionais
+                        </span>
                       )}
-                      <p className="text-sm font-mono font-bold text-amber-400 pt-1">
-                        {formatCurrency(item.price)}
-                      </p>
                     </div>
                   </div>
 
@@ -364,7 +478,7 @@ export function VitrineAdminView({
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(item)}
-                        title="Editar produto"
+                        title="Editar produto e cores"
                         className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition cursor-pointer"
                       >
                         <Edit2 size={13} />
@@ -410,7 +524,7 @@ export function VitrineAdminView({
                     <tr>
                       <th className="px-4 py-3">Cliente</th>
                       <th className="px-4 py-3">WhatsApp</th>
-                      <th className="px-4 py-3">Modelo</th>
+                      <th className="px-4 py-3">Categoria</th>
                       <th className="px-4 py-3">Tamanho</th>
                       <th className="px-4 py-3">Arte Enviada</th>
                       <th className="px-4 py-3">Data</th>
@@ -485,7 +599,7 @@ export function VitrineAdminView({
           onClick={() => !isPending && setIsNewModalOpen(false)}
         >
           <div
-            className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -496,7 +610,7 @@ export function VitrineAdminView({
                   <Sparkles size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Cadastrar Peça na Vitrine
+                  Cadastrar Peça & Variações de Cores
                 </h3>
               </div>
               <button
@@ -509,21 +623,21 @@ export function VitrineAdminView({
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
-              {/* Upload de Imagem */}
+              {/* Foto Principal de Capa */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Foto do Produto *
+                  Foto Principal de Capa *
                 </label>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleFileUpload(e, false)}
+                  onChange={(e) => handleMainFileUpload(e, false)}
                   className="hidden"
                 />
 
                 {imageUrl ? (
-                  <div className="relative aspect-[3/4] w-40 rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                  <div className="relative aspect-[3/4] w-36 rounded-xl overflow-hidden border border-zinc-700 mx-auto">
                     <img
                       src={imageUrl}
                       alt="Preview"
@@ -540,24 +654,24 @@ export function VitrineAdminView({
                 ) : (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-6 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2"
+                    className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2"
                   >
                     {isUploading ? (
                       <>
-                        <Loader2 size={24} className="animate-spin text-amber-400" />
+                        <Loader2 size={22} className="animate-spin text-amber-400" />
                         <span className="text-xs text-zinc-400 font-mono">
-                          Fazendo upload para o Supabase Storage...
+                          Fazendo upload da foto para o Supabase...
                         </span>
                       </>
                     ) : (
                       <>
-                        <Upload size={24} className="text-zinc-500" />
+                        <Upload size={22} className="text-zinc-500" />
                         <div>
                           <p className="text-xs font-semibold text-zinc-300">
-                            Clique para subir a foto da peça
+                            Clique para subir a foto principal de capa
                           </p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">
-                            PNG, JPG ou WEBP (Bucket público storefront)
+                          <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
+                            Bucket público storefront (PNG, JPG, WEBP)
                           </p>
                         </div>
                       </>
@@ -577,7 +691,7 @@ export function VitrineAdminView({
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Heavyweight Oversized Tee"
+                    placeholder="Ex: Heavyweight Boxy Tee"
                     className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -599,38 +713,179 @@ export function VitrineAdminView({
                 </div>
               </div>
 
-              {/* Categoria */}
+              {/* Categoria Estrita */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Categoria
+                  Categoria *
                 </label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="Oversized Heavyweight">Oversized Heavyweight (26.1 / 30.1)</option>
-                  <option value="Camisetas Streetwear">Camisetas Streetwear Tradicionais</option>
-                  <option value="Moletom & Hoodie">Moletom & Hoodie Premium</option>
-                  <option value="Edição Limitada">Edição Limitada</option>
+                  {CATALOG_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               {/* Descrição */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Descrição / Composição (Opcional)
+                  Descrição / Detalhes do Tecido
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: 100% Algodão penteado 260gsm, corte streetwear oversized com gola canelada de 3cm."
+                  placeholder="Ex: Malha 100% algodão 260g/m² com ribana canelada de 3cm e costura reforçada."
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-800">
+              {/* Seção Dinâmica de Variações de Cores */}
+              <div className="pt-2 border-t border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Palette size={15} className="text-amber-400" />
+                    <span className="text-xs font-bold text-zinc-200">
+                      Variações de Cores & Fotos Específicas ({variants.length})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant(false)}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <Plus size={13} />
+                    <span>Adicionar Cor</span>
+                  </button>
+                </div>
+
+                {variants.length === 0 ? (
+                  <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
+                    Nenhuma variação adicionada. O produto usará apenas a foto principal de capa. Clique em "Adicionar Cor" para cadastrar fotos por cor (ex: Preto, Off-White, Bege).
+                  </p>
+                ) : (
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {variants.map((variant, index) => (
+                      <div
+                        key={index}
+                        className="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs"
+                      >
+                        {/* Nome da Cor */}
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Nome da Cor (ex: Preto OLED)"
+                            value={variant.colorName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setVariants((prev) => {
+                                const next = [...prev];
+                                next[index].colorName = val;
+                                return next;
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        {/* Color Picker / Hex */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <input
+                            type="color"
+                            value={variant.hexCode || "#000000"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setVariants((prev) => {
+                                const next = [...prev];
+                                next[index].hexCode = val;
+                                return next;
+                              });
+                            }}
+                            className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                            title="Seletor visual de cor"
+                          />
+                          <input
+                            type="text"
+                            value={variant.hexCode}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setVariants((prev) => {
+                                const next = [...prev];
+                                next[index].hexCode = val;
+                                return next;
+                              });
+                            }}
+                            placeholder="#000000"
+                            className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-100 focus:outline-none focus:border-amber-500 uppercase"
+                          />
+                        </div>
+
+                        {/* Imagem desta Variação */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {variant.imageUrl ? (
+                            <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
+                              <img
+                                src={variant.imageUrl}
+                                alt={variant.colorName}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setVariants((prev) => {
+                                    const next = [...prev];
+                                    next[index].imageUrl = "";
+                                    return next;
+                                  });
+                                }}
+                                className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer transition">
+                              {uploadingVariantIndex === index ? (
+                                <Loader2 size={12} className="animate-spin text-amber-400" />
+                              ) : (
+                                <Upload size={12} />
+                              )}
+                              <span>Foto desta cor</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleVariantFileUpload(file, index, false);
+                                }}
+                              />
+                            </label>
+                          )}
+
+                          {/* Botão Remover Variação */}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVariant(index, false)}
+                            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                            title="Remover cor"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
@@ -640,10 +895,10 @@ export function VitrineAdminView({
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending || isUploading}
+                  disabled={isPending || isUploading || uploadingVariantIndex !== null}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  {isPending ? "Cadastrando..." : "Publicar na Vitrine"}
+                  {isPending ? "Publicando..." : "Publicar na Vitrine"}
                 </button>
               </div>
             </form>
@@ -651,14 +906,14 @@ export function VitrineAdminView({
         </div>
       )}
 
-      {/* Modal: Editar Produto */}
+      {/* Modal: Editar Produto e Variações */}
       {editingItem && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
           onClick={() => !isPending && setEditingItem(null)}
         >
           <div
-            className="w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -669,7 +924,7 @@ export function VitrineAdminView({
                   <Edit2 size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Editar Peça da Vitrine
+                  Editar Peça & Variações
                 </h3>
               </div>
               <button
@@ -682,21 +937,21 @@ export function VitrineAdminView({
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
-              {/* Imagem Atual / Trocar */}
+              {/* Imagem Principal Atual / Trocar */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Foto do Produto
+                  Foto Principal de Capa
                 </label>
                 <input
                   ref={editFileInputRef}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => handleFileUpload(e, true)}
+                  onChange={(e) => handleMainFileUpload(e, true)}
                   className="hidden"
                 />
 
                 <div className="flex items-center gap-4">
-                  <div className="relative aspect-[3/4] w-24 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 shrink-0">
+                  <div className="relative aspect-[3/4] w-20 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 shrink-0">
                     <img
                       src={editImageUrl}
                       alt="Preview"
@@ -718,7 +973,7 @@ export function VitrineAdminView({
                       ) : (
                         <>
                           <Upload size={12} />
-                          <span>Trocar Foto</span>
+                          <span>Trocar Foto Principal</span>
                         </>
                       )}
                     </button>
@@ -760,20 +1015,21 @@ export function VitrineAdminView({
                 </div>
               </div>
 
-              {/* Categoria */}
+              {/* Categoria Estrita */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Categoria
+                  Categoria *
                 </label>
                 <select
                   value={editCategory}
                   onChange={(e) => setEditCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="Oversized Heavyweight">Oversized Heavyweight (26.1 / 30.1)</option>
-                  <option value="Camisetas Streetwear">Camisetas Streetwear Tradicionais</option>
-                  <option value="Moletom & Hoodie">Moletom & Hoodie Premium</option>
-                  <option value="Edição Limitada">Edição Limitada</option>
+                  {CATALOG_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -783,14 +1039,153 @@ export function VitrineAdminView({
                   Descrição / Detalhes
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-zinc-800">
+              {/* Seção Dinâmica de Variações na Edição */}
+              <div className="pt-2 border-t border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Palette size={15} className="text-amber-400" />
+                    <span className="text-xs font-bold text-zinc-200">
+                      Variações de Cores ({editVariants.length})
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant(true)}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <Plus size={13} />
+                    <span>Adicionar Cor</span>
+                  </button>
+                </div>
+
+                {editVariants.length === 0 ? (
+                  <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
+                    Nenhuma cor cadastrada. Clique no botão acima para adicionar fotos específicas por cor.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {editVariants.map((variant, index) => (
+                      <div
+                        key={index}
+                        className="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs"
+                      >
+                        {/* Nome da Cor */}
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Nome da Cor (ex: Branco Neve)"
+                            value={variant.colorName}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditVariants((prev) => {
+                                const next = [...prev];
+                                next[index].colorName = val;
+                                return next;
+                              });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        {/* Color Picker / Hex */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <input
+                            type="color"
+                            value={variant.hexCode || "#000000"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditVariants((prev) => {
+                                const next = [...prev];
+                                next[index].hexCode = val;
+                                return next;
+                              });
+                            }}
+                            className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
+                            title="Seletor visual de cor"
+                          />
+                          <input
+                            type="text"
+                            value={variant.hexCode}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditVariants((prev) => {
+                                const next = [...prev];
+                                next[index].hexCode = val;
+                                return next;
+                              });
+                            }}
+                            placeholder="#000000"
+                            className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-100 focus:outline-none focus:border-amber-500 uppercase"
+                          />
+                        </div>
+
+                        {/* Imagem desta Variação */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {variant.imageUrl ? (
+                            <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
+                              <img
+                                src={variant.imageUrl}
+                                alt={variant.colorName}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditVariants((prev) => {
+                                    const next = [...prev];
+                                    next[index].imageUrl = "";
+                                    return next;
+                                  });
+                                }}
+                                className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
+                            <label className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer transition">
+                              {uploadingVariantIndex === index ? (
+                                <Loader2 size={12} className="animate-spin text-amber-400" />
+                              ) : (
+                                <Upload size={12} />
+                              )}
+                              <span>Foto desta cor</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleVariantFileUpload(file, index, true);
+                                }}
+                              />
+                            </label>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVariant(index, true)}
+                            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                            title="Remover cor"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
@@ -800,7 +1195,7 @@ export function VitrineAdminView({
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending}
+                  disabled={isPending || isUploading || uploadingVariantIndex !== null}
                   className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   {isPending ? "Salvando..." : "Salvar Alterações"}
@@ -845,7 +1240,7 @@ export function VitrineAdminView({
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Tem certeza que deseja excluir esta peça da vitrine? Ela deixará de ser exibida para os clientes no catálogo online.
+              Tem certeza que deseja excluir esta peça da vitrine? Todas as fotos e variações de cores vinculadas também serão removidas.
             </p>
 
             <div className="pt-2 flex items-center justify-end gap-2.5">

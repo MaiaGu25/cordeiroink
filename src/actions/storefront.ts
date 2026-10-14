@@ -86,6 +86,9 @@ export async function uploadStorefrontFile(formData: FormData) {
   }
 }
 
+import { CATALOG_CATEGORIES, type CatalogCategory, type VariantInput } from "@/lib/storefront-constants";
+export type { CatalogCategory, VariantInput };
+
 /**
  * Busca itens do catálogo para a vitrine pública e para a área administrativa.
  */
@@ -93,6 +96,11 @@ export async function getCatalogItems(includeInactive = false) {
   try {
     const items = await prisma.catalogItem.findMany({
       where: includeInactive ? undefined : { isActive: true },
+      include: {
+        variants: {
+          orderBy: { createdAt: "asc" },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
     return items;
@@ -103,7 +111,7 @@ export async function getCatalogItems(includeInactive = false) {
 }
 
 /**
- * Criação de um novo item de catálogo na área administrativa.
+ * Criação de um novo item de catálogo na área administrativa com suporte a variações de cor.
  */
 export async function createCatalogItem(data: {
   title: string;
@@ -111,10 +119,19 @@ export async function createCatalogItem(data: {
   price: number;
   imageUrl: string;
   category?: string;
+  variants?: VariantInput[];
 }) {
   if (!data.title?.trim() || !data.imageUrl?.trim()) {
-    throw new Error("Título e Imagem do produto são obrigatórios.");
+    throw new Error("Título e Imagem principal do produto são obrigatórios.");
   }
+
+  const cleanCategory = CATALOG_CATEGORIES.includes(data.category as any)
+    ? data.category!
+    : "Adulto";
+
+  const validVariants = (data.variants || []).filter(
+    (v) => v.colorName?.trim() && v.imageUrl?.trim()
+  );
 
   const item = await prisma.catalogItem.create({
     data: {
@@ -122,8 +139,18 @@ export async function createCatalogItem(data: {
       description: data.description?.trim() || null,
       price: Number(data.price) || 0,
       imageUrl: data.imageUrl.trim(),
-      category: data.category?.trim() || "Camisetas Streetwear",
+      category: cleanCategory,
       isActive: true,
+      variants: {
+        create: validVariants.map((v) => ({
+          colorName: v.colorName.trim(),
+          hexCode: v.hexCode?.trim() || "#000000",
+          imageUrl: v.imageUrl.trim(),
+        })),
+      },
+    },
+    include: {
+      variants: true,
     },
   });
 
@@ -133,7 +160,7 @@ export async function createCatalogItem(data: {
 }
 
 /**
- * Atualização de um item de catálogo existente.
+ * Atualização de um item de catálogo existente e sincronização de variações.
  */
 export async function updateCatalogItem(
   id: string,
@@ -144,18 +171,51 @@ export async function updateCatalogItem(
     imageUrl?: string;
     category?: string;
     isActive?: boolean;
+    variants?: VariantInput[];
   }
 ) {
-  const item = await prisma.catalogItem.update({
-    where: { id },
-    data: {
-      title: data.title !== undefined ? data.title.trim() : undefined,
-      description: data.description !== undefined ? data.description.trim() : undefined,
-      price: data.price !== undefined ? Number(data.price) : undefined,
-      imageUrl: data.imageUrl !== undefined ? data.imageUrl.trim() : undefined,
-      category: data.category !== undefined ? data.category.trim() : undefined,
-      isActive: data.isActive !== undefined ? data.isActive : undefined,
-    },
+  const cleanCategory =
+    data.category && CATALOG_CATEGORIES.includes(data.category as any)
+      ? data.category
+      : undefined;
+
+  const item = await prisma.$transaction(async (tx) => {
+    // Sincroniza variações se fornecidas
+    if (data.variants !== undefined) {
+      await tx.catalogVariant.deleteMany({
+        where: { catalogItemId: id },
+      });
+
+      const validVariants = data.variants.filter(
+        (v) => v.colorName?.trim() && v.imageUrl?.trim()
+      );
+
+      if (validVariants.length > 0) {
+        await tx.catalogVariant.createMany({
+          data: validVariants.map((v) => ({
+            catalogItemId: id,
+            colorName: v.colorName.trim(),
+            hexCode: v.hexCode?.trim() || "#000000",
+            imageUrl: v.imageUrl.trim(),
+          })),
+        });
+      }
+    }
+
+    return await tx.catalogItem.update({
+      where: { id },
+      data: {
+        title: data.title !== undefined ? data.title.trim() : undefined,
+        description: data.description !== undefined ? data.description.trim() : undefined,
+        price: data.price !== undefined ? Number(data.price) : undefined,
+        imageUrl: data.imageUrl !== undefined ? data.imageUrl.trim() : undefined,
+        category: cleanCategory,
+        isActive: data.isActive !== undefined ? data.isActive : undefined,
+      },
+      include: {
+        variants: true,
+      },
+    });
   });
 
   revalidatePath("/admin/vitrine");

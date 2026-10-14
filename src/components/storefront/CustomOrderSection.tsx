@@ -219,25 +219,18 @@ export function CustomOrderSection() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
-                      Modelo da Peça *
+                      Categoria / Modelagem *
                     </label>
                     <select
                       value={shirtModel}
                       onChange={(e) => setShirtModel(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
                     >
-                      <option value="Camiseta Oversized Heavyweight 26.1">
-                        Camiseta Oversized Heavyweight (26.1)
-                      </option>
-                      <option value="T-Shirt Tradicional Streetwear 30.1">
-                        T-Shirt Tradicional Streetwear (30.1)
-                      </option>
-                      <option value="Moletom Canguru Heavyweight">
-                        Moletom Canguru Heavyweight
-                      </option>
-                      <option value="Moletom Careca (Crewneck)">
-                        Moletom Careca (Crewneck)
-                      </option>
+                      <option value="Adulto">Adulto</option>
+                      <option value="Infantil">Infantil</option>
+                      <option value="Oversized">Oversized</option>
+                      <option value="Feminina">Feminina</option>
+                      <option value="Regata">Regata</option>
                     </select>
                   </div>
 

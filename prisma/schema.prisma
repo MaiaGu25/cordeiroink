@@ -361,15 +361,28 @@ model AuditLog {
 
 // 10. VITRINE PÚBLICA & CATÁLOGO
 model CatalogItem {
-  id          String   @id @default(uuid())
+  id          String           @id @default(uuid())
   title       String
   description String?
   price       Float
-  imageUrl    String
-  category    String   @default("Camisetas")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  imageUrl    String           // Imagem de capa principal
+  category    String           @default("Adulto") // Adulto, Infantil, Oversized, Feminina, Regata
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  variants    CatalogVariant[]
+}
+
+model CatalogVariant {
+  id            String      @id @default(uuid())
+  catalogItemId String
+  catalogItem   CatalogItem @relation(fields: [catalogItemId], references: [id], onDelete: Cascade)
+  colorName     String      // ex: "Preto", "Off-White"
+  hexCode       String      @default("#000000") // ex: "#000000"
+  imageUrl      String      // URL da foto desta cor
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 // 11. ORÇAMENTOS PERSONALIZADOS (LEADS DA VITRINE)
