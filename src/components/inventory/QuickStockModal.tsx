@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { X, Package, Loader2, Edit } from "lucide-react";
+import { X, Package, Loader2, Edit, Trash2 } from "lucide-react";
 import { adjustStock } from "@/actions/inventory";
 import { toast } from "sonner";
 
@@ -10,6 +10,7 @@ interface QuickStockModalProps {
   onClose: () => void;
   onStockUpdated?: () => void;
   onOpenEdit?: (item: any) => void;
+  onDelete?: (item: any) => void;
 }
 
 export function QuickStockModal({
@@ -17,6 +18,7 @@ export function QuickStockModal({
   onClose,
   onStockUpdated,
   onOpenEdit,
+  onDelete,
 }: QuickStockModalProps) {
   const [isPending, startTransition] = useTransition();
   const [newQuantity, setNewQuantity] = useState<number>(
@@ -147,19 +149,35 @@ export function QuickStockModal({
           </div>
 
           <div className="pt-4 border-t border-zinc-800 flex items-center justify-between gap-2.5">
-            {onOpenEdit ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenEdit(item);
-                }}
-                className="px-3 py-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
-              >
-                <Edit size={12} />
-                <span>Editar Dados</span>
-              </button>
-            ) : <div />}
+            <div className="flex items-center gap-2">
+              {onOpenEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenEdit(item);
+                  }}
+                  className="px-3 py-2 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-zinc-400 hover:text-amber-400 border border-zinc-800 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Edit size={12} />
+                  <span>Editar</span>
+                </button>
+              )}
+
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onDelete(item);
+                  }}
+                  className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Trash2 size={12} />
+                  <span>Excluir</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               <button

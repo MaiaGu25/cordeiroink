@@ -1,6 +1,6 @@
 "use client";
 
-import { Package, Gift, Tag, Edit3, AlertTriangle } from "lucide-react";
+import { Package, Gift, Tag, Edit3, AlertTriangle, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface SupplyItem {
@@ -17,9 +17,10 @@ interface PackagingListProps {
   items: SupplyItem[];
   onAdjust: (item: SupplyItem) => void;
   onAddNew?: () => void;
+  onDelete?: (item: SupplyItem) => void;
 }
 
-export function PackagingList({ items, onAdjust, onAddNew }: PackagingListProps) {
+export function PackagingList({ items, onAdjust, onAddNew, onDelete }: PackagingListProps) {
   if (items.length === 0) {
     return (
       <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
@@ -105,10 +106,25 @@ export function PackagingList({ items, onAdjust, onAddNew }: PackagingListProps)
 
             <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-500">
               <span className="text-[10px] font-mono">Mínimo: {item.minStock} un</span>
-              <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 flex items-center gap-1">
-                <Edit3 size={12} />
-                <span>Ajustar</span>
-              </span>
+              <div className="flex items-center gap-1.5">
+                {onDelete && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(item);
+                    }}
+                    title="Excluir insumo"
+                    className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                <span className="text-[11px] text-zinc-400 group-hover:text-zinc-200 flex items-center gap-1">
+                  <Edit3 size={12} />
+                  <span>Ajustar</span>
+                </span>
+              </div>
             </div>
           </div>
         );

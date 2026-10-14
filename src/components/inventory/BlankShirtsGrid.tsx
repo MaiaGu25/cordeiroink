@@ -1,6 +1,6 @@
 "use client";
 
-import { Shirt, AlertTriangle, Edit3, ArrowUpRight } from "lucide-react";
+import { Shirt, AlertTriangle, Edit3, ArrowUpRight, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import {
   HoverCard,
@@ -24,9 +24,10 @@ interface BlankShirtsGridProps {
   items: BlankShirtItem[];
   onAdjust: (item: BlankShirtItem) => void;
   onAddNew?: () => void;
+  onDelete?: (item: BlankShirtItem) => void;
 }
 
-export function BlankShirtsGrid({ items, onAdjust, onAddNew }: BlankShirtsGridProps) {
+export function BlankShirtsGrid({ items, onAdjust, onAddNew, onDelete }: BlankShirtsGridProps) {
   if (items.length === 0) {
     return (
       <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
@@ -209,7 +210,22 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew }: BlankShirtsGridPr
 
                       <div className="pt-1.5 text-[10px] text-zinc-500 border-t border-zinc-800/80 flex items-center justify-between">
                         <span>Clique para ajustar</span>
-                        <Edit3 size={11} className="text-amber-400" />
+                        <div className="flex items-center gap-2">
+                          {onDelete && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(item);
+                              }}
+                              title="Excluir camiseta lisa"
+                              className="text-zinc-500 hover:text-red-400 transition cursor-pointer p-0.5"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          )}
+                          <Edit3 size={11} className="text-amber-400" />
+                        </div>
                       </div>
                     </HoverCardContent>
                   </HoverCard>

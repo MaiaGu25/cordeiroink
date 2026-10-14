@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit3, AlertTriangle, Layers, Image as ImageIcon } from "lucide-react";
+import { Edit3, AlertTriangle, Layers, Image as ImageIcon, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface DtfItem {
@@ -20,9 +20,10 @@ interface DtfCatalogGridProps {
   items: DtfItem[];
   onAdjust: (item: DtfItem) => void;
   onAddNew?: () => void;
+  onDelete?: (item: DtfItem) => void;
 }
 
-export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProps) {
+export function DtfCatalogGrid({ items, onAdjust, onAddNew, onDelete }: DtfCatalogGridProps) {
   if (items.length === 0) {
     return (
       <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
@@ -127,9 +128,24 @@ export function DtfCatalogGrid({ items, onAdjust, onAddNew }: DtfCatalogGridProp
                       </span>
                     </div>
 
-                    <span className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs transition-colors">
-                      <Edit3 size={13} />
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {onDelete && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item);
+                          }}
+                          title="Excluir estampa"
+                          className="p-2 rounded-lg bg-zinc-900/80 hover:bg-red-950/80 text-zinc-400 hover:text-red-400 border border-zinc-800 hover:border-red-900/50 text-xs transition-colors cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                      <span className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs transition-colors">
+                        <Edit3 size={13} />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

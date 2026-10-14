@@ -5,9 +5,10 @@ import { RawItemType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function getInventoryItems() {
+export async function getInventoryItems(includeArchived = false) {
   const [items, suppliersList] = await Promise.all([
     prisma.rawItem.findMany({
+      where: includeArchived ? undefined : { isActive: true },
       include: {
         supplier: true,
         _count: {
@@ -394,11 +395,37 @@ export async function deleteRawItem(id: string) {
     item._count.purchaseItems;
 
   if (usages > 0) {
-    throw new Error(
-      `O insumo "${item.name}" possui histórico em ${usages} pedido(s) ou registros do sistema e não pode ser excluído permanentemente para não corromper relatórios passados. Utilize a opção de Inativar/Arquivar.`
-    );
+    // Soft Delete: Preserva a integridade referencial dos relatórios e pedidos anteriores
+    await prisma.rawItem.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        action: "RAW_ITEM_ARCHIVED_SOFT_DELETED",
+        entity: "RawItem",
+        entityId: id,
+        details: `Insumo "${item.name}" (${item.sku}) arquivado via soft-delete por ${user.name} devido a histórico em ${usages} registro(s).`,
+      },
+    });
+
+    revalidatePath("/estoque");
+    revalidatePath("/pedidos");
+    revalidatePath("/producao");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      softDeleted: true,
+      message: "Este item já possui histórico. Ele foi arquivado ao invés de excluído.",
+    };
   }
 
+  // Hard Delete permanente: item sem nenhum vínculo
   await prisma.rawItem.delete({ where: { id } });
 
   await prisma.auditLog.create({
@@ -409,7 +436,7 @@ export async function deleteRawItem(id: string) {
       action: "RAW_ITEM_DELETED",
       entity: "RawItem",
       entityId: id,
-      details: `Insumo "${item.name}" (${item.sku}) excluído definitivamente por ${user.name}`,
+      details: `Insumo "${item.name}" (${item.sku}) excluído definitivamente do banco por ${user.name}`,
     },
   });
 
@@ -417,7 +444,12 @@ export async function deleteRawItem(id: string) {
   revalidatePath("/pedidos");
   revalidatePath("/producao");
   revalidatePath("/");
-  return { success: true };
+
+  return {
+    success: true,
+    softDeleted: false,
+    message: `Insumo "${item.name}" excluído definitivamente com sucesso.`,
+  };
 }
 
 export async function toggleRawItemActive(id: string, isActive: boolean) {

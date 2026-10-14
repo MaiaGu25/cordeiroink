@@ -35,6 +35,7 @@ export default async function PedidosPage({ searchParams }: PedidosPageProps) {
       orderBy: { createdAt: "desc" },
     }),
     prisma.rawItem.findMany({
+      where: { isActive: true },
       orderBy: [{ type: "asc" }, { name: "asc" }],
     }),
   ]);
