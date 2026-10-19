@@ -38,8 +38,9 @@ export async function calculateShippingRate(params: {
     };
   }
 
-  const rawOriginCep = process.env.MELHOR_ENVIO_FROM_CEP || "01001000";
-  const cleanOriginCep = rawOriginCep.replace(/\D/g, "") || "01001000";
+  // O CEP de origem do ateliê é fixado e carregado estritamente de process.env.CEP_ORIGEM
+  const rawOriginCep = process.env.CEP_ORIGEM || "03276010";
+  const cleanOriginCep = rawOriginCep.replace(/\D/g, "") || "03276010";
 
   const email = process.env.MELHOR_ENVIO_EMAIL || "contato@cordeiroink.com.br";
   const token = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
@@ -170,14 +171,30 @@ export async function calculateShippingRate(params: {
           deliveryDays,
           currency: item.currency || "R$",
         };
-      })
-      .sort((a, b) => a.price - b.price); // PAC (mais econômico) primeiro
+      });
+
+    // 4. Se o CEP de destino for local (SP Capital/Grande SP, mesma região do ateliê), disponibiliza Motoboy
+    const isSpMetro = /^(0[1-9])\d{6}$/.test(cleanDestinationCep);
+    if (isSpMetro && process.env.MOTOBOY_ENABLED !== "false") {
+      const motoboyPrice = parseFloat(process.env.MOTOBOY_PRICE || "25.00");
+      validCorreiosOptions.push({
+        id: "motoboy",
+        name: "MOTOBOY",
+        service: "Motoboy Express",
+        company: "Entrega Local",
+        price: motoboyPrice,
+        deliveryDays: 1,
+        currency: "R$",
+      });
+    }
+
+    validCorreiosOptions.sort((a, b) => a.price - b.price); // Ordena por valor mais acessível
 
     if (validCorreiosOptions.length === 0) {
       return {
         success: false,
         options: [],
-        error: "Nenhum frete Correios (PAC/SEDEX) disponível para o CEP informado.",
+        error: "Nenhum frete (Correios/Motoboy) disponível para o CEP informado.",
       };
     }
 
