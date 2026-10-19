@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { X, FileEdit, Loader2, Save } from "lucide-react";
 import { editOrder } from "@/actions/orders";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { toast } from "sonner";
 
 interface EditOrderModalProps {
@@ -44,7 +45,7 @@ export function EditOrderModal({
   const [notes, setNotes] = useState(defaults.notes);
   const [itemTitle, setItemTitle] = useState(defaults.itemTitle);
   const [printSize, setPrintSize] = useState(defaults.printSize);
-  const [unitPrice, setUnitPrice] = useState<number>(defaults.unitPrice);
+  const [unitPrice, setUnitPrice] = useState<number | "">(defaults.unitPrice);
 
   // Sync all fields whenever order changes (different order selected) OR modal opens
   useEffect(() => {
@@ -82,7 +83,7 @@ export function EditOrderModal({
           notes: notes || undefined,
           itemTitle: itemTitle || undefined,
           printSize,
-          unitPrice: Number(unitPrice),
+          unitPrice: typeof unitPrice === "number" ? unitPrice : parseFloat(String(unitPrice).replace(",", ".")) || 0,
         });
 
         toast.success(`Pedido ${order.orderNumber} atualizado com sucesso!`);
@@ -218,14 +219,11 @@ export function EditOrderModal({
               <label htmlFor="edit-unit-price" className="block text-xs font-semibold text-zinc-300 mb-1">
                 Preço Unitário Cobrado (R$) *
               </label>
-              <input
+              <CurrencyInput
                 id="edit-unit-price"
-                required
-                type="number"
-                step="0.01"
-                min="0"
                 value={unitPrice}
-                onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setUnitPrice(val)}
+                placeholder="0,00"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
             </div>

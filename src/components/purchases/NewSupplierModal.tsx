@@ -30,7 +30,7 @@ export function NewSupplierModal({ isOpen, onClose, onCreated }: NewSupplierModa
   const [email, setEmail] = useState("");
   const [pixKey, setPixKey] = useState("");
   const [notes, setNotes] = useState("");
-  const [leadTimeDays, setLeadTimeDays] = useState(3);
+  const [leadTimeDays, setLeadTimeDays] = useState<number | "">(3);
 
   // Limpeza de estado (State Cleanup) ao fechar o modal
   useEffect(() => {
@@ -222,9 +222,11 @@ export function NewSupplierModal({ isOpen, onClose, onCreated }: NewSupplierModa
               </label>
               <input
                 type="number"
+                step="1"
                 min={1}
                 value={leadTimeDays}
-                onChange={(e) => setLeadTimeDays(parseInt(e.target.value) || 3)}
+                onChange={(e) => setLeadTimeDays(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="3"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
             </div>

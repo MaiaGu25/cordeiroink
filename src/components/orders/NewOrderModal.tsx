@@ -17,8 +17,12 @@ import {
 } from "lucide-react";
 import { createManualOrder } from "@/actions/orders";
 import { formatCurrency } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { SalesChannel } from "@prisma/client";
 import { toast } from "sonner";
+import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
+import type { ShippingOption } from "@/actions/shipping";
 
 interface RawOption {
   id: string;
@@ -66,13 +70,16 @@ export function NewOrderModal({
   const [artUrl, setArtUrl] = useState("");
   const [printSize, setPrintSize] = useState("A3 (30x42cm)");
 
-  // 5. Financeiro
-  const [unitPrice, setUnitPrice] = useState<number>(99.90);
+  // 5. Financeiro & Frete
+  const [unitPrice, setUnitPrice] = useState<number | "">(99.90);
   const [quantity, setQuantity] = useState<number>(1);
   const [paymentMethod, setPaymentMethod] = useState<"PIX" | "CARTAO" | "DINHEIRO">("PIX");
   const [isPaid, setIsPaid] = useState<boolean>(true);
-  const [dtfCost, setDtfCost] = useState<number>(13.90);
+  const [dtfCost, setDtfCost] = useState<number | "">(13.90);
   const [notes, setNotes] = useState("");
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [destinationCep, setDestinationCep] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
 
   // Limpeza de estado (State Cleanup) ao fechar o modal
   useEffect(() => {
@@ -90,6 +97,9 @@ export function NewOrderModal({
       setIsPaid(true);
       setDtfCost(13.90);
       setNotes("");
+      setSelectedShipping(null);
+      setDestinationCep("");
+      setShippingAddress("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } else if (blankShirts.length > 0 && !selectedShirtId) {
       setSelectedShirtId(blankShirts[0].id);
@@ -152,10 +162,12 @@ export function NewOrderModal({
   // Cálculos dinâmicos
   const chosenShirt = blankShirts.find((s) => s.id === selectedShirtId);
   const shirtCost = chosenShirt ? chosenShirt.costPrice : 0;
-  const currentDtfCost = dtfCost;
-  const totalCostUnit = shirtCost + currentDtfCost;
+  const numDtfCost = typeof dtfCost === "number" ? dtfCost : parseFloat(String(dtfCost).replace(",", ".")) || 0;
+  const currentDtfCost = numDtfCost;
+  const numUnitPrice = typeof unitPrice === "number" ? unitPrice : parseFloat(String(unitPrice).replace(",", ".")) || 0;
+  const totalCostUnit = shirtCost + numDtfCost;
 
-  const totalCharged = unitPrice * quantity;
+  const totalCharged = numUnitPrice * quantity;
   const totalCMV = totalCostUnit * quantity;
   const netProfit = totalCharged - totalCMV;
   const marginPercent = totalCharged > 0 ? (netProfit / totalCharged) * 100 : 0;
@@ -191,12 +203,16 @@ export function NewOrderModal({
           isPaid,
           itemTitle: finalItemTitle,
           blankShirtId: selectedShirtId || undefined,
-          dtfCost: Number(dtfCost) || 0,
+          dtfCost: numDtfCost,
           artTitle: artTitle.trim() || undefined,
           artUrl: artUrl.trim() || undefined,
           printSize,
           quantity: Number(quantity) || 1,
-          unitPrice: Number(unitPrice) || 0,
+          unitPrice: numUnitPrice,
+          shippingAddress:
+            shippingAddress.trim() ||
+            (destinationCep ? `CEP: ${destinationCep}` : undefined),
+          shippingCost: selectedShipping ? selectedShipping.price : 0,
           notes: notes.trim() || undefined,
         });
 
@@ -381,10 +397,12 @@ export function NewOrderModal({
               {artUrl ? (
                 <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img
+                    <SafeImage
                       src={artUrl}
                       alt="Arte do cliente"
-                      className="w-12 h-12 object-cover rounded-lg border border-zinc-850 shrink-0"
+                      className="w-12 h-12 object-cover rounded-lg border border-zinc-800 shrink-0"
+                      containerClassName="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+                      iconSize={18}
                     />
                     <div className="truncate">
                       <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
@@ -457,31 +475,52 @@ export function NewOrderModal({
             </div>
           </div>
 
-          {/* 5. Financeiro da Venda */}
+          {/* 5. Entrega & Frete (Melhor Envio / Correios) */}
+          <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
+            <div>
+              <label className="block text-zinc-300 font-semibold mb-1">
+                Endereço de Destino / Entrega
+              </label>
+              <input
+                type="text"
+                value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)}
+                placeholder="ex: Av. Paulista, 1000 - Bela Vista, São Paulo - SP"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
+              />
+            </div>
+
+            <ShippingCalculator
+              quantity={quantity}
+              selectedOption={selectedShipping}
+              onSelectOption={setSelectedShipping}
+              variant="admin"
+              initialCep={destinationCep}
+              onCepChange={setDestinationCep}
+            />
+          </div>
+
+          {/* 6. Financeiro da Venda */}
           <div className="p-3.5 rounded-xl bg-zinc-900/40 border border-zinc-800/80 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-zinc-300 font-semibold mb-1">
                   Valor Total Cobrado (R$) *
                 </label>
-                <input
-                  type="number"
-                  step="0.50"
-                  min={0}
+                <CurrencyInput
                   value={unitPrice}
-                  onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                  onChange={(val) => setUnitPrice(val)}
+                  placeholder="99,90"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono text-base font-bold focus:outline-none focus:border-zinc-700"
                 />
               </div>
 
               <div>
                 <label className="block text-zinc-400 mb-1 font-medium">Custo Estimado do DTF (R$)</label>
-                <input
-                  type="number"
-                  step="0.10"
-                  min={0}
+                <CurrencyInput
                   value={dtfCost}
-                  onChange={(e) => setDtfCost(parseFloat(e.target.value) || 0)}
+                  onChange={(val) => setDtfCost(val)}
+                  placeholder="13,90"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 font-mono focus:outline-none focus:border-zinc-700"
                 />
               </div>
@@ -540,28 +579,41 @@ export function NewOrderModal({
             </div>
 
             {/* Live Financial Margin Box */}
-            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 flex items-center justify-between font-mono text-xs">
-              <div>
-                <span className="text-[10px] text-zinc-500 block uppercase">Custos Insumos</span>
-                <span className="text-zinc-300 font-semibold">
-                  {formatCurrency(totalCMV)}
-                </span>
-                <span className="text-[10px] text-zinc-500 block">
-                  (R$ {shirtCost.toFixed(2)} malha + R$ {currentDtfCost.toFixed(2)} dtf)
-                </span>
+            <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-850 flex flex-col gap-2 font-mono text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">Custos Insumos</span>
+                  <span className="text-zinc-300 font-semibold">
+                    {formatCurrency(totalCMV)}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 block">
+                    (R$ {shirtCost.toFixed(2)} malha + R$ {currentDtfCost.toFixed(2)} dtf)
+                  </span>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] text-emerald-500 block uppercase font-bold">
+                    Lucro Líquido Real
+                  </span>
+                  <span className="text-emerald-400 font-bold text-base">
+                    {formatCurrency(netProfit)}
+                  </span>
+                  <span className="text-[10px] text-emerald-500 block">
+                    {marginPercent.toFixed(0)}% de margem no bolso
+                  </span>
+                </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] text-emerald-500 block uppercase font-bold">
-                  Lucro Líquido Real
-                </span>
-                <span className="text-emerald-400 font-bold text-base">
-                  {formatCurrency(netProfit)}
-                </span>
-                <span className="text-[10px] text-emerald-500 block">
-                  {marginPercent.toFixed(0)}% de margem no bolso
-                </span>
-              </div>
+              {selectedShipping && (
+                <div className="pt-2 border-t border-zinc-850 flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-400">
+                    Frete ({selectedShipping.service}):
+                  </span>
+                  <span className="text-amber-400 font-bold">
+                    +{formatCurrency(selectedShipping.price)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

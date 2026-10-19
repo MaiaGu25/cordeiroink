@@ -12,6 +12,7 @@ import {
   FileImage,
 } from "lucide-react";
 import { uploadStorefrontFile, createLeadQuote } from "@/actions/storefront";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { toast } from "sonner";
 
 export function CustomOrderSection() {
@@ -269,10 +270,12 @@ export function CustomOrderSection() {
                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#F7F4EE] border border-[#E6DED2]">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden border border-[#D5CABE] bg-white shrink-0">
-                          <img
+                          <SafeImage
                             src={customDesignUrl}
                             alt="Arte do cliente"
                             className="w-full h-full object-cover"
+                            containerClassName="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-500"
+                            iconSize={16}
                           />
                         </div>
                         <div>

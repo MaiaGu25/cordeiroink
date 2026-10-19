@@ -2,6 +2,7 @@
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/HoverCard";
 import { formatCurrency, STATUS_CONFIG } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { Shirt, Flame } from "lucide-react";
 
 interface OrderHoverPreviewProps {
@@ -43,17 +44,13 @@ export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
         {/* Item with Photo and Size */}
         {firstItem && (
           <div className="flex items-start gap-3">
-            {previewImage ? (
-              <img
-                src={previewImage}
-                alt=""
-                className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
-              />
-            ) : (
-              <div className="w-14 h-14 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
-                <Shirt size={20} />
-              </div>
-            )}
+            <SafeImage
+              src={previewImage}
+              alt=""
+              className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
+              containerClassName="w-14 h-14 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+              iconSize={20}
+            />
 
             <div className="flex-1 min-w-0">
               <span className="text-xs font-semibold text-zinc-200 block truncate" title={itemTitle}>

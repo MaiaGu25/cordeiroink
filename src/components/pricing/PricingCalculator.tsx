@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Calculator, DollarSign, Percent, TrendingUp, AlertCircle, Sparkles, ArrowRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 
 const MARKETPLACE_FEES: Record<string, { label: string; feePct: number; fixedFee: number }> = {
   SHOPEE: { label: "Shopee (Padrão)", feePct: 20.0, fixedFee: 4.0 },
@@ -12,18 +13,23 @@ const MARKETPLACE_FEES: Record<string, { label: string; feePct: number; fixedFee
 };
 
 export function PricingCalculator() {
-  const [shirtCost, setShirtCost] = useState<number>(24.5);
-  const [dtfCost, setDtfCost] = useState<number>(13.9);
-  const [packagingCost, setPackagingCost] = useState<number>(3.0); // Saco + tag + brinde
+  const [shirtCost, setShirtCost] = useState<number | "">(24.5);
+  const [dtfCost, setDtfCost] = useState<number | "">(13.9);
+  const [packagingCost, setPackagingCost] = useState<number | "">(3.0); // Saco + tag + brinde
   const [channelKey, setChannelKey] = useState<string>("SHOPEE");
   const [targetMargin, setTargetMargin] = useState<number>(55.0); // Margem alvo %
-  const [estimatedMonthlyVolume, setEstimatedMonthlyVolume] = useState<number>(100);
+  const [estimatedMonthlyVolume, setEstimatedMonthlyVolume] = useState<number | "">(100);
 
   const selectedChannel = MARKETPLACE_FEES[channelKey];
 
+  const numShirtCost = typeof shirtCost === "number" ? shirtCost : parseFloat(String(shirtCost).replace(",", ".")) || 0;
+  const numDtfCost = typeof dtfCost === "number" ? dtfCost : parseFloat(String(dtfCost).replace(",", ".")) || 0;
+  const numPackagingCost = typeof packagingCost === "number" ? packagingCost : parseFloat(String(packagingCost).replace(",", ".")) || 0;
+  const numVolume = typeof estimatedMonthlyVolume === "number" ? estimatedMonthlyVolume : parseInt(String(estimatedMonthlyVolume)) || 1;
+
   // Cálculo da Estrutura de Custos
   // Custo Total de Insumos (CMV Direto)
-  const totalCMV = shirtCost + dtfCost + packagingCost;
+  const totalCMV = numShirtCost + numDtfCost + numPackagingCost;
 
   // Fórmula de Markup com Taxa de Marketplace:
   // Preço de Venda Sugerido (P):
@@ -49,8 +55,8 @@ export function PricingCalculator() {
   const netProfitPerUnit = suggestedPrice - channelFeeAmount - totalCMV;
 
   // Projeção Mensal
-  const projectedRevenue = suggestedPrice * estimatedMonthlyVolume;
-  const projectedNetProfit = netProfitPerUnit * estimatedMonthlyVolume;
+  const projectedRevenue = suggestedPrice * numVolume;
+  const projectedNetProfit = netProfitPerUnit * numVolume;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -77,11 +83,10 @@ export function PricingCalculator() {
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 Custo Camiseta Lisa (R$)
               </label>
-              <input
-                type="number"
-                step="0.10"
+              <CurrencyInput
                 value={shirtCost}
-                onChange={(e) => setShirtCost(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setShirtCost(val)}
+                placeholder="24,50"
                 className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-sm font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
               <span className="text-[10px] text-zinc-500 mt-1 block">
@@ -93,11 +98,10 @@ export function PricingCalculator() {
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 Custo Estampa DTF (R$)
               </label>
-              <input
-                type="number"
-                step="0.10"
+              <CurrencyInput
                 value={dtfCost}
-                onChange={(e) => setDtfCost(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setDtfCost(val)}
+                placeholder="13,90"
                 className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-sm font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
               <span className="text-[10px] text-zinc-500 mt-1 block">
@@ -109,11 +113,10 @@ export function PricingCalculator() {
               <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                 Embalagem & Tag (R$)
               </label>
-              <input
-                type="number"
-                step="0.10"
+              <CurrencyInput
                 value={packagingCost}
-                onChange={(e) => setPackagingCost(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setPackagingCost(val)}
+                placeholder="3,00"
                 className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-sm font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
               <span className="text-[10px] text-zinc-500 mt-1 block">
@@ -185,11 +188,12 @@ export function PricingCalculator() {
             <div className="flex items-center gap-3">
               <input
                 type="number"
-                min={10}
+                min={1}
                 max={5000}
-                step={10}
+                step="1"
                 value={estimatedMonthlyVolume}
-                onChange={(e) => setEstimatedMonthlyVolume(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setEstimatedMonthlyVolume(e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 1))}
+                placeholder="100"
                 className="w-32 px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
               <span className="text-xs text-zinc-400">

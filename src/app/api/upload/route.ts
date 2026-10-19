@@ -37,36 +37,47 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const storagePath = `${targetFolder}/${fileName}`;
-      const contentType = file.type || "image/png";
+      try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const storagePath = `${targetFolder}/${fileName}`;
+        const contentType = file.type || "image/png";
 
-      const { data, error } = await supabase.storage
-        .from("estampas")
-        .upload(storagePath, buffer, {
-          contentType,
-          upsert: true,
-        });
+        // Garante que o bucket 'estampas' exista se service role key estiver disponível
+        if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          try {
+            const { data: buckets } = await supabase.storage.listBuckets();
+            const hasBucket = buckets?.some((b) => b.name === "estampas");
+            if (!hasBucket) {
+              await supabase.storage.createBucket("estampas", { public: true });
+            }
+          } catch (bucketErr) {
+            console.warn("Aviso ao verificar bucket 'estampas':", bucketErr);
+          }
+        }
 
-      if (error) {
-        console.error("Erro no Supabase Storage:", error);
-        return NextResponse.json(
-          {
-            error: `Erro ao enviar para o Supabase Storage: ${error.message}. Verifique se o bucket 'estampas' foi criado e está público.`,
-          },
-          { status: 500 }
-        );
+        const { data, error } = await supabase.storage
+          .from("estampas")
+          .upload(storagePath, buffer, {
+            contentType,
+            upsert: true,
+          });
+
+        if (!error) {
+          // Obtém a URL pública permanente
+          const { data: publicUrlData } = supabase.storage
+            .from("estampas")
+            .getPublicUrl(storagePath);
+
+          return NextResponse.json({
+            url: publicUrlData.publicUrl,
+            fileName,
+          });
+        }
+
+        console.warn("Falha no upload para o Supabase Storage, aplicando fallback local:", error.message);
+      } catch (uploadCatchErr: any) {
+        console.warn("Erro ao comunicar com Supabase Storage, aplicando fallback local:", uploadCatchErr?.message);
       }
-
-      // Obtém a URL pública permanente
-      const { data: publicUrlData } = supabase.storage
-        .from("estampas")
-        .getPublicUrl(storagePath);
-
-      return NextResponse.json({
-        url: publicUrlData.publicUrl,
-        fileName,
-      });
     }
 
     // 2. Fallback para ambiente local se as variáveis do Supabase não estiverem definidas

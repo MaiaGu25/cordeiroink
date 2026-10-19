@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, ArrowUpRight, Lock } from "lucide-react";
+import { Menu, X, ArrowUpRight, Lock, ShoppingBag } from "lucide-react";
+import { useCart } from "./CartContext";
 
 export function StorefrontHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { openCart, totalItemsCount } = useCart();
 
   return (
     <header className="sticky top-0 z-50 bg-[#F7F4EE]/90 backdrop-blur-md border-b border-[#E6DED2] transition-colors">
@@ -45,7 +47,7 @@ export function StorefrontHeader() {
           </a>
         </nav>
 
-        {/* Action Button: WhatsApp or Custom */}
+        {/* Action Button: Cart, Team and Custom */}
         <div className="hidden md:flex items-center gap-4">
           <Link
             href="/admin"
@@ -56,6 +58,19 @@ export function StorefrontHeader() {
             <span>Equipe</span>
           </Link>
 
+          <button
+            onClick={openCart}
+            className="relative p-2.5 rounded-full bg-[#0A0A0A]/5 hover:bg-[#0A0A0A]/10 text-[#0A0A0A] transition cursor-pointer flex items-center justify-center"
+            title="Abrir sacola de compras"
+          >
+            <ShoppingBag size={18} />
+            {totalItemsCount > 0 && (
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-[10px] font-mono font-bold leading-none animate-in zoom-in">
+                {totalItemsCount}
+              </span>
+            )}
+          </button>
+
           <a
             href="#personalizadas"
             className="px-5 py-2.5 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] text-xs uppercase tracking-wider font-semibold transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1.5"
@@ -65,14 +80,29 @@ export function StorefrontHeader() {
           </a>
         </div>
 
-        {/* Mobile Hamburger Button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-[#0A0A0A] hover:text-[#737373] transition"
-          aria-label="Abrir menu"
-        >
-          {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* Mobile Buttons */}
+        <div className="md:hidden flex items-center gap-2">
+          <button
+            onClick={openCart}
+            className="relative p-2 text-[#0A0A0A] hover:text-[#737373] transition"
+            aria-label="Abrir sacola"
+          >
+            <ShoppingBag size={20} />
+            {totalItemsCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 px-1.5 py-0.2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-[9px] font-mono font-bold leading-tight">
+                {totalItemsCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-[#0A0A0A] hover:text-[#737373] transition"
+            aria-label="Abrir menu"
+          >
+            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu Dropdown */}

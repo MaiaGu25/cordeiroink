@@ -21,7 +21,7 @@ export function QuickStockModal({
   onDelete,
 }: QuickStockModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [newQuantity, setNewQuantity] = useState<number>(
+  const [newQuantity, setNewQuantity] = useState<number | "">(
     item ? item.stockQuantity : 0
   );
   const [reason, setReason] = useState<string>("Contagem física de inventário");
@@ -105,9 +105,11 @@ export function QuickStockModal({
               <input
                 required
                 type="number"
+                step="1"
                 min={0}
                 value={newQuantity}
-                onChange={(e) => setNewQuantity(parseInt(e.target.value) || 0)}
+                onChange={(e) => setNewQuantity(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="0"
                 className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-sm font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
               <span

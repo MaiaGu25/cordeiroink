@@ -3,6 +3,8 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { X, Plus, Image as ImageIcon, Loader2, Upload, Check, AlertCircle, Trash2 } from "lucide-react";
 import { createDtfArtItem } from "@/actions/inventory";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { toast } from "sonner";
 
 interface NewDtfModalProps {
@@ -22,9 +24,9 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
   const [dtfPrintSize, setDtfPrintSize] = useState("A3 (30x42cm)");
   const [dtfPreviewUrl, setDtfPreviewUrl] = useState("");
   const [dtfSupplier, setDtfSupplier] = useState("");
-  const [stockQuantity, setStockQuantity] = useState(0);
-  const [minStock, setMinStock] = useState(5);
-  const [costPrice, setCostPrice] = useState(13.90);
+  const [stockQuantity, setStockQuantity] = useState<number | "">(0);
+  const [minStock, setMinStock] = useState<number | "">(5);
+  const [costPrice, setCostPrice] = useState<number | "">(13.90);
 
   // Limpeza de estado (State Cleanup) ao fechar o modal
   useEffect(() => {
@@ -114,7 +116,7 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
           dtfSupplier: dtfSupplier.trim() || undefined,
           stockQuantity: Number(stockQuantity) || 0,
           minStock: Number(minStock) || 5,
-          costPrice: Number(costPrice) || 0,
+          costPrice: typeof costPrice === "number" ? costPrice : parseFloat(String(costPrice).replace(",", ".")) || 0,
         });
 
         toast.success("Estampa adicionada ao acervo do Banco de Estampas!");
@@ -174,10 +176,12 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
             {dtfPreviewUrl ? (
               <div className="relative group rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900/60 p-2 flex items-center gap-4">
                 <div className="w-20 h-20 rounded-lg overflow-hidden bg-zinc-950 shrink-0 border border-zinc-800">
-                  <img
+                  <SafeImage
                     src={dtfPreviewUrl}
                     alt="Preview da estampa"
                     className="w-full h-full object-cover"
+                    containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                    iconSize={24}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -293,12 +297,10 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-zinc-400 mb-1 font-medium">Custo por Folha (R$)</label>
-              <input
-                type="number"
-                step="0.10"
-                min={0}
+              <CurrencyInput
                 value={costPrice}
-                onChange={(e) => setCostPrice(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setCostPrice(val)}
+                placeholder="13,90"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
             </div>
@@ -307,9 +309,11 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
               <label className="block text-zinc-400 mb-1 font-medium">Folhas em Estoque</label>
               <input
                 type="number"
+                step="1"
                 min={0}
                 value={stockQuantity}
-                onChange={(e) => setStockQuantity(parseInt(e.target.value) || 0)}
+                onChange={(e) => setStockQuantity(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="0"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
             </div>
@@ -318,13 +322,15 @@ export function NewDtfModal({ isOpen, onClose, onCreated, suppliers = [] }: NewD
               <label className="block text-zinc-400 mb-1 font-medium">Estoque Mínimo</label>
               <input
                 type="number"
+                step="1"
                 min={1}
                 value={minStock}
-                onChange={(e) => setMinStock(parseInt(e.target.value) || 1)}
+                onChange={(e) => setMinStock(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="5"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
-              </div>
             </div>
+          </div>
           </div>
 
           <div className="p-3 sm:p-4 border-t border-zinc-800 bg-zinc-950 shrink-0 flex items-center justify-end gap-2.5">

@@ -10,6 +10,7 @@ import {
   SheetFooter,
 } from "@/components/ui/Sheet";
 import { formatCurrency, formatDate, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { OrderStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/actions/orders";
 import { toast } from "sonner";
@@ -208,17 +209,13 @@ export function OrderSheet({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        {previewImg ? (
-                          <img
-                            src={previewImg}
-                            alt=""
-                            className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-600 shrink-0">
-                            <ShoppingBag size={18} />
-                          </div>
-                        )}
+                        <SafeImage
+                          src={previewImg}
+                          alt=""
+                          className="w-14 h-14 rounded-lg object-cover border border-zinc-800 shrink-0"
+                          containerClassName="w-14 h-14 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+                          iconSize={18}
+                        />
                         <div>
                           <span className="font-semibold text-zinc-200 block text-xs">
                             {itemTitle}

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCurrency } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { Shirt, TrendingUp } from "lucide-react";
 import Link from "next/link";
 
@@ -58,17 +59,13 @@ export function TopProductsTable({ products }: TopProductsTableProps) {
                       <span className="font-mono text-[10px] text-zinc-600 w-3">
                         {index + 1}
                       </span>
-                      {p.imageUrl ? (
-                        <img
-                          src={p.imageUrl}
-                          alt={p.name}
-                          className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover border border-zinc-800 shrink-0"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0">
-                          <Shirt size={14} />
-                        </div>
-                      )}
+                      <SafeImage
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-cover border border-zinc-800 shrink-0"
+                        containerClassName="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 shrink-0"
+                        iconSize={14}
+                      />
                       <div className="min-w-0">
                         <span className="font-medium text-zinc-200 group-hover:text-zinc-100 transition-colors block truncate max-w-[180px] sm:max-w-[240px]">
                           {p.name}

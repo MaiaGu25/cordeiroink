@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { X, Shirt, Image as ImageIcon, Package, Tag, Loader2, Plus, Sparkles, Layers } from "lucide-react";
 import { createRawItem, createBatchBlankShirts } from "@/actions/inventory";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { RawItemType } from "@prisma/client";
 import { toast } from "sonner";
 
@@ -48,7 +49,7 @@ export function NewRawItemModal({
   const [shirtColor, setShirtColor] = useState("Preto");
   const [shirtSize, setShirtSize] = useState("M");
   const [isBatchSizes, setIsBatchSizes] = useState(false);
-  const [batchQuantities, setBatchQuantities] = useState<Record<string, number>>({
+  const [batchQuantities, setBatchQuantities] = useState<Record<string, number | "">>({
     P: 0,
     M: 0,
     G: 0,
@@ -58,9 +59,9 @@ export function NewRawItemModal({
 
   // Campos Gerais
   const [name, setName] = useState("");
-  const [costPrice, setCostPrice] = useState<number>(24.50);
-  const [stockQuantity, setStockQuantity] = useState<number>(0);
-  const [minStock, setMinStock] = useState<number>(5);
+  const [costPrice, setCostPrice] = useState<number | "">(24.50);
+  const [stockQuantity, setStockQuantity] = useState<number | "">(0);
+  const [minStock, setMinStock] = useState<number | "">(5);
   const [sku, setSku] = useState("");
 
   // Campos DTF
@@ -368,14 +369,16 @@ export function NewRawItemModal({
                           </label>
                           <input
                             type="number"
+                            step="1"
                             min={0}
                             value={batchQuantities[sz]}
                             onChange={(e) =>
                               setBatchQuantities((prev) => ({
                                 ...prev,
-                                [sz]: parseInt(e.target.value) || 0,
+                                [sz]: e.target.value === "" ? "" : parseInt(e.target.value) || 0,
                               }))
                             }
+                            placeholder="0"
                             className="w-full px-2 py-1.5 text-center font-mono rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-zinc-700"
                           />
                         </div>
@@ -490,9 +493,11 @@ export function NewRawItemModal({
                 <label className="block text-zinc-400 mb-1">Quantidade Inicial</label>
                 <input
                   type="number"
+                  step="1"
                   min={0}
                   value={stockQuantity}
-                  onChange={(e) => setStockQuantity(parseInt(e.target.value) || 0)}
+                  onChange={(e) => setStockQuantity(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                  placeholder="0"
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
                 />
               </div>
@@ -500,12 +505,10 @@ export function NewRawItemModal({
 
             <div className={isBatchSizes ? "sm:col-span-2" : ""}>
               <label className="block text-zinc-400 mb-1">Custo Unitário (R$)</label>
-              <input
-                type="number"
-                step="0.05"
-                min={0}
+              <CurrencyInput
                 value={costPrice}
-                onChange={(e) => setCostPrice(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setCostPrice(val)}
+                placeholder="0,00"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
             </div>
@@ -514,9 +517,11 @@ export function NewRawItemModal({
               <label className="block text-zinc-400 mb-1">Estoque Mínimo (Alerta)</label>
               <input
                 type="number"
-                min={1}
+                step="1"
+                min={0}
                 value={minStock}
-                onChange={(e) => setMinStock(parseInt(e.target.value) || 5)}
+                onChange={(e) => setMinStock(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="5"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-zinc-100 font-mono text-center focus:outline-none focus:border-zinc-700"
               />
             </div>

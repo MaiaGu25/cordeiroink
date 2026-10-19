@@ -10,8 +10,14 @@ import {
   MessageCircle,
   Sparkles,
   Check,
+  ShoppingBag,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { CATALOG_CATEGORIES, type CatalogCategory } from "@/lib/storefront-constants";
+import { useCart } from "./CartContext";
+import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
+import type { ShippingOption } from "@/actions/shipping";
 
 export interface CatalogVariant {
   id: string;
@@ -427,8 +433,12 @@ function ProductDetailModal({
       })),
   ];
 
+  const { addItem } = useCart();
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState("G");
+  const [quantity, setQuantity] = useState(1);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [destinationCep, setDestinationCep] = useState("");
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
@@ -447,12 +457,30 @@ function ProductDetailModal({
     setCurrentSlideIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
   };
 
-  const whatsappMsg = encodeURIComponent(
-    `Olá! Gostei da peça "${product.title}" na cor ${activeSlide.colorName} (Tam ${selectedSize}, ${formatCurrency(
-      product.price
-    )}) na Cordeiro Ink e gostaria de encomendar.`
-  );
+  const subtotal = product.price * quantity;
+  const shippingPrice = selectedShipping ? selectedShipping.price : 0;
+  const grandTotal = subtotal + shippingPrice;
+
+  let whatsappMsgText = `Olá! Gostei da peça "${product.title}" na cor ${activeSlide.colorName} (Tam ${selectedSize}, ${quantity}x = ${formatCurrency(subtotal)}) na Cordeiro Ink.`;
+  if (selectedShipping) {
+    whatsappMsgText += `\nFrete selecionado: ${selectedShipping.service} (${formatCurrency(selectedShipping.price)}, prazo de ${selectedShipping.deliveryDays} dias úteis) para o CEP ${destinationCep}.`;
+    whatsappMsgText += `\nTotal do Pedido: ${formatCurrency(grandTotal)}.`;
+  }
+  const whatsappMsg = encodeURIComponent(whatsappMsgText);
   const waLink = `https://wa.me/${brandPhone}?text=${whatsappMsg}`;
+
+  const handleAddToCart = () => {
+    addItem({
+      productId: product.id,
+      title: product.title,
+      colorName: activeSlide.colorName,
+      size: selectedSize,
+      price: product.price,
+      quantity,
+      imageUrl: activeSlide.url,
+    });
+    onClose();
+  };
 
   return (
     <div
@@ -635,21 +663,98 @@ function ProductDetailModal({
                 ))}
               </div>
             </div>
+
+            {/* Seletor de Quantidade */}
+            <div className="flex items-center justify-between pt-2 border-t border-[#E6DED2]">
+              <span className="text-xs font-sans font-semibold uppercase tracking-wider text-[#0A0A0A]">
+                Quantidade:
+              </span>
+              <div className="flex items-center gap-2 bg-[#F2ECE1] border border-[#E6DED2] rounded-xl p-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                  className="p-1.5 rounded-lg text-[#0A0A0A] hover:bg-black/5 transition cursor-pointer"
+                  title="Diminuir quantidade"
+                >
+                  <Minus size={13} />
+                </button>
+                <span className="font-mono text-xs font-bold px-2 min-w-[20px] text-center">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((prev) => prev + 1)}
+                  className="p-1.5 rounded-lg text-[#0A0A0A] hover:bg-black/5 transition cursor-pointer"
+                  title="Aumentar quantidade"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Módulo de Cálculo de Frete (Melhor Envio Sandbox) */}
+            <div className="pt-2 border-t border-[#E6DED2]">
+              <ShippingCalculator
+                quantity={quantity}
+                selectedOption={selectedShipping}
+                onSelectOption={setSelectedShipping}
+                variant="storefront"
+                initialCep={destinationCep}
+                onCepChange={setDestinationCep}
+              />
+            </div>
+
+            {/* Resumo Financeiro da Peça com Frete */}
+            <div className="p-3.5 rounded-2xl bg-[#F2ECE1]/60 border border-[#E6DED2] space-y-1.5 text-xs">
+              <div className="flex justify-between text-[#737373]">
+                <span>Subtotal ({quantity}x)</span>
+                <span className="font-mono">{formatCurrency(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-[#737373]">
+                <span>
+                  Frete ({selectedShipping ? selectedShipping.service : "A calcular"})
+                </span>
+                <span className="font-mono">
+                  {selectedShipping
+                    ? formatCurrency(selectedShipping.price)
+                    : "Calcular acima"}
+                </span>
+              </div>
+              <div className="pt-1.5 border-t border-[#E6DED2] flex justify-between items-baseline font-bold">
+                <span className="font-serif text-sm text-[#0A0A0A]">
+                  Total do Pedido
+                </span>
+                <span className="font-mono text-base text-[#0A0A0A]">
+                  {formatCurrency(grandTotal)}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Botão de Pedir no WhatsApp */}
-          <div className="pt-4 border-t border-[#E6DED2]">
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl"
-            >
-              <MessageCircle size={16} />
-              <span>Pedir no WhatsApp ({activeSlide.colorName} - Tam {selectedSize})</span>
-            </a>
-            <p className="text-[10px] text-center text-[#737373] mt-2 font-sans font-light">
-              Produção sob encomenda com acabamento artesanal e envio direto.
+          {/* Botões de Ação: Adicionar à Sacola & Pedir no WhatsApp */}
+          <div className="pt-4 border-t border-[#E6DED2] space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="w-full py-3.5 rounded-full bg-[#FAF9F6] border-2 border-[#0A0A0A] text-[#0A0A0A] hover:bg-black/5 font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <ShoppingBag size={15} />
+                <span>Adicionar à Sacola</span>
+              </button>
+
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition shadow-md hover:shadow-xl text-center"
+              >
+                <MessageCircle size={15} />
+                <span>Pedir no WhatsApp</span>
+              </a>
+            </div>
+            <p className="text-[10px] text-center text-[#737373] font-sans font-light">
+              Produção sob encomenda com envio direto pelos Correios.
             </p>
           </div>
         </div>

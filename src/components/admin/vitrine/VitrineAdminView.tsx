@@ -24,6 +24,8 @@ import {
 } from "@/actions/storefront";
 import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constants";
 import { formatCurrency } from "@/lib/utils";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -401,11 +403,13 @@ export function VitrineAdminView({
                 >
                   <div>
                     {/* Imagem do Produto */}
-                    <div className="relative aspect-[3/4] w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
-                      <img
+                    <div className="relative aspect-[3/4] w-full bg-zinc-900 overflow-hidden flex items-center justify-center">
+                      <SafeImage
                         src={item.imageUrl}
                         alt={item.title}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        fallbackClassName="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-600"
+                        iconSize={32}
                       />
                       <div className="absolute top-2.5 right-2.5">
                         <span
@@ -638,10 +642,11 @@ export function VitrineAdminView({
 
                 {imageUrl ? (
                   <div className="relative aspect-[3/4] w-36 rounded-xl overflow-hidden border border-zinc-700 mx-auto">
-                    <img
+                    <SafeImage
                       src={imageUrl}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
                     />
                     <button
                       type="button"
@@ -700,14 +705,10 @@ export function VitrineAdminView({
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
                     Preço de Venda (R$) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
+                  <CurrencyInput
                     value={price}
-                    onChange={(e) => setPrice(e.target.value === "" ? "" : parseFloat(e.target.value))}
-                    placeholder="Ex: 149.90"
+                    onChange={(val) => setPrice(val)}
+                    placeholder="149,90"
                     className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -830,10 +831,12 @@ export function VitrineAdminView({
                         <div className="flex items-center gap-2 shrink-0">
                           {variant.imageUrl ? (
                             <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
-                              <img
+                              <SafeImage
                                 src={variant.imageUrl}
                                 alt={variant.colorName}
                                 className="w-full h-full object-cover"
+                                containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                                iconSize={14}
                               />
                               <button
                                 type="button"
@@ -952,10 +955,11 @@ export function VitrineAdminView({
 
                 <div className="flex items-center gap-4">
                   <div className="relative aspect-[3/4] w-20 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 shrink-0">
-                    <img
+                    <SafeImage
                       src={editImageUrl}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
                     />
                   </div>
                   <div>
@@ -1003,13 +1007,10 @@ export function VitrineAdminView({
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
                     Preço (R$) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
+                  <CurrencyInput
                     value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                    onChange={(val) => setEditPrice(val)}
+                    placeholder="0,00"
                     className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
                   />
                 </div>
@@ -1131,10 +1132,12 @@ export function VitrineAdminView({
                         <div className="flex items-center gap-2 shrink-0">
                           {variant.imageUrl ? (
                             <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
-                              <img
+                              <SafeImage
                                 src={variant.imageUrl}
                                 alt={variant.colorName}
                                 className="w-full h-full object-cover"
+                                containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                                iconSize={14}
                               />
                               <button
                                 type="button"

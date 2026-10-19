@@ -142,3 +142,22 @@ export const STATUS_CONFIG: Record<
     dot: "bg-red-400",
   },
 };
+
+/**
+ * Garante que a URL da imagem esteja formatada corretamente:
+ * - URLs absolutas (http://, https://, data:, blob:) são preservadas.
+ * - Caminhos relativos que começam com "uploads/" ou similar recebem a barra "/" inicial,
+ *   evitando que a página atual (ex: /estoque ou /pedidos) quebre o caminho relativo.
+ */
+export function normalizeImageUrl(url?: string | null): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^(https?:|\/\/|data:|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  return `/${trimmed}`;
+}

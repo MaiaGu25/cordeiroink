@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { X, Edit, Trash2, Power, Loader2, Save, AlertTriangle } from "lucide-react";
 import { updateRawItem, deleteRawItem, toggleRawItemActive } from "@/actions/inventory";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { RawItemType } from "@prisma/client";
@@ -25,8 +26,8 @@ export function EditRawItemModal({
   const [isTogglePending, startToggleTransition] = useTransition();
 
   const [name, setName] = useState(item?.name || "");
-  const [costPrice, setCostPrice] = useState<number>(item?.costPrice || 0);
-  const [minStock, setMinStock] = useState<number>(item?.minStock || 5);
+  const [costPrice, setCostPrice] = useState<number | "">(item?.costPrice ?? 0);
+  const [minStock, setMinStock] = useState<number | "">(item?.minStock ?? 5);
   const [shirtModel, setShirtModel] = useState(item?.shirtModel || "");
   const [shirtColor, setShirtColor] = useState(item?.shirtColor || "");
   const [shirtSize, setShirtSize] = useState(item?.shirtSize || "M");
@@ -62,8 +63,8 @@ export function EditRawItemModal({
       try {
         await updateRawItem(item.id, {
           name,
-          costPrice: Number(costPrice),
-          minStock: Number(minStock),
+          costPrice: typeof costPrice === "number" ? costPrice : parseFloat(String(costPrice).replace(",", ".")) || 0,
+          minStock: Number(minStock) || 0,
           shirtModel: item.type === RawItemType.BLANK_SHIRT ? shirtModel : undefined,
           shirtColor: item.type === RawItemType.BLANK_SHIRT ? shirtColor : undefined,
           shirtSize: item.type === RawItemType.BLANK_SHIRT ? shirtSize : undefined,
@@ -248,13 +249,10 @@ export function EditRawItemModal({
               <label className="block text-xs font-medium text-zinc-400 mb-1">
                 Custo Unitário (R$) *
               </label>
-              <input
-                required
-                type="number"
-                step="0.01"
-                min="0"
+              <CurrencyInput
                 value={costPrice}
-                onChange={(e) => setCostPrice(parseFloat(e.target.value) || 0)}
+                onChange={(val) => setCostPrice(val)}
+                placeholder="0,00"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -266,9 +264,11 @@ export function EditRawItemModal({
               <input
                 required
                 type="number"
+                step="1"
                 min="0"
                 value={minStock}
-                onChange={(e) => setMinStock(parseInt(e.target.value) || 0)}
+                onChange={(e) => setMinStock(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
+                placeholder="5"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
             </div>

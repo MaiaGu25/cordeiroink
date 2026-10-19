@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { X, Plus, DollarSign, Loader2 } from "lucide-react";
 import { addTransaction } from "@/actions/finance";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { TransactionCategory, TransactionType } from "@prisma/client";
 import { toast } from "sonner";
 
@@ -33,7 +34,7 @@ export function NewTransactionModal({
   const [category, setCategory] = useState<TransactionCategory>(
     TransactionCategory.RAW_MATERIALS
   );
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number | "">("");
   const [description, setDescription] = useState("");
 
   // Limpeza de estado (State Cleanup) ao fechar o modal
@@ -41,7 +42,7 @@ export function NewTransactionModal({
     if (!isOpen) {
       setType(TransactionType.EXPENSE);
       setCategory(TransactionCategory.RAW_MATERIALS);
-      setAmount(0);
+      setAmount("");
       setDescription("");
     }
   }, [isOpen]);
@@ -54,7 +55,8 @@ export function NewTransactionModal({
       toast.error("Preencha a descrição do lançamento.");
       return;
     }
-    if (amount <= 0) {
+    const numAmount = typeof amount === "number" ? amount : parseFloat(String(amount).replace(",", ".")) || 0;
+    if (numAmount <= 0) {
       toast.error("Informe um valor maior que zero.");
       return;
     }
@@ -64,7 +66,7 @@ export function NewTransactionModal({
         await addTransaction({
           type,
           category,
-          amount: Number(amount),
+          amount: numAmount,
           description,
         });
         toast.success("Lançamento financeiro registrado com sucesso!");
@@ -148,13 +150,9 @@ export function NewTransactionModal({
             <label className="block text-xs font-medium text-zinc-300 mb-1">
               Valor (R$) *
             </label>
-            <input
-              required
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount || ""}
-              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+            <CurrencyInput
+              value={amount}
+              onChange={(val) => setAmount(val)}
               placeholder="0,00"
               className="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-sm font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
             />

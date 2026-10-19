@@ -2,6 +2,7 @@
 
 import { Edit3, AlertTriangle, Layers, Image as ImageIcon, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/SafeImage";
 
 interface DtfItem {
   id: string;
@@ -62,23 +63,15 @@ export function DtfCatalogGrid({ items, onAdjust, onAddNew, onDelete }: DtfCatal
             className="group relative rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-zinc-700/80 overflow-hidden cursor-pointer transition-all duration-300 ease-out shadow-sm hover:shadow-xl hover:shadow-black/50 flex flex-col"
           >
             {/* Clean Visual Image Container with Smooth Hover Zoom */}
-            <div className="relative h-64 w-full bg-zinc-950 overflow-hidden flex items-center justify-center">
-              {item.dtfPreviewUrl ? (
-                <img
-                  src={item.dtfPreviewUrl}
-                  alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
-                  onError={(e) => {
-                    // Fallback se a imagem quebrar
-                    (e.target as HTMLElement).style.display = "none";
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
-                  <ImageIcon size={32} />
-                  <span className="text-[10px] mt-1 font-mono">Sem Imagem</span>
-                </div>
-              )}
+            <div className="relative h-64 w-full bg-zinc-900 overflow-hidden flex items-center justify-center">
+              <SafeImage
+                src={item.dtfPreviewUrl}
+                alt={item.name}
+                fallbackText="Sem Imagem"
+                iconSize={32}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                fallbackClassName="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-600"
+              />
 
               {/* Minimal Top Header Badge */}
               <div className="absolute top-3 left-3 flex items-center gap-2 z-10">

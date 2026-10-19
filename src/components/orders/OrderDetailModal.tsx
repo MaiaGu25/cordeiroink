@@ -2,6 +2,7 @@
 
 import { X, User, MapPin, Phone, Mail, ShoppingBag, ShieldCheck, Flame, ArrowRight, DollarSign, Edit, XCircle, Clock } from "lucide-react";
 import { formatCurrency, formatDate, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
+import { SafeImage } from "@/components/ui/SafeImage";
 import { OrderStatus } from "@prisma/client";
 import { updateOrderStatus } from "@/actions/orders";
 import { toast } from "sonner";
@@ -186,17 +187,18 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
                   className="p-3.5 rounded-xl bg-zinc-950/70 border border-zinc-800 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    {item.variant?.product?.imageUrl ? (
-                      <img
-                        src={item.variant.product.imageUrl}
-                        alt=""
-                        className="w-12 h-12 rounded-lg object-cover border border-zinc-700"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400">
-                        <ShoppingBag size={18} />
-                      </div>
-                    )}
+                    {(() => {
+                      const itemImg = item.artMockupUrl || item.dtfPrint?.dtfPreviewUrl || item.variant?.product?.imageUrl;
+                      return (
+                        <SafeImage
+                          src={itemImg}
+                          alt=""
+                          className="w-12 h-12 rounded-lg object-cover border border-zinc-700 shrink-0"
+                          containerClassName="w-12 h-12 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0"
+                          iconSize={18}
+                        />
+                      );
+                    })()}
                     <div>
                       <div className="text-xs font-semibold text-zinc-100">
                         {item.variant?.product?.name || item.title || "Produto"}
