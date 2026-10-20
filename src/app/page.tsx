@@ -1,7 +1,9 @@
 import { getCatalogItems } from "@/actions/storefront";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
 import { StorefrontHero } from "@/components/storefront/StorefrontHero";
+import { BrandQuoteBanner } from "@/components/storefront/BrandQuoteBanner";
 import { StorefrontCatalog } from "@/components/storefront/StorefrontCatalog";
+import { AboutSection } from "@/components/storefront/AboutSection";
 import { CustomOrderSection } from "@/components/storefront/CustomOrderSection";
 import { StorefrontFooter } from "@/components/storefront/StorefrontFooter";
 import { CartProvider } from "@/components/storefront/CartContext";
@@ -19,7 +21,9 @@ export default async function StorefrontPage() {
           <StorefrontHeader />
           <main>
             <StorefrontHero />
+            <BrandQuoteBanner />
             <StorefrontCatalog items={catalogItems} />
+            <AboutSection />
             <CustomOrderSection />
           </main>
         </div>

@@ -18,7 +18,7 @@ export function StorefrontHeader() {
             Cordeiro Ink
           </span>
           <span className="font-sans text-[10px] tracking-[0.25em] text-[#737373] uppercase font-medium">
-            Ateliê Streetwear
+            Streetwear Cristão
           </span>
         </Link>
 
@@ -31,19 +31,19 @@ export function StorefrontHeader() {
             Coleção
           </a>
           <a
-            href="#personalizadas"
-            className="hover:text-[#737373] transition-colors flex items-center gap-1"
-          >
-            <span>Personalizar</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-[9px] font-bold">
-              Novo
-            </span>
-          </a>
-          <a
             href="#sobre"
             className="hover:text-[#737373] transition-colors"
           >
-            O Ateliê
+            Quem Somos
+          </a>
+          <a
+            href="#personalizadas"
+            className="hover:text-[#737373] transition-colors flex items-center gap-1"
+          >
+            <span>Eventos & Igrejas</span>
+            <span className="px-1.5 py-0.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-[9px] font-bold">
+              B2B
+            </span>
           </a>
         </nav>
 
@@ -75,7 +75,7 @@ export function StorefrontHeader() {
             href="#personalizadas"
             className="px-5 py-2.5 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] text-xs uppercase tracking-wider font-semibold transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1.5"
           >
-            <span>Criar Encomenda</span>
+            <span>Orçamento Eventos</span>
             <ArrowUpRight size={14} />
           </a>
         </div>
@@ -114,16 +114,23 @@ export function StorefrontHeader() {
               onClick={() => setMobileMenuOpen(false)}
               className="py-1 hover:text-[#737373] transition-colors"
             >
-              Coleção & Peças
+              Coleção de Peças
+            </a>
+            <a
+              href="#sobre"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-1 hover:text-[#737373] transition-colors"
+            >
+              Quem Somos (Igor & Grazi)
             </a>
             <a
               href="#personalizadas"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1 hover:text-[#737373] transition-colors flex items-center justify-between"
             >
-              <span>Personalizar com sua Arte</span>
+              <span>Camisetas para Eventos & Igrejas</span>
               <span className="px-2 py-0.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-[10px] font-bold">
-                Exclusivo
+                B2B
               </span>
             </a>
             <a

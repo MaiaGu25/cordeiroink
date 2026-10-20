@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { OrderStatus, SalesChannel } from "@prisma/client";
 import path from "path";
 import fs from "fs/promises";
 
@@ -270,7 +271,7 @@ export async function createLeadQuote(data: {
   // Telefone da Cordeiro Ink para o contato
   const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
   const whatsappUrl = `https://wa.me/${brandPhone}?text=${encodeURIComponent(
-    "Olá! Acabei de enviar um pedido personalizado pelo site."
+    `Olá Igor e Grazi! Gostaria de fazer um orçamento de camisetas personalizadas para a conferência/evento da nossa igreja na Cordeiro Ink.`
   )}`;
 
   return {
@@ -293,4 +294,151 @@ export async function getLeadQuotes() {
     console.error("Erro ao buscar leads de orçamento:", err);
     return [];
   }
+}
+
+export interface StorefrontOrderItemInput {
+  title: string;
+  colorName?: string;
+  size?: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  productId?: string;
+}
+
+export interface CreateStorefrontOrderInput {
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  shippingAddress?: string;
+  destinationCep?: string;
+  shippingService?: string;
+  shippingPrice?: number;
+  deliveryDays?: number;
+  items: StorefrontOrderItemInput[];
+}
+
+/**
+ * Criação de pedido direto da vitrine pública (Checkout sem Gateway).
+ * Salva o pedido no banco com status PENDING e retorna a URL padrão do WhatsApp com o resumo completo.
+ */
+export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
+  if (!data.customerName?.trim() || !data.customerPhone?.trim()) {
+    throw new Error("Por favor, preencha seu nome e WhatsApp para finalizar o pedido.");
+  }
+
+  if (!data.items || data.items.length === 0) {
+    throw new Error("A sua sacola de compras está vazia.");
+  }
+
+  const cleanPhone = data.customerPhone.replace(/\D/g, "");
+  const subtotal = data.items.reduce(
+    (acc, i) => acc + Number(i.price) * Math.max(1, Number(i.quantity) || 1),
+    0
+  );
+  const shippingCost = Number(data.shippingPrice) || 0;
+  const grandTotal = subtotal + shippingCost;
+
+  // 1. Gerar número do pedido sequencial (#WPP-100X)
+  const count = await prisma.order.count();
+  const orderNumber = `#WPP-${1001 + count}`;
+
+  // 2. Montar endereço completo com CEP
+  let fullAddress = data.shippingAddress?.trim() || "";
+  if (data.destinationCep?.trim()) {
+    const cleanCep = data.destinationCep.replace(/\D/g, "");
+    const formattedCep =
+      cleanCep.length === 8 ? `${cleanCep.slice(0, 5)}-${cleanCep.slice(5)}` : cleanCep;
+    if (fullAddress && !fullAddress.includes(formattedCep)) {
+      fullAddress = `${fullAddress} (CEP: ${formattedCep})`;
+    } else if (!fullAddress) {
+      fullAddress = `CEP: ${formattedCep}`;
+    }
+  }
+
+  // 3. Salva o pedido na tabela Order com status "PENDING"
+  const order = await prisma.order.create({
+    data: {
+      orderNumber,
+      channel: SalesChannel.WHATSAPP,
+      status: OrderStatus.PENDING,
+      customerName: data.customerName.trim(),
+      customerPhone: cleanPhone || data.customerPhone.trim(),
+      customerEmail: data.customerEmail?.trim() || null,
+      shippingAddress: fullAddress || null,
+      paymentMethod: "A COMBINAR (PIX)",
+      totalProducts: subtotal,
+      shippingCost,
+      platformFee: 0,
+      netAmount: subtotal,
+      estimatedCMV: 0,
+      netProfit: subtotal,
+      notes: data.shippingService
+        ? `Vitrine Online. Frete: ${data.shippingService} (R$ ${shippingCost.toFixed(2).replace(".", ",")}${data.deliveryDays ? ` - ${data.deliveryDays} dias úteis` : ""})`
+        : "Vitrine Online (Checkout WhatsApp)",
+      paidAt: null, // Pagamento pendente
+      items: {
+        create: data.items.map((i) => ({
+          title: `${i.title}${i.colorName ? ` - ${i.colorName}` : ""}${i.size ? ` (Tam ${i.size})` : ""}`,
+          shirtColor: i.colorName || null,
+          shirtSize: i.size || null,
+          artTitle: i.title,
+          artMockupUrl: i.imageUrl || null,
+          quantity: Math.max(1, Number(i.quantity) || 1),
+          unitPrice: Number(i.price),
+          unitCost: 0,
+          total: Number(i.price) * Math.max(1, Number(i.quantity) || 1),
+        })),
+      },
+    },
+    include: {
+      items: true,
+    },
+  });
+
+  revalidatePath("/pedidos");
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  // 4. Montar mensagem estruturada para o WhatsApp
+  const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
+
+  let msg = `*NOVO PEDIDO ${orderNumber} — CORDEIRO INK ATELIÊ*\n\n`;
+  msg += `Olá! Acabei de registrar meu pedido no site da Cordeiro Ink:\n\n`;
+  msg += `👤 *Cliente:* ${data.customerName.trim()}\n`;
+  msg += `📱 *WhatsApp:* ${data.customerPhone.trim()}\n`;
+  if (fullAddress) {
+    msg += `📍 *Endereço/CEP:* ${fullAddress}\n`;
+  }
+  msg += `\n📦 *Itens do Pedido:*\n`;
+  data.items.forEach((item) => {
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const itemTotal = (Number(item.price) * qty).toFixed(2).replace(".", ",");
+    msg += `▪ ${qty}x *${item.title}*\n`;
+    if (item.colorName || item.size) {
+      msg += `   ${item.colorName ? `Cor: ${item.colorName}` : ""}${item.colorName && item.size ? " | " : ""}${item.size ? `Tam: ${item.size}` : ""}\n`;
+    }
+    msg += `   Subtotal: R$ ${itemTotal}\n`;
+  });
+
+  msg += `\n--------------------------------\n`;
+  msg += `*Subtotal Peças:* R$ ${subtotal.toFixed(2).replace(".", ",")}\n`;
+  if (data.shippingService) {
+    msg += `*Frete Escolhido:* ${data.shippingService} (R$ ${shippingCost.toFixed(2).replace(".", ",")}${data.deliveryDays ? ` - ${data.deliveryDays} dias úteis` : ""})\n`;
+  } else {
+    msg += `*Frete:* A combinar\n`;
+  }
+  msg += `--------------------------------\n`;
+  msg += `*VALOR TOTAL:* R$ ${grandTotal.toFixed(2).replace(".", ",")}\n\n`;
+  msg += `Gostaria de combinar a forma de pagamento (PIX) para iniciar a confecção!`;
+
+  const whatsappUrl = `https://wa.me/${brandPhone}?text=${encodeURIComponent(msg)}`;
+
+  return {
+    success: true,
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    whatsappUrl,
+    grandTotal,
+  };
 }

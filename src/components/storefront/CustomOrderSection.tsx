@@ -97,16 +97,16 @@ export function CustomOrderSection() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#E6DED2] text-[#0A0A0A] text-[10px] font-sans font-semibold uppercase tracking-widest">
                 <Sparkles size={11} />
-                <span>Ateliê On-Demand</span>
+                <span>Conferências & Eventos de Igrejas</span>
               </div>
 
               <h2 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#0A0A0A] leading-[1.08]">
-                Sua Arte. <br />
-                <span className="italic font-normal">Nossa Prensa.</span>
+                A Identidade <br />
+                <span className="italic font-normal">do seu Evento.</span>
               </h2>
 
               <p className="font-sans text-sm sm:text-base text-[#666666] leading-relaxed font-light">
-                Tem uma ideia de estampa, logotipo da sua marca ou ilustração autoral? Suba o arquivo ao lado e receba sua peça personalizada em malha pesada streetwear.
+                Que tal deixar a conferência da sua igreja ainda mais especial? Criamos camisetas personalizadas que transformam a identidade do seu evento em algo que todo mundo vai querer vestir. Sua conferência. Sua identidade. Sua camiseta.
               </p>
             </div>
 
@@ -118,10 +118,10 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Envie seu Design ou Referência
+                    Envie o Tema ou Arte da Conferência
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    PNG sem fundo, vetor ou imagem de inspiração em alta qualidade.
+                    Logotipo do evento, tema do congresso, versículo ou referência em alta qualidade.
                   </p>
                 </div>
               </div>
@@ -132,10 +132,10 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Escolha a Modelagem & Tamanho
+                    Escolha as Cores, Grade & Modelagem
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Oversized streetwear 260gsm, tradicional 30.1 ou moletom pesado.
+                    Malha heavyweight 260g/m² ou tradicional 30.1, modelagem streetwear do P ao XG.
                   </p>
                 </div>
               </div>
@@ -146,10 +146,10 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Ajuste Fino & Prensagem no WhatsApp
+                    Orçamento Rápido & Prensagem no Ateliê
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Validamos a arte antes de prensar e enviamos fotos do processo.
+                    Montamos o mockup digital, alinhamos valores por quantidade e enviamos direto para sua igreja.
                   </p>
                 </div>
               </div>
@@ -354,12 +354,12 @@ export function CustomOrderSection() {
                   {isPending ? (
                     <>
                       <Loader2 size={16} className="animate-spin" />
-                      <span>Processando Pedido...</span>
+                      <span>Enviando Orçamento...</span>
                     </>
                   ) : (
                     <>
                       <MessageCircle size={16} />
-                      <span>Enviar Pedido & Falar no WhatsApp</span>
+                      <span>Fazer Orçamento</span>
                     </>
                   )}
                 </button>

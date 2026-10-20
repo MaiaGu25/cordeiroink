@@ -93,6 +93,12 @@ export const STATUS_CONFIG: Record<
   string,
   { label: string; bg: string; text: string; dot: string }
 > = {
+  PENDING: {
+    label: "Aguardando Pagamento",
+    bg: "bg-amber-500/10 border-amber-500/30 text-amber-300",
+    text: "text-amber-300",
+    dot: "bg-amber-400",
+  },
   NEW: {
     label: "Novo",
     bg: "bg-zinc-900/70 border-zinc-800 text-zinc-400",

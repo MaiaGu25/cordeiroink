@@ -185,7 +185,7 @@ export function StorefrontCatalog({ items }: StorefrontCatalogProps) {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#E6DED2] pb-8">
           <div className="space-y-3">
             <span className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#737373] font-semibold block">
-              Coleção de Drops & Modelagens
+              Streetwear Cristão & Coleção Autoral
             </span>
             <h2 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#0A0A0A]">
               Peças em Destaque
@@ -193,7 +193,7 @@ export function StorefrontCatalog({ items }: StorefrontCatalogProps) {
           </div>
 
           <p className="font-sans text-xs sm:text-sm text-[#737373] max-w-md font-light leading-relaxed">
-            Cada camiseta é cortada e prensada sob demanda no ateliê em malha heavyweight com estampas DTF industriais.
+            Cada camiseta é cortada e prensada sob demanda no ateliê em malha heavyweight com estampas cristãs que carregam uma mensagem viva.
           </p>
         </div>
 
@@ -754,7 +754,7 @@ function ProductDetailModal({
               </a>
             </div>
             <p className="text-[10px] text-center text-[#737373] font-sans font-light">
-              Produção sob encomenda com envio direto pelos Correios.
+              Produção sob encomenda com fé, acabamento artesanal e envio direto pelos Correios.
             </p>
           </div>
         </div>

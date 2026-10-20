@@ -23,8 +23,8 @@ const KANBAN_COLUMNS: {
 }[] = [
   {
     key: "new",
-    label: "Novos",
-    statusList: [OrderStatus.NEW],
+    label: "Novos / Pendentes",
+    statusList: [OrderStatus.PENDING, OrderStatus.NEW],
     nextStatus: OrderStatus.PAID,
     nextActionLabel: "Pago",
   },

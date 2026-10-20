@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useCart } from "./CartContext";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
+import { createStorefrontOrder } from "@/actions/storefront";
 import { formatCurrency } from "@/lib/utils";
 import {
   X,
@@ -12,13 +14,20 @@ import {
   MessageCircle,
   ArrowRight,
   ShieldCheck,
+  Loader2,
+  User,
+  Phone,
+  MapPin,
+  CheckCircle2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export function StorefrontCartDrawer() {
   const {
     items,
     isOpen,
     closeCart,
+    clearCart,
     removeItem,
     updateQuantity,
     totalItemsCount,
@@ -30,41 +39,76 @@ export function StorefrontCartDrawer() {
     grandTotal,
   } = useCart();
 
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [streetAddress, setStreetAddress] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   if (!isOpen) return null;
 
-  const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
-
-  // Montagem da mensagem estruturada para o WhatsApp
-  const generateWhatsAppMessage = () => {
-    let msg = `*NOVO PEDIDO — CORDEIRO INK ATELIÊ*\n\n`;
-    msg += `Olá! Gostaria de fechar o seguinte pedido:\n\n`;
-
-    items.forEach((item, idx) => {
-      msg += `▪ ${item.quantity}x *${item.title}*\n`;
-      msg += `   Cor: ${item.colorName} | Tamanho: ${item.size}\n`;
-      msg += `   Subtotal: ${formatCurrency(item.price * item.quantity)}\n\n`;
-    });
-
-    msg += `--------------------------------\n`;
-    msg += `*Subtotal das Peças:* ${formatCurrency(subtotal)}\n`;
-
-    if (selectedShipping) {
-      msg += `*Frete Selecionado:* ${selectedShipping.service}\n`;
-      msg += `*CEP de Destino:* ${destinationCep || "Informado"}\n`;
-      msg += `*Prazo de Entrega:* ${selectedShipping.deliveryDays} dias úteis\n`;
-      msg += `*Valor do Frete:* ${formatCurrency(selectedShipping.price)}\n`;
-    } else {
-      msg += `*Frete:* A combinar no WhatsApp\n`;
+  // Formatação automática do WhatsApp
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, "").slice(0, 11);
+    let formatted = raw;
+    if (raw.length > 2 && raw.length <= 7) {
+      formatted = `(${raw.slice(0, 2)}) ${raw.slice(2)}`;
+    } else if (raw.length > 7) {
+      formatted = `(${raw.slice(0, 2)}) ${raw.slice(2, 7)}-${raw.slice(7)}`;
     }
-
-    msg += `--------------------------------\n`;
-    msg += `*TOTAL DO PEDIDO:* ${formatCurrency(grandTotal)}\n\n`;
-    msg += `Por favor, me envie os dados para pagamento (PIX) e confirmação de envio!`;
-
-    return encodeURIComponent(msg);
+    setCustomerPhone(formatted);
   };
 
-  const whatsappCheckoutLink = `https://wa.me/${brandPhone}?text=${generateWhatsAppMessage()}`;
+  // Finalização do Checkout sem Gateway:
+  // 1. Salva na tabela Order do Prisma com status "PENDING"
+  // 2. Redireciona imediatamente para o WhatsApp com mensagem formatada
+  const handleCheckout = async () => {
+    if (!customerName.trim()) {
+      toast.error("Por favor, preencha seu nome completo.");
+      return;
+    }
+
+    const cleanPhone = customerPhone.replace(/\D/g, "");
+    if (cleanPhone.length < 10) {
+      toast.error("Por favor, informe seu WhatsApp com DDD.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await createStorefrontOrder({
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        shippingAddress: streetAddress.trim() || undefined,
+        destinationCep: destinationCep || undefined,
+        shippingService: selectedShipping?.service,
+        shippingPrice: selectedShipping?.price,
+        deliveryDays: selectedShipping?.deliveryDays,
+        items: items.map((i) => ({
+          title: i.title,
+          colorName: i.colorName,
+          size: i.size,
+          price: i.price,
+          quantity: i.quantity,
+          imageUrl: i.imageUrl,
+          productId: i.productId,
+        })),
+      });
+
+      if (res.success && res.whatsappUrl) {
+        toast.success(
+          `Pedido ${res.orderNumber} registrado! Abrindo WhatsApp do Ateliê...`
+        );
+        clearCart();
+        // Redirecionamento imediato para a URL do WhatsApp
+        setTimeout(() => {
+          window.location.href = res.whatsappUrl;
+        }, 600);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar pedido.");
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div
@@ -119,7 +163,7 @@ export function StorefrontCartDrawer() {
             </div>
             <button
               onClick={closeCart}
-              className="mt-2 px-6 py-2.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#222222] transition"
+              className="mt-2 px-6 py-2.5 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#222222] transition cursor-pointer"
             >
               Explorar Coleção
             </button>
@@ -195,7 +239,7 @@ export function StorefrontCartDrawer() {
               ))}
             </div>
 
-            {/* Módulo de Cálculo de Frete (Melhor Envio Sandbox) */}
+            {/* Módulo de Cálculo de Frete (Melhor Envio / Correios) */}
             <div className="space-y-2">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
                 Entrega & Frete
@@ -209,10 +253,77 @@ export function StorefrontCartDrawer() {
                 onCepChange={setDestinationCep}
               />
             </div>
+
+            {/* Dados do Cliente para Envio & Contato */}
+            <div className="space-y-3 pt-2 border-t border-[#E6DED2]">
+              <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
+                Seus Dados para Contato & Envio
+              </span>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-[11px] font-sans font-semibold text-[#0A0A0A] mb-1">
+                    Nome Completo *
+                  </label>
+                  <div className="relative">
+                    <User
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0988A]"
+                    />
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Ex: Lucas Silva"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#D5CABE] text-[#0A0A0A] placeholder:text-[#A0988A] text-xs focus:outline-none focus:border-[#0A0A0A] transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-sans font-semibold text-[#0A0A0A] mb-1">
+                    WhatsApp com DDD *
+                  </label>
+                  <div className="relative">
+                    <Phone
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0988A]"
+                    />
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={handlePhoneChange}
+                      placeholder="(11) 98765-4321"
+                      maxLength={15}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#D5CABE] text-[#0A0A0A] placeholder:text-[#A0988A] font-mono text-xs focus:outline-none focus:border-[#0A0A0A] transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-sans font-semibold text-[#0A0A0A] mb-1">
+                    Endereço de Entrega (Rua, Número, Bairro)
+                  </label>
+                  <div className="relative">
+                    <MapPin
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A0988A]"
+                    />
+                    <input
+                      type="text"
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      placeholder="Ex: Rua Augusta, 500 - Apto 32, Consolação"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#D5CABE] text-[#0A0A0A] placeholder:text-[#A0988A] text-xs focus:outline-none focus:border-[#0A0A0A] transition"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Drawer Footer com Total e Checkout */}
+        {/* Drawer Footer com Total e Botão de Finalizar */}
         {items.length > 0 && (
           <div className="p-5 border-t border-[#E6DED2] bg-[#F7F4EE] space-y-4 shrink-0">
             {/* Breakdown de Valores */}
@@ -224,7 +335,7 @@ export function StorefrontCartDrawer() {
 
               <div className="flex justify-between text-[#737373]">
                 <span>
-                  Frete ({selectedShipping ? selectedShipping.service : "A calcular"})
+                  Frete ({selectedShipping ? selectedShipping.service : "A combinar"})
                 </span>
                 <span className="font-mono">
                   {selectedShipping
@@ -243,21 +354,30 @@ export function StorefrontCartDrawer() {
               </div>
             </div>
 
-            {/* Botão de Fechar Pedido via WhatsApp */}
-            <a
-              href={whatsappCheckoutLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer"
+            {/* Botão de Finalizar Pedido: Salva no Prisma (PENDING) e Redireciona para o WhatsApp */}
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={isSubmitting}
+              className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <MessageCircle size={16} />
-              <span>Finalizar via WhatsApp ({formatCurrency(grandTotal)})</span>
-              <ArrowRight size={14} />
-            </a>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Registrando Pedido...</span>
+                </>
+              ) : (
+                <>
+                  <MessageCircle size={16} />
+                  <span>Finalizar Pedido ({formatCurrency(grandTotal)})</span>
+                  <ArrowRight size={14} />
+                </>
+              )}
+            </button>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#737373] font-sans">
               <ShieldCheck size={12} className="text-emerald-600" />
-              <span>Envio seguro com código de rastreamento Correios</span>
+              <span>Pedido salvo com segurança no ateliê e combinado no WhatsApp</span>
             </div>
           </div>
         )}

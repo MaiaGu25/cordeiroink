@@ -12,18 +12,18 @@ export function StorefrontHero() {
         {/* Subtle pill tag */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#E6DED2]/60 border border-[#D5CABE] text-[#0A0A0A] text-[11px] font-sans font-semibold tracking-widest uppercase animate-in fade-in duration-500">
           <Sparkles size={12} className="text-[#0A0A0A]" />
-          <span>Heavyweight Streetwear & On-Demand Printing</span>
+          <span>Streetwear Cristão & Evangelho em Cada Peça</span>
         </div>
 
         {/* Editorial Heading in JUST Serif */}
         <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight text-[#0A0A0A] leading-[1.05] sm:leading-[1.02] text-balance">
-          Vista sua <br className="hidden sm:inline" />
-          <span className="italic font-normal">Identidade.</span>
+          Vista um <br className="hidden sm:inline" />
+          <span className="italic font-normal">propósito.</span>
         </h1>
 
         {/* Subtitle in Sora */}
         <p className="font-sans text-base sm:text-xl text-[#666666] max-w-2xl mx-auto leading-relaxed text-balance font-light">
-          Camisetas oversized em malha pesada 100% algodão, caimento estruturado e tecnologia industrial de estampa DTF. Escolha do nosso catálogo ou crie sua peça sob encomenda.
+          Uma marca cristã que acredita no poder de evangelizar e inspirar. Cada peça é pensada para unir identidade, autenticidade e fé.
         </p>
 
         {/* CTA Buttons */}
@@ -40,7 +40,7 @@ export function StorefrontHero() {
             href="#personalizadas"
             className="w-full sm:w-auto px-8 py-4 rounded-full bg-transparent hover:bg-[#E6DED2]/50 text-[#0A0A0A] border border-[#0A0A0A]/40 hover:border-[#0A0A0A] font-sans text-xs uppercase tracking-widest font-semibold transition-all cursor-pointer flex items-center justify-center gap-2"
           >
-            <span>Criar Personalizada</span>
+            <span>Camisetas para Eventos & Igrejas</span>
             <ArrowUpRight size={14} />
           </a>
         </div>
@@ -64,14 +64,14 @@ export function StorefrontHero() {
           <div className="space-y-1">
             <span className="font-serif text-2xl font-bold text-[#0A0A0A]">Street Fit</span>
             <p className="font-sans text-[11px] uppercase tracking-wider text-[#737373] font-medium">
-              Modelagem Oversized com Gola de 3cm
+              Modelagem Streetwear com Fé & Identidade
             </p>
           </div>
 
           <div className="space-y-1">
-            <span className="font-serif text-2xl font-bold text-[#0A0A0A]">On-Demand</span>
+            <span className="font-serif text-2xl font-bold text-[#0A0A0A]">Com Propósito</span>
             <p className="font-sans text-[11px] uppercase tracking-wider text-[#737373] font-medium">
-              Prensagem Sob Demanda Sem Estoque Parado
+              Cada Peça Evangeliza e Transforma
             </p>
           </div>
         </div>

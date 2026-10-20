@@ -5,16 +5,19 @@ export function StorefrontFooter() {
   const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
 
   return (
-    <footer id="sobre" className="bg-[#0A0A0A] text-[#FAF9F6] py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-[#1C1C1C]">
+    <footer className="bg-[#0A0A0A] text-[#FAF9F6] py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-[#1C1C1C]">
       <div className="max-w-7xl mx-auto space-y-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-start">
           {/* Brand Column */}
-          <div className="md:col-span-6 space-y-4">
-            <span className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#FAF9F6] uppercase">
+          <div className="md:col-span-6 space-y-3">
+            <span className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#FAF9F6] uppercase block">
               Cordeiro Ink
             </span>
-            <p className="font-sans text-xs sm:text-sm text-[#888888] font-light max-w-md leading-relaxed">
-              Ateliê de streetwear sob demanda inspirado na estética do underground e alfaiataria urbana contemporânea. Malhas pesadas 100% algodão, corte oversized impecável e prensagem térmica industrial de alta fidelidade.
+            <p className="font-sans text-xs uppercase tracking-[0.2em] text-[#D5CABE] font-bold">
+              🐑 DELE. POR ELE. PARA ELE.
+            </p>
+            <p className="font-sans text-xs sm:text-sm text-[#888888] font-light max-w-md leading-relaxed pt-1">
+              Ateliê de streetwear cristão criado pelo Igor e pela Grazi. Peças em malha pesada 100% algodão, corte autoral e estamparia industrial para quem entende que a fé também é identidade. Vista um propósito.
             </p>
           </div>
 
@@ -30,13 +33,18 @@ export function StorefrontFooter() {
                 </a>
               </li>
               <li>
+                <a href="#sobre" className="hover:text-white transition">
+                  Quem Somos (O Ateliê)
+                </a>
+              </li>
+              <li>
                 <a href="#personalizadas" className="hover:text-white transition">
-                  Criar Peça Personalizada
+                  Camisetas para Eventos & Igrejas
                 </a>
               </li>
               <li>
                 <a
-                  href={`https://wa.me/${brandPhone}?text=${encodeURIComponent("Olá! Gostaria de falar com o atendimento da Cordeiro Ink.")}`}
+                  href={`https://wa.me/${brandPhone}?text=${encodeURIComponent("Olá Igor e Grazi! Gostaria de falar com o atendimento da Cordeiro Ink.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition flex items-center gap-1"
