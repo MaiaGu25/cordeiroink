@@ -442,3 +442,88 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
     grandTotal,
   };
 }
+
+/**
+ * -------------------------------------------------------------
+ * GESTÃO DE BANNERS DA VITRINE (HOME CAROUSEL)
+ * -------------------------------------------------------------
+ */
+
+export async function getStorefrontBanners(includeInactive = false) {
+  try {
+    return await prisma.storefrontBanner.findMany({
+      where: includeInactive ? undefined : { isActive: true },
+      orderBy: [{ orderIndex: "asc" }, { createdAt: "desc" }],
+    });
+  } catch (err: any) {
+    console.error("Erro ao buscar banners:", err);
+    return [];
+  }
+}
+
+export async function createStorefrontBanner(data: {
+  title: string;
+  subtitle?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  orderIndex?: number;
+}) {
+  const count = await prisma.storefrontBanner.count();
+  const banner = await prisma.storefrontBanner.create({
+    data: {
+      title: data.title,
+      subtitle: data.subtitle,
+      imageUrl: data.imageUrl,
+      linkUrl: data.linkUrl,
+      orderIndex: data.orderIndex !== undefined ? data.orderIndex : count,
+      isActive: true,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/vitrine");
+  return banner;
+}
+
+export async function updateStorefrontBanner(
+  id: string,
+  data: {
+    title?: string;
+    subtitle?: string;
+    imageUrl?: string;
+    linkUrl?: string;
+    orderIndex?: number;
+    isActive?: boolean;
+  }
+) {
+  const banner = await prisma.storefrontBanner.update({
+    where: { id },
+    data,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/vitrine");
+  return banner;
+}
+
+export async function deleteStorefrontBanner(id: string) {
+  await prisma.storefrontBanner.delete({
+    where: { id },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/vitrine");
+  return { success: true };
+}
+
+export async function toggleStorefrontBannerActive(id: string, isActive: boolean) {
+  const banner = await prisma.storefrontBanner.update({
+    where: { id },
+    data: { isActive },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/vitrine");
+  return banner;
+}
+

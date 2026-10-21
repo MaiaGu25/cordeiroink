@@ -1,10 +1,10 @@
 "use client";
 
-import { X, User, MapPin, Phone, Mail, ShoppingBag, ShieldCheck, Flame, ArrowRight, DollarSign, Edit, XCircle, Clock } from "lucide-react";
+import { X, User, MapPin, Phone, Mail, ShoppingBag, ShieldCheck, Flame, ArrowRight, DollarSign, Edit, XCircle, Clock, Check, RefreshCw } from "lucide-react";
 import { formatCurrency, formatDate, CHANNEL_CONFIG, STATUS_CONFIG } from "@/lib/utils";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { OrderStatus } from "@prisma/client";
-import { updateOrderStatus } from "@/actions/orders";
+import { updateOrderStatus, toggleOrderPaymentStatus } from "@/actions/orders";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
 import { OrderTimeline } from "./OrderTimeline";
@@ -26,6 +26,21 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
 
   const channel = CHANNEL_CONFIG[order.channel] || { label: order.channel };
   const status = STATUS_CONFIG[order.status] || { label: order.status };
+
+  const handleTogglePayment = () => {
+    startTransition(async () => {
+      try {
+        await toggleOrderPaymentStatus(order.id);
+        toast.success(
+          `Pagamento do pedido ${order.orderNumber} alterado para ${order.paidAt ? "PENDENTE" : "PAGO"}!`
+        );
+        if (onOrderUpdated) onOrderUpdated();
+        onClose();
+      } catch (err: any) {
+        toast.error("Erro ao alterar pagamento: " + err.message);
+      }
+    });
+  };
 
   const handleStatusChange = (newStatus: OrderStatus) => {
     startTransition(async () => {
@@ -67,19 +82,29 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
               <ShoppingBag size={18} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono font-bold text-base text-zinc-100">
                   {order.orderNumber}
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full border ${status.bg}`}>
                   {status.label}
                 </span>
+                {order.paidAt ? (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1">
+                    <Check size={11} /> PAGO
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" /> PENDENTE
+                  </span>
+                )}
                 <span className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium">
                   {channel.label}
                 </span>
               </div>
               <span className="text-xs text-zinc-400">
                 Criado em {formatDate(order.createdAt)}
+                {order.paidAt && ` • Pago em ${formatDate(order.paidAt)}`}
               </span>
             </div>
           </div>
@@ -113,8 +138,8 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
             </div>
           )}
 
-          {/* Quick Actions: Edit & Cancel */}
-          <div className="flex items-center gap-2">
+          {/* Quick Actions: Edit, Toggle Payment, & Cancel */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setIsEditOpen(true)}
               disabled={order.status === "CANCELLED"}
@@ -122,6 +147,29 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
             >
               <Edit size={13} className="text-amber-400" />
               <span>Editar Pedido</span>
+            </button>
+
+            <button
+              disabled={isPending || order.status === "CANCELLED"}
+              onClick={handleTogglePayment}
+              className={`flex-1 py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-40 ${
+                order.paidAt
+                  ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                  : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+              }`}
+              title="Alternar entre Pago e Pendente com registro em log de auditoria"
+            >
+              {order.paidAt ? (
+                <>
+                  <Check size={13} className="text-emerald-400" />
+                  <span>Pago (Alterar p/ Pendente)</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={13} className="text-amber-400" />
+                  <span>Marcar como Pago</span>
+                </>
+              )}
             </button>
 
             {order.status !== "CANCELLED" && (

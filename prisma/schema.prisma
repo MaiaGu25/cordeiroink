@@ -46,6 +46,8 @@ model RawItem {
   stockQuantity Int         @default(0)
   minStock      Int         @default(10)
   costPrice     Float       @default(0.0) // Custo de aquisição unitário
+  sellingPrice  Float       @default(0.0) // Preço de venda padrão sugerido
+  description   String?     // Descrição detalhada do produto/insumo
 
   // Atributos específicos para Camisetas
   shirtModel    String?     // ex: Streetwear Oversized 26.1, Casual 30.1 Penteada
@@ -398,4 +400,17 @@ model LeadQuote {
   status          String   @default("PENDING") // PENDING, CONTACTED, CONVERTED, ARCHIVED
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// 12. BANNERS DA VITRINE (HOME SLIDER)
+model StorefrontBanner {
+  id          String   @id @default(uuid())
+  title       String
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

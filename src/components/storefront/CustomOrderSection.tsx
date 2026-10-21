@@ -9,21 +9,31 @@ import {
   Sparkles,
   ArrowRight,
   X,
-  FileImage,
+  ShoppingBag,
+  Users,
+  User,
+  Truck,
 } from "lucide-react";
 import { uploadStorefrontFile, createLeadQuote } from "@/actions/storefront";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { useCart } from "@/components/storefront/CartContext";
 import { toast } from "sonner";
 
 export function CustomOrderSection() {
   const [isPending, startTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addItem, openCart } = useCart();
+
+  // Tipo de Pedido: Individual (1 peça) vs Lote (Conferências / Igrejas)
+  const [orderType, setOrderType] = useState<"INDIVIDUAL" | "BULK">("INDIVIDUAL");
 
   const [customerName, setCustomerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [shirtModel, setShirtModel] = useState("Camiseta Oversized Heavyweight 26.1");
   const [size, setSize] = useState("G");
+  const [color, setColor] = useState("Preto");
+  const [bulkQuantity, setBulkQuantity] = useState("20");
   const [customDesignUrl, setCustomDesignUrl] = useState("");
   const [designFileName, setDesignFileName] = useState("");
   const [notes, setNotes] = useState("");
@@ -54,7 +64,7 @@ export function CustomOrderSection() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleIndividualCheckout = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!customerName.trim() || !whatsapp.trim()) {
@@ -64,26 +74,67 @@ export function CustomOrderSection() {
 
     startTransition(async () => {
       try {
+        // Registra lead no banco de dados para rastreabilidade
+        await createLeadQuote({
+          customerName,
+          whatsapp,
+          shirtModel: `${shirtModel} (Cor: ${color})`,
+          size,
+          customDesignUrl,
+          notes: notes ? `[Pedido Varejo 1 un] ${notes}` : "[Pedido Varejo 1 un]",
+        });
+
+        // Adiciona a peça personalizada ao Carrinho com a arte enviada
+        addItem({
+          productId: `custom-${Date.now()}`,
+          title: `Camiseta Personalizada (${shirtModel})`,
+          colorName: color,
+          size,
+          price: 99.90,
+          quantity: 1,
+          imageUrl:
+            customDesignUrl ||
+            "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop",
+        });
+
+        toast.success("Peça adicionada ao carrinho! Calcule o frete para finalizar.");
+        openCart();
+      } catch (err: any) {
+        toast.error("Erro ao processar pedido: " + err.message);
+      }
+    });
+  };
+
+  const handleBulkSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!customerName.trim() || !whatsapp.trim()) {
+      toast.error("Por favor, preencha seu nome e WhatsApp.");
+      return;
+    }
+
+    startTransition(async () => {
+      try {
+        const fullNotes = `[Lote Evento: ~${bulkQuantity} unidades] ${notes}`.trim();
         const res = await createLeadQuote({
           customerName,
           whatsapp,
           shirtModel,
-          size,
+          size: `${size} (Lote: ${bulkQuantity} un)`,
           customDesignUrl,
-          notes,
+          notes: fullNotes,
         });
 
         setIsSuccess(true);
-        toast.success("Pedido enviado! Redirecionando para o WhatsApp do ateliê...");
+        toast.success("Orçamento gerado! Redirecionando para o WhatsApp do ateliê...");
 
-        // Aguarda 1 segundo e redireciona para o WhatsApp com a mensagem estrita
         setTimeout(() => {
           if (res.whatsappUrl) {
             window.location.href = res.whatsappUrl;
           }
         }, 1200);
       } catch (err: any) {
-        toast.error("Erro ao enviar pedido personalizado: " + err.message);
+        toast.error("Erro ao enviar pedido de orçamento: " + err.message);
       }
     });
   };
@@ -97,16 +148,18 @@ export function CustomOrderSection() {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#E6DED2] text-[#0A0A0A] text-[10px] font-sans font-semibold uppercase tracking-widest">
                 <Sparkles size={11} />
-                <span>Conferências & Eventos de Igrejas</span>
+                <span>Sob Encomenda • Varejo & Lotes para Igrejas</span>
               </div>
 
               <h2 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#0A0A0A] leading-[1.08]">
                 A Identidade <br />
-                <span className="italic font-normal">do seu Evento.</span>
+                <span className="italic font-normal">do seu propósito.</span>
               </h2>
 
               <p className="font-sans text-sm sm:text-base text-[#666666] leading-relaxed font-light">
-                Que tal deixar a conferência da sua igreja ainda mais especial? Criamos camisetas personalizadas que transformam a identidade do seu evento em algo que todo mundo vai querer vestir. Sua conferência. Sua identidade. Sua camiseta.
+                {orderType === "INDIVIDUAL"
+                  ? "Crie uma peça exclusiva para você! Produzimos sua camiseta personalizada em modelagem streetwear heavyweight e estampa DTF em alta definição a partir de 1 unidade."
+                  : "Que tal deixar a conferência da sua igreja ainda mais especial? Criamos camisetas personalizadas que transformam a identidade do seu evento em algo que todo mundo vai querer vestir."}
               </p>
             </div>
 
@@ -118,10 +171,12 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Envie o Tema ou Arte da Conferência
+                    {orderType === "INDIVIDUAL" ? "Envie sua Arte ou Ideia" : "Envie o Tema da Conferência"}
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Logotipo do evento, tema do congresso, versículo ou referência em alta qualidade.
+                    {orderType === "INDIVIDUAL"
+                      ? "Logos, versículos, artes autorais ou referências visuais que deseja estampar."
+                      : "Identidade visual do evento, logo do congresso ou frase temática da igreja."}
                   </p>
                 </div>
               </div>
@@ -132,10 +187,10 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Escolha as Cores, Grade & Modelagem
+                    Escolha a Malha, Cor & Modelagem
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Malha heavyweight 260g/m² ou tradicional 30.1, modelagem streetwear do P ao XG.
+                    Malha heavyweight 260g/m² ou 30.1 penteada, do tamanho P ao XG, nas cores Preto ou Off-White.
                   </p>
                 </div>
               </div>
@@ -146,10 +201,12 @@ export function CustomOrderSection() {
                 </span>
                 <div>
                   <h4 className="font-sans text-xs uppercase tracking-wider font-bold text-[#0A0A0A]">
-                    Orçamento Rápido & Prensagem no Ateliê
+                    {orderType === "INDIVIDUAL" ? "Cálculo de Frete & Checkout" : "Orçamento Rápido em Lote"}
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Montamos o mockup digital, alinhamos valores por quantidade e enviamos direto para sua igreja.
+                    {orderType === "INDIVIDUAL"
+                      ? "Avance direto para o cálculo de frete (Correios/Melhor Envio) e finalize seu pedido com total agilidade."
+                      : "Montamos a prévia digital, definimos a tabela de preços regressivos por quantidade e entregamos no endereço da igreja."}
                   </p>
                 </div>
               </div>
@@ -164,7 +221,7 @@ export function CustomOrderSection() {
                   <CheckCircle2 size={36} />
                 </div>
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#0A0A0A]">
-                  Pedido Recebido com Sucesso!
+                  Solicitação Enviada com Sucesso!
                 </h3>
                 <p className="font-sans text-xs sm:text-sm text-[#737373] max-w-md mx-auto">
                   Você está sendo redirecionado para o WhatsApp da Cordeiro Ink para concluir os detalhes com nosso impressor.
@@ -175,14 +232,72 @@ export function CustomOrderSection() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form
+                onSubmit={orderType === "INDIVIDUAL" ? handleIndividualCheckout : handleBulkSubmit}
+                className="space-y-6"
+              >
                 <div>
                   <h3 className="font-serif text-2xl font-bold text-[#0A0A0A]">
                     Monte sua Peça Sob Encomenda
                   </h3>
                   <p className="font-sans text-xs text-[#737373] mt-1 font-light">
-                    Preencha os campos abaixo para gerar seu orçamento exclusivo.
+                    Selecione o formato de pedido que melhor atende à sua necessidade:
                   </p>
+                </div>
+
+                {/* Seletor Varejo Individual (1 un) vs Lote Eventos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1.5 rounded-2xl bg-[#F7F4EE] border border-[#E6DED2]">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("INDIVIDUAL")}
+                    className={`p-3 rounded-xl flex items-center gap-3 transition cursor-pointer text-left ${
+                      orderType === "INDIVIDUAL"
+                        ? "bg-[#0A0A0A] text-[#FAF9F6] shadow-md"
+                        : "text-[#666666] hover:text-[#0A0A0A]"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${
+                        orderType === "INDIVIDUAL" ? "bg-white/15 text-white" : "bg-[#E6DED2] text-[#0A0A0A]"
+                      }`}
+                    >
+                      <User size={16} />
+                    </div>
+                    <div>
+                      <span className="font-sans text-xs font-bold block">
+                        Pedido Individual
+                      </span>
+                      <span className="text-[10px] font-mono opacity-80">
+                        1 unidade • R$ 99,90
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("BULK")}
+                    className={`p-3 rounded-xl flex items-center gap-3 transition cursor-pointer text-left ${
+                      orderType === "BULK"
+                        ? "bg-[#0A0A0A] text-[#FAF9F6] shadow-md"
+                        : "text-[#666666] hover:text-[#0A0A0A]"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${
+                        orderType === "BULK" ? "bg-white/15 text-white" : "bg-[#E6DED2] text-[#0A0A0A]"
+                      }`}
+                    >
+                      <Users size={16} />
+                    </div>
+                    <div>
+                      <span className="font-sans text-xs font-bold block">
+                        Lote / Evento
+                      </span>
+                      <span className="text-[10px] font-mono opacity-80">
+                        Igrejas & Conferências
+                      </span>
+                    </div>
+                  </button>
                 </div>
 
                 {/* Nome & WhatsApp */}
@@ -216,41 +331,72 @@ export function CustomOrderSection() {
                   </div>
                 </div>
 
-                {/* Modelo & Tamanho */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Modelagem, Cor & Tamanho / Quantidade de Lote */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
-                      Categoria / Modelagem *
+                      Modelagem *
                     </label>
                     <select
                       value={shirtModel}
                       onChange={(e) => setShirtModel(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
                     >
-                      <option value="Adulto">Adulto</option>
-                      <option value="Infantil">Infantil</option>
-                      <option value="Oversized">Oversized</option>
-                      <option value="Feminina">Feminina</option>
-                      <option value="Regata">Regata</option>
+                      <option value="Camiseta Oversized Heavyweight 26.1">Oversized 26.1</option>
+                      <option value="Camiseta Tradicional 30.1">Tradicional 30.1</option>
+                      <option value="Regata Streetwear">Regata Streetwear</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
-                      Tamanho *
+                      Cor da Camiseta *
                     </label>
                     <select
-                      value={size}
-                      onChange={(e) => setSize(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
                     >
-                      <option value="P">P — Pequeno</option>
-                      <option value="M">M — Médio</option>
-                      <option value="G">G — Grande (Street Fit)</option>
-                      <option value="GG">GG — Extra Grande</option>
-                      <option value="XG">XG — Big Size</option>
+                      <option value="Preto">Preto</option>
+                      <option value="Off-White">Off-White</option>
+                      <option value="Marrom Cacau">Marrom Cacau</option>
                     </select>
                   </div>
+
+                  {orderType === "INDIVIDUAL" ? (
+                    <div>
+                      <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
+                        Tamanho *
+                      </label>
+                      <select
+                        value={size}
+                        onChange={(e) => setSize(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                      >
+                        <option value="P">P — Pequeno</option>
+                        <option value="M">M — Médio</option>
+                        <option value="G">G — Street Fit</option>
+                        <option value="GG">GG — Extra Grande</option>
+                        <option value="XG">XG — Big Size</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
+                        Qtd. Estimada *
+                      </label>
+                      <select
+                        value={bulkQuantity}
+                        onChange={(e) => setBulkQuantity(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                      >
+                        <option value="20 a 50">20 a 50 peças</option>
+                        <option value="50 a 100">50 a 100 peças</option>
+                        <option value="100 a 200">100 a 200 peças</option>
+                        <option value="200+">Acima de 200 peças</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Upload da Arte do Cliente */}
@@ -283,7 +429,7 @@ export function CustomOrderSection() {
                             {designFileName || "Arte enviada"}
                           </p>
                           <span className="text-[10px] text-emerald-600 font-mono flex items-center gap-1">
-                            <CheckCircle2 size={11} /> Salvo no Supabase Storage
+                            <CheckCircle2 size={11} /> Salvo no Ateliê Cordeiro Ink
                           </span>
                         </div>
                       </div>
@@ -309,7 +455,7 @@ export function CustomOrderSection() {
                         <>
                           <Loader2 size={24} className="animate-spin text-[#0A0A0A]" />
                           <span className="font-sans text-xs text-[#737373] font-mono">
-                            Fazendo upload da arte para o Supabase...
+                            Fazendo upload da arte para o ateliê...
                           </span>
                         </>
                       ) : (
@@ -340,29 +486,58 @@ export function CustomOrderSection() {
                     rows={2}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ex: Gostaria da arte grande nas costas e um detalhe no peito esquerdo."
+                    placeholder={
+                      orderType === "INDIVIDUAL"
+                        ? "Ex: Estampa grande nas costas e um logo pequeno no peito esquerdo."
+                        : "Ex: Tema da conferência: 'Inabaláveis 2026'. Data prevista do evento: 15 de Novembro."
+                    }
                     className="w-full px-4 py-2.5 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] placeholder:text-[#999999] focus:outline-none focus:border-[#0A0A0A] transition"
                   />
                 </div>
 
-                {/* Botão de Envio com Redirecionamento */}
-                <button
-                  type="submit"
-                  disabled={isPending || isUploading}
-                  className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Enviando Orçamento...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle size={16} />
-                      <span>Fazer Orçamento</span>
-                    </>
-                  )}
-                </button>
+                {/* Botão de Ação Conforme o Tipo de Pedido */}
+                {orderType === "INDIVIDUAL" ? (
+                  <div className="space-y-3">
+                    <button
+                      type="submit"
+                      disabled={isPending || isUploading}
+                      className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50"
+                    >
+                      {isPending ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span>Preparando Peça...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingBag size={16} />
+                          <span>Adicionar ao Carrinho & Calcular Frete (R$ 99,90)</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-center font-mono text-[11px] text-[#737373]">
+                      ✓ Produzida sob demanda em até 2 dias úteis no ateliê.
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isPending || isUploading}
+                    className="w-full py-4 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50"
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        <span>Enviando Orçamento...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle size={16} />
+                        <span>Fazer Orçamento de Lote para Evento</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </form>
             )}
           </div>

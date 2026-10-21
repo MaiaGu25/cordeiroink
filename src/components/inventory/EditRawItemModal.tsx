@@ -26,6 +26,8 @@ export function EditRawItemModal({
   const [isTogglePending, startToggleTransition] = useTransition();
 
   const [name, setName] = useState(item?.name || "");
+  const [description, setDescription] = useState(item?.description || "");
+  const [sellingPrice, setSellingPrice] = useState<number | "">(item?.sellingPrice ?? 0);
   const [costPrice, setCostPrice] = useState<number | "">(item?.costPrice ?? 0);
   const [minStock, setMinStock] = useState<number | "">(item?.minStock ?? 5);
   const [shirtModel, setShirtModel] = useState(item?.shirtModel || "");
@@ -41,6 +43,8 @@ export function EditRawItemModal({
   useEffect(() => {
     if (item) {
       setName(item.name || "");
+      setDescription(item.description || "");
+      setSellingPrice(item.sellingPrice ?? 0);
       setCostPrice(item.costPrice || 0);
       setMinStock(item.minStock || 5);
       setShirtModel(item.shirtModel || "");
@@ -63,6 +67,8 @@ export function EditRawItemModal({
       try {
         await updateRawItem(item.id, {
           name,
+          description: description.trim() || undefined,
+          sellingPrice: typeof sellingPrice === "number" ? sellingPrice : parseFloat(String(sellingPrice).replace(",", ".")) || 0,
           costPrice: typeof costPrice === "number" ? costPrice : parseFloat(String(costPrice).replace(",", ".")) || 0,
           minStock: Number(minStock) || 0,
           shirtModel: item.type === RawItemType.BLANK_SHIRT ? shirtModel : undefined,
@@ -244,10 +250,26 @@ export function EditRawItemModal({
             </div>
           )}
 
+          {/* Preço de Venda e Custo Base */}
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
-                Custo Unitário (R$) *
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Preço de Venda Padrão (R$)
+              </label>
+              <CurrencyInput
+                value={sellingPrice}
+                onChange={(val) => setSellingPrice(val)}
+                placeholder="99,90"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-500"
+              />
+              <span className="text-[10px] text-zinc-500 mt-0.5 block">
+                Autopreenchido no Pedido Express
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Custo Unitário Base (R$) *
               </label>
               <CurrencyInput
                 value={costPrice}
@@ -255,8 +277,13 @@ export function EditRawItemModal({
                 placeholder="0,00"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
               />
+              <span className="text-[10px] text-zinc-500 mt-0.5 block">
+                Custo de aquisição no fornecedor
+              </span>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-2.5">
             <div>
               <label className="block text-xs font-medium text-zinc-400 mb-1">
                 Estoque Mínimo de Alerta *
@@ -270,6 +297,19 @@ export function EditRawItemModal({
                 onChange={(e) => setMinStock(e.target.value === "" ? "" : parseInt(e.target.value) || 0)}
                 placeholder="5"
                 className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1">
+                Descrição do Insumo / Observações
+              </label>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Detalhes sobre a malha, fornecedor habitual ou especificações..."
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
               />
             </div>
           </div>

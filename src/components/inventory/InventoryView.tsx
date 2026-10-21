@@ -222,6 +222,7 @@ export function InventoryView({
         <BlankShirtsGrid
           items={filterList(blankShirts)}
           onAdjust={(item) => setSelectedItemToAdjust(item)}
+          onEdit={(item) => setSelectedItemToEdit(item)}
           onAddNew={() => handleOpenNewRawItem(RawItemType.BLANK_SHIRT)}
           onDelete={(item) => setItemToDelete(item)}
         />

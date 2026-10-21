@@ -108,6 +108,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardPage
 
   // Estoque crítico de camisetas lisas
   const blankShirts = rawItems.filter((i) => i.type === RawItemType.BLANK_SHIRT);
+  const dtfPrints = rawItems.filter((i) => i.type === RawItemType.DTF_PRINT);
   const lowStockShirts = blankShirts.filter((i) => i.stockQuantity <= i.minStock);
   const criticalItems = rawItems.filter((i) => i.stockQuantity <= i.minStock);
 
@@ -158,7 +159,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardPage
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
           <TimeFilter />
-          <DashboardHeaderAction blankShirts={blankShirts} />
+          <DashboardHeaderAction blankShirts={blankShirts} dtfPrints={dtfPrints} />
         </div>
       </div>
 
@@ -206,7 +207,7 @@ export default async function AdminDashboardPage({ searchParams }: DashboardPage
             >
               Abrir Fila de Produção <ArrowUpRight size={13} />
             </Link>
-            <DashboardHeaderAction blankShirts={blankShirts} />
+            <DashboardHeaderAction blankShirts={blankShirts} dtfPrints={dtfPrints} />
           </div>
         </div>
       )}

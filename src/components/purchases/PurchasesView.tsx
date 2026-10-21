@@ -17,18 +17,21 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { receivePurchaseOrder, deleteSupplier } from "@/actions/purchases";
 import { NewSupplierModal } from "./NewSupplierModal";
+import { NewPurchaseOrderModal } from "./NewPurchaseOrderModal";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 interface PurchasesViewProps {
   purchaseOrders: any[];
   suppliers: any[];
+  rawItems?: any[];
 }
 
-export function PurchasesView({ purchaseOrders, suppliers }: PurchasesViewProps) {
+export function PurchasesView({ purchaseOrders, suppliers, rawItems = [] }: PurchasesViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
+  const [isNewPurchaseOrderOpen, setIsNewPurchaseOrderOpen] = useState(false);
 
   const handleReceive = (poId: string, orderCode: string) => {
     startTransition(async () => {
@@ -178,14 +181,24 @@ export function PurchasesView({ purchaseOrders, suppliers }: PurchasesViewProps)
 
       {/* Purchase Orders Section */}
       <div className="space-y-4 pt-6 border-t border-zinc-800">
-        <div>
-          <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-            <Truck size={16} className="text-amber-400" />
-            Ordens de Compra & Reposição de Insumos
-          </h3>
-          <p className="text-xs text-zinc-400">
-            Acompanhe pedidos de compras e dê entrada com 1 clique para alimentar o estoque.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              <Truck size={16} className="text-amber-400" />
+              Ordens de Compra & Reposição de Insumos
+            </h3>
+            <p className="text-xs text-zinc-400">
+              Acompanhe pedidos de compras e dê entrada com 1 clique para alimentar o estoque.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setIsNewPurchaseOrderOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer self-start sm:self-auto"
+          >
+            <Plus size={14} />
+            <span>+ Nova Ordem de Compra</span>
+          </button>
         </div>
 
         {purchaseOrders.length === 0 ? (
@@ -295,6 +308,15 @@ export function PurchasesView({ purchaseOrders, suppliers }: PurchasesViewProps)
       <NewSupplierModal
         isOpen={isNewSupplierOpen}
         onClose={() => setIsNewSupplierOpen(false)}
+        onCreated={() => router.refresh()}
+      />
+
+      {/* Modal de Nova Ordem de Compra */}
+      <NewPurchaseOrderModal
+        isOpen={isNewPurchaseOrderOpen}
+        onClose={() => setIsNewPurchaseOrderOpen(false)}
+        suppliers={suppliers}
+        rawItems={rawItems}
         onCreated={() => router.refresh()}
       />
     </div>

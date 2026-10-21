@@ -26,6 +26,7 @@ import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constant
 import { formatCurrency } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { BannerManagerSection, type BannerItem } from "./BannerManagerSection";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -64,14 +65,16 @@ interface LeadQuote {
 interface VitrineAdminViewProps {
   initialItems: CatalogItem[];
   initialLeads: LeadQuote[];
+  initialBanners?: BannerItem[];
 }
 
 export function VitrineAdminView({
   initialItems,
   initialLeads,
+  initialBanners = [],
 }: VitrineAdminViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS">("CATALOG");
+  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS" | "BANNERS">("CATALOG");
 
   // Estados de Criação
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -367,6 +370,18 @@ export function VitrineAdminView({
           <MessageCircle size={14} />
           <span>Orçamentos Personalizados ({initialLeads.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("BANNERS")}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            activeTab === "BANNERS"
+              ? "bg-zinc-800 text-zinc-100 shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          <ImageIcon size={14} />
+          <span>Banners da Home ({initialBanners.length})</span>
+        </button>
       </div>
 
       {/* Content: Catálogo */}
@@ -594,6 +609,11 @@ export function VitrineAdminView({
             </div>
           )}
         </div>
+      )}
+
+      {/* Content: Banners da Home */}
+      {activeTab === "BANNERS" && (
+        <BannerManagerSection initialBanners={initialBanners} />
       )}
 
       {/* Modal: Adicionar Novo Produto */}

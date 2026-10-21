@@ -5,7 +5,7 @@ import { PurchaseStatus, TransactionType, TransactionCategory } from "@prisma/cl
 import { revalidatePath } from "next/cache";
 
 export async function getPurchases() {
-  const [purchaseOrders, suppliers] = await Promise.all([
+  const [purchaseOrders, suppliers, rawItems] = await Promise.all([
     prisma.purchaseOrder.findMany({
       include: {
         supplier: true,
@@ -23,10 +23,15 @@ export async function getPurchases() {
           select: { purchaseOrders: true, rawItems: true },
         },
       },
+      orderBy: { name: "asc" },
+    }),
+    prisma.rawItem.findMany({
+      where: { isActive: true },
+      orderBy: [{ type: "asc" }, { name: "asc" }],
     }),
   ]);
 
-  return { purchaseOrders, suppliers };
+  return { purchaseOrders, suppliers, rawItems };
 }
 
 import { getCurrentUser } from "@/lib/auth";
@@ -112,19 +117,23 @@ export async function receivePurchaseOrder(poId: string) {
 export async function createPurchaseOrder(data: {
   supplierId: string;
   items: { rawItemId: string; quantity: number; unitCost: number }[];
+  status?: PurchaseStatus;
   notes?: string;
 }) {
+  const user = await getCurrentUser();
   const count = await prisma.purchaseOrder.count();
   const orderCode = `PO-2026-${String(count + 1).padStart(3, "0")}`;
 
+  const status = data.status || PurchaseStatus.ORDERED;
   const totalCost = data.items.reduce((acc, i) => acc + i.quantity * i.unitCost, 0);
 
   const po = await prisma.purchaseOrder.create({
     data: {
       orderCode,
       supplierId: data.supplierId,
-      status: PurchaseStatus.ORDERED,
+      status,
       orderedAt: new Date(),
+      receivedAt: status === PurchaseStatus.RECEIVED ? new Date() : null,
       totalCost,
       notes: data.notes,
       items: {
@@ -136,9 +145,80 @@ export async function createPurchaseOrder(data: {
         })),
       },
     },
+    include: {
+      supplier: true,
+      items: {
+        include: { rawItem: true },
+      },
+    },
   });
 
+  // Se já foi criada com status RECEBIDA, atualiza o estoque físico imediatamente
+  if (status === PurchaseStatus.RECEIVED) {
+    for (const item of data.items) {
+      await prisma.rawItem.update({
+        where: { id: item.rawItemId },
+        data: {
+          stockQuantity: {
+            increment: item.quantity,
+          },
+        },
+      });
+    }
+
+    // Registra saída no financeiro
+    await prisma.financialTransaction.create({
+      data: {
+        type: TransactionType.EXPENSE,
+        category: TransactionCategory.RAW_MATERIALS,
+        amount: totalCost,
+        description: `Compra Recebida (${orderCode}) - ${po.supplier.name}`,
+        purchaseOrderId: po.id,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        action: "PURCHASE_ORDER_CREATED_AND_RECEIVED",
+        entity: "PurchaseOrder",
+        entityId: po.id,
+        details: `Ordem de compra ${orderCode} criada diretamente como RECEBIDA por ${user.name}. Estoque atualizado.`,
+        newPayload: JSON.stringify({
+          orderCode,
+          supplier: po.supplier.name,
+          totalCost,
+          itemsCount: data.items.length,
+        }),
+      },
+    });
+  } else {
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        action: "PURCHASE_ORDER_CREATED",
+        entity: "PurchaseOrder",
+        entityId: po.id,
+        details: `Ordem de compra ${orderCode} (${status}) criada por ${user.name}`,
+        newPayload: JSON.stringify({
+          orderCode,
+          supplierId: data.supplierId,
+          status,
+          totalCost,
+        }),
+      },
+    });
+  }
+
   revalidatePath("/compras");
+  revalidatePath("/estoque");
+  revalidatePath("/financeiro");
+  revalidatePath("/");
+
   return po;
 }
 

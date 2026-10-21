@@ -4,7 +4,7 @@ import { PurchasesView } from "@/components/purchases/PurchasesView";
 export const dynamic = "force-dynamic";
 
 export default async function ComprasPage() {
-  const { purchaseOrders, suppliers } = await getPurchases();
+  const { purchaseOrders, suppliers, rawItems } = await getPurchases();
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -25,6 +25,7 @@ export default async function ComprasPage() {
       <PurchasesView
         purchaseOrders={purchaseOrders}
         suppliers={suppliers}
+        rawItems={rawItems}
       />
     </div>
   );

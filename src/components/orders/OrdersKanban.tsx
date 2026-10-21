@@ -124,6 +124,24 @@ export function OrdersKanban({ orders, onSelectOrder, onRefresh }: OrdersKanbanP
                         {order.customerName}
                       </div>
 
+                      {/* Payment Status Badge & Piece Count */}
+                      <div className="flex items-center justify-between gap-1 text-[10px]">
+                        <span className="text-zinc-500 font-mono">
+                          {order.items?.length || 1} {(order.items?.length || 1) === 1 ? "peça" : "peças"}
+                        </span>
+                        {order.paidAt ? (
+                          <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            PAGO
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                            PENDENTE
+                          </span>
+                        )}
+                      </div>
+
                       {/* Bottom line: amount & quick action */}
                       <div className="pt-2 border-t border-zinc-900 flex items-center justify-between text-xs font-mono">
                         <span className="text-[11px] font-semibold text-zinc-300">

@@ -17,9 +17,11 @@ interface RawOption {
 
 interface DashboardHeaderActionProps {
   blankShirts: RawOption[];
+  dtfPrints?: any[];
+  packagings?: any[];
 }
 
-export function DashboardHeaderAction({ blankShirts }: DashboardHeaderActionProps) {
+export function DashboardHeaderAction({ blankShirts, dtfPrints, packagings }: DashboardHeaderActionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
 
@@ -37,6 +39,8 @@ export function DashboardHeaderAction({ blankShirts }: DashboardHeaderActionProp
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         blankShirts={blankShirts}
+        dtfPrints={dtfPrints}
+        packagings={packagings}
         onOrderCreated={() => {
           router.refresh();
         }}

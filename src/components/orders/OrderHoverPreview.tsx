@@ -76,12 +76,20 @@ export function OrderHoverPreview({ order, children }: OrderHoverPreviewProps) {
               Status de Confecção:
             </span>
             <span className="font-medium text-zinc-300">
-              {job?.stepCompleted
+              {order.status === "READY"
+                ? "Pronto para Envio"
+                : order.status === "SHIPPED"
+                ? "Despachado / Em Trânsito"
+                : order.status === "DELIVERED"
+                ? "Entregue ao Cliente"
+                : job?.stepCompleted || job?.stepPacked
                 ? "Prensada & Embalada"
                 : job?.stepPressed
                 ? "Estampa Aplicada"
                 : job?.stepBlankPicked
                 ? "Camiseta Separada"
+                : order.status === "IN_PRODUCTION"
+                ? "Em Produção / Prensagem"
                 : "Aguardando Produção"}
             </span>
           </div>

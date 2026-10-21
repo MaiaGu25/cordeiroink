@@ -317,6 +317,8 @@ export async function resetDatabaseToZero() {
 
 export async function updateRawItem(id: string, data: {
   name?: string;
+  description?: string;
+  sellingPrice?: number;
   shirtModel?: string;
   shirtColor?: string;
   shirtSize?: string;
@@ -335,6 +337,8 @@ export async function updateRawItem(id: string, data: {
     where: { id },
     data: {
       name: data.name ?? existing.name,
+      description: data.description !== undefined ? data.description : existing.description,
+      sellingPrice: data.sellingPrice !== undefined ? data.sellingPrice : existing.sellingPrice,
       shirtModel: data.shirtModel ?? existing.shirtModel,
       shirtColor: data.shirtColor ?? existing.shirtColor,
       shirtSize: data.shirtSize ?? existing.shirtSize,

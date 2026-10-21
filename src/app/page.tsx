@@ -1,5 +1,6 @@
-import { getCatalogItems } from "@/actions/storefront";
+import { getCatalogItems, getStorefrontBanners } from "@/actions/storefront";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
+import { StorefrontBannerCarousel } from "@/components/storefront/StorefrontBannerCarousel";
 import { StorefrontHero } from "@/components/storefront/StorefrontHero";
 import { BrandQuoteBanner } from "@/components/storefront/BrandQuoteBanner";
 import { StorefrontCatalog } from "@/components/storefront/StorefrontCatalog";
@@ -12,13 +13,17 @@ import { StorefrontCartDrawer } from "@/components/storefront/StorefrontCartDraw
 export const dynamic = "force-dynamic";
 
 export default async function StorefrontPage() {
-  const catalogItems = await getCatalogItems(false);
+  const [catalogItems, banners] = await Promise.all([
+    getCatalogItems(false),
+    getStorefrontBanners(false),
+  ]);
 
   return (
     <CartProvider>
       <div className="min-h-screen bg-[#F7F4EE] text-[#0A0A0A] selection:bg-[#0A0A0A] selection:text-[#F7F4EE] flex flex-col justify-between">
         <div>
           <StorefrontHeader />
+          <StorefrontBannerCarousel banners={banners} />
           <main>
             <StorefrontHero />
             <BrandQuoteBanner />

@@ -12,6 +12,8 @@ interface BlankShirtItem {
   id: string;
   sku: string;
   name: string;
+  description?: string | null;
+  sellingPrice?: number;
   shirtModel: string | null;
   shirtColor: string | null;
   shirtSize: string | null;
@@ -23,11 +25,12 @@ interface BlankShirtItem {
 interface BlankShirtsGridProps {
   items: BlankShirtItem[];
   onAdjust: (item: BlankShirtItem) => void;
+  onEdit?: (item: BlankShirtItem) => void;
   onAddNew?: () => void;
   onDelete?: (item: BlankShirtItem) => void;
 }
 
-export function BlankShirtsGrid({ items, onAdjust, onAddNew, onDelete }: BlankShirtsGridProps) {
+export function BlankShirtsGrid({ items, onAdjust, onEdit, onAddNew, onDelete }: BlankShirtsGridProps) {
   if (items.length === 0) {
     return (
       <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800/80 flex flex-col items-center justify-center gap-3">
@@ -109,9 +112,22 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew, onDelete }: BlankSh
                 </div>
               </div>
 
-              <span className="text-xs text-zinc-500 font-mono">
-                Grade Cor x Tamanho
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500 font-mono hidden sm:inline">
+                  Grade Cor x Tamanho
+                </span>
+                {onEdit && Object.values(group.sizes)[0] && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(Object.values(group.sizes)[0])}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800/80 hover:bg-zinc-750 text-zinc-300 hover:text-amber-300 border border-zinc-700/60 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    title="Editar informações do produto"
+                  >
+                    <Edit3 size={12} className="text-amber-400" />
+                    <span>Editar Produto</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Matrix of Sizes: Minimal Numbers with HoverCards */}
@@ -208,9 +224,23 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew, onDelete }: BlankSh
                         </div>
                       </div>
 
-                      <div className="pt-1.5 text-[10px] text-zinc-500 border-t border-zinc-800/80 flex items-center justify-between">
-                        <span>Clique para ajustar</span>
-                        <div className="flex items-center gap-2">
+                      <div className="pt-2 text-[10px] text-zinc-500 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                        <span className="truncate">Clique no card para saldo</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {onEdit && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(item);
+                              }}
+                              title="Editar Produto (Nome, Preço, Custo, Descrição)"
+                              className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Edit3 size={10} />
+                              <span>Editar</span>
+                            </button>
+                          )}
                           {onDelete && (
                             <button
                               type="button"
@@ -219,12 +249,11 @@ export function BlankShirtsGrid({ items, onAdjust, onAddNew, onDelete }: BlankSh
                                 onDelete(item);
                               }}
                               title="Excluir camiseta lisa"
-                              className="text-zinc-500 hover:text-red-400 transition cursor-pointer p-0.5"
+                              className="text-zinc-500 hover:text-red-400 transition cursor-pointer p-1"
                             >
                               <Trash2 size={11} />
                             </button>
                           )}
-                          <Edit3 size={11} className="text-amber-400" />
                         </div>
                       </div>
                     </HoverCardContent>

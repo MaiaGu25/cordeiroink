@@ -418,15 +418,72 @@ export async function editOrder(data: {
   return updatedOrder;
 }
 
-export async function createManualOrder(data: {
-  customerName: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  shippingAddress?: string;
-  channel?: SalesChannel;
-  paymentMethod?: string;
-  isPaid?: boolean;
-  itemTitle: string;
+export async function toggleOrderPaymentStatus(orderId: string) {
+  const user = await getCurrentUser();
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { financialTx: true },
+  });
+
+  if (!order) throw new Error("Pedido não encontrado");
+
+  const willBePaid = !order.paidAt;
+  const newPaidAt = willBePaid ? new Date() : null;
+
+  const updated = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      paidAt: newPaidAt,
+      status: willBePaid && (order.status === OrderStatus.PENDING || order.status === OrderStatus.NEW)
+        ? OrderStatus.WAITING_PRODUCTION
+        : order.status,
+    },
+  });
+
+  if (willBePaid) {
+    // Registra transação financeira se não existir uma para esse pedido
+    const existingTx = order.financialTx.find(
+      (tx) => tx.type === TransactionType.INCOME && tx.category === TransactionCategory.SALES_ORDER
+    );
+    if (!existingTx) {
+      await prisma.financialTransaction.create({
+        data: {
+          type: TransactionType.INCOME,
+          category: TransactionCategory.SALES_ORDER,
+          amount: order.totalProducts + order.shippingCost,
+          description: `Venda ${order.orderNumber} - ${order.customerName} (${order.paymentMethod || "Pix"})`,
+          orderId: order.id,
+        },
+      });
+    }
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      orderId: order.id,
+      action: willBePaid ? "ORDER_PAYMENT_CONFIRMED" : "ORDER_PAYMENT_PENDING",
+      entity: "Order",
+      entityId: order.id,
+      details: `Status de pagamento do pedido ${order.orderNumber} alterado para ${willBePaid ? "PAGO" : "PENDENTE"} por ${user.name}`,
+      oldPayload: JSON.stringify({ paidAt: order.paidAt }),
+      newPayload: JSON.stringify({ paidAt: newPaidAt, updatedBy: user.name }),
+    },
+  });
+
+  revalidatePath("/pedidos");
+  revalidatePath("/producao");
+  revalidatePath("/financeiro");
+  revalidatePath("/historico");
+  revalidatePath("/");
+
+  return updated;
+}
+
+export interface ManualOrderItemInput {
+  itemTitle?: string;
   blankShirtId?: string;
   dtfPrintId?: string;
   dtfCost?: number;
@@ -437,75 +494,160 @@ export async function createManualOrder(data: {
   saveToDtfCatalog?: boolean;
   quantity: number;
   unitPrice: number;
+}
+
+export async function createManualOrder(data: {
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  shippingAddress?: string;
+  channel?: SalesChannel;
+  paymentMethod?: string;
+  isPaid?: boolean;
+  itemTitle?: string;
+  blankShirtId?: string;
+  dtfPrintId?: string;
+  dtfCost?: number;
+  packagingId?: string;
+  artTitle?: string;
+  artUrl?: string;
+  printSize?: string;
+  saveToDtfCatalog?: boolean;
+  quantity?: number;
+  unitPrice?: number;
   shippingCost?: number;
   notes?: string;
+  items?: ManualOrderItemInput[];
 }) {
-  // 1. Busca os insumos reais consumidos para calcular o custo unitário na hora
-  let shirtCost = 0;
-  let shirtModel = "";
-  let shirtColor = "";
-  let shirtSize = "";
-
-  if (data.blankShirtId && data.blankShirtId !== "none") {
-    const shirt = await prisma.rawItem.findUnique({
-      where: { id: data.blankShirtId },
-    });
-    if (shirt) {
-      shirtCost = shirt.costPrice;
-      shirtModel = shirt.shirtModel || "";
-      shirtColor = shirt.shirtColor || "";
-      shirtSize = shirt.shirtSize || "";
-    }
-  }
-
-  let dtfCost = typeof data.dtfCost === "number" && !isNaN(data.dtfCost) ? data.dtfCost : 0;
-  if (dtfCost === 0 && data.dtfPrintId && data.dtfPrintId !== "none") {
-    const dtf = await prisma.rawItem.findUnique({
-      where: { id: data.dtfPrintId },
-    });
-    if (dtf) {
-      dtfCost = dtf.costPrice;
-    }
-  }
-
-  let packCost = 0;
-  if (data.packagingId && data.packagingId !== "none") {
-    const pack = await prisma.rawItem.findUnique({
-      where: { id: data.packagingId },
-    });
-    if (pack) {
-      packCost = pack.costPrice;
-    }
-  }
-
-  // Se o usuário marcou para salvar a arte no banco de estampas, cadastra agora
-  let finalDtfId = data.dtfPrintId;
-  if (data.saveToDtfCatalog && data.artTitle && !data.dtfPrintId) {
-    const count = await prisma.rawItem.count({ where: { type: RawItemType.DTF_PRINT } });
-    const code = `ART-CUSTOM-${100 + count}`;
-    const newDtf = await prisma.rawItem.create({
-      data: {
-        sku: `RAW-DTF-${code}`,
-        name: data.artTitle,
-        type: RawItemType.DTF_PRINT,
-        dtfCode: code,
-        dtfPreviewUrl: data.artUrl,
-        dtfPrintSize: data.printSize || "A3 (30x42cm)",
-        dtfSupplier: "Birô DTF Express",
-        costPrice: dtfCost || (data.printSize === "A4 (21x30cm)" ? 9.50 : data.printSize === "Bolso" ? 4.50 : 13.90),
-        stockQuantity: 0,
-        minStock: 5,
-      },
-    });
-    finalDtfId = newDtf.id;
-  }
-
-  const unitCost = shirtCost + dtfCost + packCost;
-  const quantity = Math.max(1, data.quantity || 1);
-  const totalProducts = data.unitPrice * quantity;
-  const shippingCost = data.shippingCost || 0;
   const channel = data.channel || SalesChannel.WHATSAPP;
-  const isPaid = data.isPaid !== false; // Padrão: Pago
+  const isPaid = data.isPaid !== false;
+  const shippingCost = data.shippingCost || 0;
+
+  // Montar lista normalizada de itens
+  const rawItemsList: ManualOrderItemInput[] =
+    data.items && data.items.length > 0
+      ? data.items
+      : [
+          {
+            itemTitle: data.itemTitle,
+            blankShirtId: data.blankShirtId,
+            dtfPrintId: data.dtfPrintId,
+            dtfCost: data.dtfCost,
+            packagingId: data.packagingId,
+            artTitle: data.artTitle,
+            artUrl: data.artUrl,
+            printSize: data.printSize,
+            saveToDtfCatalog: data.saveToDtfCatalog,
+            quantity: Math.max(1, data.quantity || 1),
+            unitPrice: data.unitPrice || 0,
+          },
+        ];
+
+  // Processar cada item com busca de insumos
+  let totalProducts = 0;
+  let estimatedCMV = 0;
+  const orderItemsData: any[] = [];
+  const itemDescriptions: string[] = [];
+
+  for (const itemInput of rawItemsList) {
+    let shirtCost = 0;
+    let shirtModel = "";
+    let shirtColor = "";
+    let shirtSize = "";
+    let shirtName = "";
+
+    if (itemInput.blankShirtId && itemInput.blankShirtId !== "none") {
+      const shirt = await prisma.rawItem.findUnique({
+        where: { id: itemInput.blankShirtId },
+      });
+      if (shirt) {
+        shirtCost = shirt.costPrice;
+        shirtModel = shirt.shirtModel || "";
+        shirtColor = shirt.shirtColor || "";
+        shirtSize = shirt.shirtSize || "";
+        shirtName = shirt.name || "";
+      }
+    }
+
+    let dtfCost = typeof itemInput.dtfCost === "number" && !isNaN(itemInput.dtfCost) ? itemInput.dtfCost : 0;
+    let finalDtfId = itemInput.dtfPrintId && itemInput.dtfPrintId !== "none" ? itemInput.dtfPrintId : undefined;
+
+    if (finalDtfId) {
+      const dtf = await prisma.rawItem.findUnique({
+        where: { id: finalDtfId },
+      });
+      if (dtf) {
+        if (dtfCost === 0) dtfCost = dtf.costPrice;
+        if (!itemInput.artTitle) itemInput.artTitle = dtf.name;
+        if (!itemInput.artUrl && dtf.dtfPreviewUrl) itemInput.artUrl = dtf.dtfPreviewUrl;
+      }
+    }
+
+    let packCost = 0;
+    if (itemInput.packagingId && itemInput.packagingId !== "none") {
+      const pack = await prisma.rawItem.findUnique({
+        where: { id: itemInput.packagingId },
+      });
+      if (pack) {
+        packCost = pack.costPrice;
+      }
+    }
+
+    // Salvar arte avulsa no catálogo se solicitado
+    if (itemInput.saveToDtfCatalog && itemInput.artTitle && !finalDtfId) {
+      const count = await prisma.rawItem.count({ where: { type: RawItemType.DTF_PRINT } });
+      const code = `ART-CUSTOM-${100 + count}`;
+      const newDtf = await prisma.rawItem.create({
+        data: {
+          sku: `RAW-DTF-${code}`,
+          name: itemInput.artTitle,
+          type: RawItemType.DTF_PRINT,
+          dtfCode: code,
+          dtfPreviewUrl: itemInput.artUrl,
+          dtfPrintSize: itemInput.printSize || "A3 (30x42cm)",
+          dtfSupplier: "Birô DTF Express",
+          costPrice: dtfCost || (itemInput.printSize === "A4 (21x30cm)" ? 9.50 : itemInput.printSize === "Bolso" ? 4.50 : 13.90),
+          stockQuantity: 0,
+          minStock: 5,
+        },
+      });
+      finalDtfId = newDtf.id;
+    }
+
+    const unitCost = shirtCost + dtfCost + packCost;
+    const qty = Math.max(1, itemInput.quantity || 1);
+    const unitPrice = itemInput.unitPrice || 0;
+    const itemTotal = unitPrice * qty;
+
+    totalProducts += itemTotal;
+    estimatedCMV += unitCost * qty;
+
+    const baseTitle = itemInput.itemTitle?.trim() || (
+      shirtName || (shirtModel ? `${shirtModel} ${shirtColor} ${shirtSize}`.trim() : "Camiseta Personalizada")
+    );
+    const fullTitle = itemInput.artTitle?.trim()
+      ? `${baseTitle} — ${itemInput.artTitle.trim()}`
+      : baseTitle;
+
+    orderItemsData.push({
+      title: fullTitle,
+      shirtModel: shirtModel || undefined,
+      shirtColor: shirtColor || undefined,
+      shirtSize: shirtSize || undefined,
+      artTitle: itemInput.artTitle || undefined,
+      artMockupUrl: itemInput.artUrl || undefined,
+      printSize: itemInput.printSize || undefined,
+      blankShirtId: itemInput.blankShirtId && itemInput.blankShirtId !== "none" ? itemInput.blankShirtId : undefined,
+      dtfPrintId: finalDtfId,
+      packagingId: itemInput.packagingId && itemInput.packagingId !== "none" ? itemInput.packagingId : undefined,
+      quantity: qty,
+      unitPrice,
+      unitCost,
+      total: itemTotal,
+    });
+
+    itemDescriptions.push(`${qty}x ${fullTitle}`);
+  }
 
   // Taxas de canal
   let platformFee = 0;
@@ -514,7 +656,6 @@ export async function createManualOrder(data: {
   else if (channel === SalesChannel.TIKTOK) platformFee = totalProducts * 0.15;
 
   const netAmount = totalProducts - platformFee;
-  const estimatedCMV = unitCost * quantity;
   const netProfit = netAmount - estimatedCMV;
 
   const countOrders = await prisma.order.count();
@@ -547,31 +688,12 @@ export async function createManualOrder(data: {
       notes: data.notes,
       paidAt: isPaid ? new Date() : null,
       items: {
-        create: [
-          {
-            title: data.itemTitle,
-            shirtModel: shirtModel || undefined,
-            shirtColor: shirtColor || undefined,
-            shirtSize: shirtSize || undefined,
-            artTitle: data.artTitle || undefined,
-            artMockupUrl: data.artUrl || undefined,
-            printSize: data.printSize || undefined,
-            blankShirtId: data.blankShirtId || undefined,
-            dtfPrintId: finalDtfId || undefined,
-            packagingId: data.packagingId || undefined,
-            quantity,
-            unitPrice: data.unitPrice,
-            unitCost,
-            total: totalProducts,
-          },
-        ],
+        create: orderItemsData,
       },
       productionJob: {
         create: {
           priority: JobPriority.NORMAL,
-          notes: data.artTitle
-            ? `Estampa: ${data.artTitle} (${data.printSize || "A3"}). Arte: ${data.artUrl || "Ver anexo"}`
-            : "Arte sob encomenda via WhatsApp/Direct.",
+          notes: itemDescriptions.join(" | "),
         },
       },
     },
@@ -581,8 +703,8 @@ export async function createManualOrder(data: {
   if (isPaid) {
     await prisma.financialTransaction.create({
       data: {
-        type: "INCOME",
-        category: "SALES_ORDER",
+        type: TransactionType.INCOME,
+        category: TransactionCategory.SALES_ORDER,
         amount: totalProducts + shippingCost,
         description: `Venda ${orderNumber} - ${data.customerName} (${data.paymentMethod || "Pix"})`,
         orderId: order.id,
@@ -601,11 +723,12 @@ export async function createManualOrder(data: {
       action: "ORDER_CREATED",
       entity: "Order",
       entityId: order.id,
-      details: `Pedido ${orderNumber} criado por ${user.name} via ${channel}`,
+      details: `Pedido ${orderNumber} (${orderItemsData.length} item/itens) criado por ${user.name} via ${channel}`,
       newPayload: JSON.stringify({
         orderNumber,
         customerName: data.customerName,
         totalProducts,
+        itemsCount: orderItemsData.length,
         channel,
         createdBy: user.name,
       }),
@@ -621,3 +744,4 @@ export async function createManualOrder(data: {
 
   return order;
 }
+
