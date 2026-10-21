@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       `Cordeiro Ink - Pedido ${orderNumber || orderId || "Ateliê"}`.trim();
 
     const paymentPayload: any = {
-      transaction_amount: Number(transaction_amount),
+      transaction_amount: Number(parseFloat(String(transaction_amount)).toFixed(2)),
       description: paymentDescription,
       payment_method_id,
       payer: {
