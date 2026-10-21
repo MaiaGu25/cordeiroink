@@ -80,7 +80,7 @@ export async function calculateShippingRate(params: {
         Accept: "application/json",
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
-        "User-Agent": `CordeiroInk (${email})`,
+        "User-Agent": "CordeiroInk (contato@cordeiroink.com)"
       },
       body: JSON.stringify(payload),
       cache: "no-store",
