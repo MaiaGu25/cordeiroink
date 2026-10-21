@@ -44,7 +44,7 @@ export async function calculateShippingRate(params: {
 
   const email = process.env.MELHOR_ENVIO_EMAIL || "contato@cordeiroink.com.br";
   const token = process.env.MELHOR_ENVIO_TOKEN?.trim() || "";
-  const baseUrl = (process.env.MELHOR_ENVIO_URL || "https://sandbox.melhorenvio.com.br").replace(/\/+$/, "");
+  const baseUrl = (process.env.MELHOR_ENVIO_URL || "https://melhorenvio.com.br").replace(/\/+$/, "");
 
   // 2. Simulação de pacote padrão (20x15x10 cm, 0.3kg por camiseta)
   const itemsCount = Math.max(1, quantity);
