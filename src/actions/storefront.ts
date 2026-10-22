@@ -314,7 +314,7 @@ export interface CreateStorefrontOrderInput {
   destinationCep?: string;
   shippingService?: string;
   shippingPrice?: number;
-  deliveryDays?: number;
+  deliveryDays?: number | string;
   items: StorefrontOrderItemInput[];
 }
 
@@ -434,7 +434,13 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
       estimatedCMV: 0,
       netProfit: subtotal,
       notes: data.shippingService
-        ? `Vitrine Online. Frete: ${data.shippingService} (R$ ${shippingCost.toFixed(2).replace(".", ",")}${data.deliveryDays ? ` - ${data.deliveryDays} dias úteis` : ""})`
+        ? `Vitrine Online. Frete: ${data.shippingService} (${shippingCost > 0 ? `R$ ${shippingCost.toFixed(2).replace(".", ",")}` : "A combinar"}${
+            data.deliveryDays
+              ? typeof data.deliveryDays === "number" && data.deliveryDays > 0
+                ? ` - ${data.deliveryDays} dias úteis`
+                : ` - ${data.deliveryDays}`
+              : ""
+          })`
         : "Vitrine Online (Checkout WhatsApp)",
       paidAt: null, // Pagamento pendente
       items: {
@@ -484,9 +490,15 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
   msg += `\n--------------------------------\n`;
   msg += `*Subtotal Peças:* R$ ${subtotal.toFixed(2).replace(".", ",")}\n`;
   if (data.shippingService) {
-    msg += `*Frete Escolhido:* ${data.shippingService} (R$ ${shippingCost.toFixed(2).replace(".", ",")}${data.deliveryDays ? ` - ${data.deliveryDays} dias úteis` : ""})\n`;
+    const costText = shippingCost > 0 ? `R$ ${shippingCost.toFixed(2).replace(".", ",")}` : "A combinar (R$ 0,00)";
+    const daysText = data.deliveryDays
+      ? typeof data.deliveryDays === "number" && data.deliveryDays > 0
+        ? ` - ${data.deliveryDays} dias úteis`
+        : ` - ${data.deliveryDays}`
+      : "";
+    msg += `*Frete Escolhido:* ${data.shippingService} (${costText}${daysText})\n`;
   } else {
-    msg += `*Frete:* A combinar\n`;
+    msg += `*Frete:* A combinar via WhatsApp\n`;
   }
   msg += `--------------------------------\n`;
   msg += `*VALOR TOTAL:* R$ ${grandTotal.toFixed(2).replace(".", ",")}\n\n`;

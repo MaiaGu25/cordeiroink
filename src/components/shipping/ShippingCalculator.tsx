@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Truck, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { calculateShippingRate, type ShippingOption } from "@/actions/shipping";
+import { calculateShippingRate, COMBINAR_WHATSAPP_OPTION, type ShippingOption } from "@/actions/shipping";
 import { formatCurrency } from "@/lib/utils";
 
 interface ShippingCalculatorProps {
@@ -63,14 +63,16 @@ export function ShippingCalculator({
       if (!res.success) {
         setErrorMessage(res.error || "Não foi possível calcular o frete.");
         setOptions([]);
-        onSelectOption(null);
+        if (selectedOption?.id !== COMBINAR_WHATSAPP_OPTION.id) {
+          onSelectOption(null);
+        }
       } else {
         setOptions(res.options);
         if (res.warning) {
           setWarningMessage(res.warning);
         }
-        // Seleciona automaticamente o PAC (primeiro/mais econômico) se nenhum estiver selecionado
-        if (res.options.length > 0) {
+        // Seleciona automaticamente o PAC (primeiro/mais econômico) apenas se nenhum estiver selecionado
+        if (res.options.length > 0 && !selectedOption) {
           const defaultOpt = res.options[0];
           onSelectOption(defaultOpt);
         }
@@ -183,7 +185,60 @@ export function ShippingCalculator({
         </div>
       )}
 
-      {/* RadioGroup de Opções dos Correios */}
+      {/* Opção Rápida caso ainda não tenha cotado por CEP ou prefira retirar no ateliê */}
+      {options.length === 0 && (
+        <div className="mt-3">
+          <label
+            onClick={() => onSelectOption(COMBINAR_WHATSAPP_OPTION)}
+            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition select-none ${
+              isStorefront
+                ? selectedOption?.id === COMBINAR_WHATSAPP_OPTION.id
+                  ? "bg-[#FAF9F6] border-[#0A0A0A] shadow-md ring-1 ring-[#0A0A0A]"
+                  : "bg-[#FAF9F6]/60 border-[#E6DED2] hover:border-[#0A0A0A]/40"
+                : selectedOption?.id === COMBINAR_WHATSAPP_OPTION.id
+                ? "bg-zinc-900 border-emerald-500/60 shadow-md ring-1 ring-emerald-500/60"
+                : "bg-zinc-900/40 border-zinc-800 hover:border-zinc-700"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <input
+                type="radio"
+                name="shipping_service_initial"
+                checked={selectedOption?.id === COMBINAR_WHATSAPP_OPTION.id}
+                onChange={() => onSelectOption(COMBINAR_WHATSAPP_OPTION)}
+                className="w-3.5 h-3.5 accent-[#0A0A0A] cursor-pointer"
+              />
+              <div className="text-left">
+                <span
+                  className={`text-xs font-bold block ${
+                    isStorefront ? "text-[#0A0A0A]" : "text-zinc-100"
+                  }`}
+                >
+                  A combinar via WhatsApp
+                </span>
+                <span
+                  className={`text-[10px] block ${
+                    isStorefront ? "text-[#737373]" : "text-zinc-400"
+                  }`}
+                >
+                  Retirada no ateliê ou entrega personalizada a combinar
+                </span>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0">
+              <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold uppercase block text-center">
+                A Combinar
+              </span>
+              <span className="font-mono text-xs font-bold text-emerald-600 block mt-0.5">
+                R$ 0,00 (Grátis)
+              </span>
+            </div>
+          </label>
+        </div>
+      )}
+
+      {/* RadioGroup de Opções de Envio (Correios, Motoboy e WhatsApp) */}
       {options.length > 0 && (
         <div className="mt-3 space-y-2">
           <div
@@ -196,18 +251,21 @@ export function ShippingCalculator({
 
           <div
             role="radiogroup"
-            aria-label="Opções de frete Correios"
+            aria-label="Opções de frete"
             className="grid grid-cols-1 sm:grid-cols-2 gap-2"
           >
             {options.map((opt) => {
-              const isSelected = selectedOption?.name === opt.name;
+              const isSelected = selectedOption?.id === opt.id || selectedOption?.name === opt.name;
               const isSedex = opt.name.toUpperCase().includes("SEDEX");
+              const isWhatsApp = opt.name === "WHATSAPP" || opt.id === COMBINAR_WHATSAPP_OPTION.id;
 
               return (
                 <label
-                  key={opt.name}
+                  key={String(opt.id || opt.name)}
                   onClick={() => onSelectOption(opt)}
                   className={`relative p-3 rounded-xl border flex flex-col justify-between cursor-pointer transition select-none ${
+                    isWhatsApp ? "sm:col-span-2" : ""
+                  } ${
                     isStorefront
                       ? isSelected
                         ? "bg-[#FAF9F6] border-[#0A0A0A] shadow-md ring-1 ring-[#0A0A0A]"
@@ -222,23 +280,36 @@ export function ShippingCalculator({
                       <input
                         type="radio"
                         name="shipping_service"
-                        value={opt.name}
+                        value={String(opt.id || opt.name)}
                         checked={isSelected}
                         onChange={() => onSelectOption(opt)}
                         className="w-3.5 h-3.5 accent-[#0A0A0A] cursor-pointer"
                       />
-                      <span
-                        className={`text-xs font-bold ${
-                          isStorefront ? "text-[#0A0A0A]" : "text-zinc-100"
-                        }`}
-                      >
-                        {opt.service}
-                      </span>
+                      <div>
+                        <span
+                          className={`text-xs font-bold block ${
+                            isStorefront ? "text-[#0A0A0A]" : "text-zinc-100"
+                          }`}
+                        >
+                          {opt.service}
+                        </span>
+                        {isWhatsApp && (
+                          <span
+                            className={`text-[10px] block font-normal ${
+                              isStorefront ? "text-[#737373]" : "text-zinc-400"
+                            }`}
+                          >
+                            Retirada no ateliê ou entrega personalizada a combinar
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <span
                       className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold uppercase ${
-                        isSedex
+                        isWhatsApp
+                          ? "bg-emerald-100 text-emerald-800"
+                          : isSedex
                           ? isStorefront
                             ? "bg-amber-100 text-amber-800"
                             : "bg-amber-500/20 text-amber-300"
@@ -247,7 +318,7 @@ export function ShippingCalculator({
                           : "bg-emerald-500/20 text-emerald-400"
                       }`}
                     >
-                      {isSedex ? "Expresso" : "Econômico"}
+                      {isWhatsApp ? "A Combinar" : isSedex ? "Expresso" : "Econômico"}
                     </span>
                   </div>
 
@@ -257,16 +328,22 @@ export function ShippingCalculator({
                         isStorefront ? "text-[#737373]" : "text-zinc-400"
                       }`}
                     >
-                      {opt.deliveryDays === 1
-                        ? "1 dia útil"
-                        : `${opt.deliveryDays} dias úteis`}
+                      {typeof opt.deliveryDays === "number" && opt.deliveryDays > 0
+                        ? opt.deliveryDays === 1
+                          ? "1 dia útil"
+                          : `${opt.deliveryDays} dias úteis`
+                        : "A combinar"}
                     </span>
                     <span
                       className={`font-mono text-xs font-bold ${
-                        isStorefront ? "text-[#0A0A0A]" : "text-emerald-400"
+                        opt.price === 0
+                          ? "text-emerald-600"
+                          : isStorefront
+                          ? "text-[#0A0A0A]"
+                          : "text-emerald-400"
                       }`}
                     >
-                      {formatCurrency(opt.price)}
+                      {opt.price === 0 ? "R$ 0,00 (Grátis)" : formatCurrency(opt.price)}
                     </span>
                   </div>
                 </label>
@@ -290,12 +367,19 @@ export function ShippingCalculator({
               size={14}
               className={isStorefront ? "text-emerald-600" : "text-emerald-400"}
             />
-            <span>
-              Frete selecionado: <strong>{selectedOption.service}</strong>
-            </span>
+            <div>
+              <span>
+                Frete selecionado: <strong>{selectedOption.service}</strong>
+              </span>
+              {selectedOption.price === 0 && (
+                <span className="block text-[10px] text-[#737373]">
+                  Retirada no ateliê ou entrega personalizada a combinar
+                </span>
+              )}
+            </div>
           </div>
-          <span className="font-mono font-bold">
-            +{formatCurrency(selectedOption.price)}
+          <span className="font-mono font-bold text-emerald-600">
+            {selectedOption.price === 0 ? "R$ 0,00 (Grátis)" : `+${formatCurrency(selectedOption.price)}`}
           </span>
         </div>
       )}

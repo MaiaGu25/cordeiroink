@@ -2,13 +2,25 @@
 
 export interface ShippingOption {
   id: number | string;
-  name: "PAC" | "SEDEX" | string;
+  name: "PAC" | "SEDEX" | "MOTOBOY" | "WHATSAPP" | string;
   service: string;
   company: string;
+  description?: string;
   price: number;
-  deliveryDays: number;
+  deliveryDays: number | string;
   currency: string;
 }
+
+export const COMBINAR_WHATSAPP_OPTION: ShippingOption = {
+  id: "combinar-whatsapp",
+  name: "WHATSAPP",
+  service: "A combinar via WhatsApp",
+  company: "Retirada no ateliê ou entrega personalizada a combinar",
+  description: "Retirada no ateliê ou entrega personalizada a combinar",
+  price: 0,
+  deliveryDays: "A combinar",
+  currency: "R$",
+};
 
 export interface CalculateShippingResult {
   success: boolean;
@@ -112,6 +124,7 @@ export async function calculateShippingRate(params: {
           deliveryDays: 2,
           currency: "R$",
         },
+        COMBINAR_WHATSAPP_OPTION,
       ];
 
       return {
@@ -189,14 +202,7 @@ export async function calculateShippingRate(params: {
     }
 
     validCorreiosOptions.sort((a, b) => a.price - b.price); // Ordena por valor mais acessível
-
-    if (validCorreiosOptions.length === 0) {
-      return {
-        success: false,
-        options: [],
-        error: "Nenhum frete (Correios/Motoboy) disponível para o CEP informado.",
-      };
-    }
+    validCorreiosOptions.push(COMBINAR_WHATSAPP_OPTION);
 
     return {
       success: true,

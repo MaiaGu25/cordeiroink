@@ -495,7 +495,15 @@ function ProductDetailModal({
 
   let whatsappMsgText = `Olá! Gostei da peça "${product.title}" na cor ${activeSlide.colorName} (Tam ${selectedSize}, ${quantity}x = ${formatCurrency(subtotal)}) na Cordeiro Ink.`;
   if (selectedShipping) {
-    whatsappMsgText += `\nFrete selecionado: ${selectedShipping.service} (${formatCurrency(selectedShipping.price)}, prazo de ${selectedShipping.deliveryDays} dias úteis) para o CEP ${destinationCep}.`;
+    const daysText =
+      typeof selectedShipping.deliveryDays === "number" && selectedShipping.deliveryDays > 0
+        ? `prazo de ${selectedShipping.deliveryDays} dias úteis`
+        : `prazo: ${selectedShipping.deliveryDays}`;
+    const priceText =
+      selectedShipping.price > 0 ? formatCurrency(selectedShipping.price) : "Grátis / A combinar";
+    whatsappMsgText += `\nFrete selecionado: ${selectedShipping.service} (${priceText}, ${daysText})${
+      destinationCep ? ` para o CEP ${destinationCep}` : ""
+    }.`;
     whatsappMsgText += `\nTotal do Pedido: ${formatCurrency(grandTotal)}.`;
   }
   const whatsappMsg = encodeURIComponent(whatsappMsgText);
@@ -759,7 +767,9 @@ function ProductDetailModal({
                 </span>
                 <span className="font-mono">
                   {selectedShipping
-                    ? formatCurrency(selectedShipping.price)
+                    ? selectedShipping.price === 0
+                      ? "Grátis / R$ 0,00"
+                      : formatCurrency(selectedShipping.price)
                     : "Calcular acima"}
                 </span>
               </div>

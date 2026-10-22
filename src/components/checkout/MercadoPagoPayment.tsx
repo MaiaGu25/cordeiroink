@@ -95,6 +95,9 @@ export function MercadoPagoPayment({
   const [paymentResult, setPaymentResult] = useState<MercadoPagoPaymentResult | null>(null);
   const [copiedPix, setCopiedPix] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPixPaid, setIsPixPaid] = useState(false);
+  const [paidOrderNumber, setPaidOrderNumber] = useState<string | null>(orderNumber || null);
+  const [isCheckingManual, setIsCheckingManual] = useState(false);
 
   const effectiveEmail = payerEmail || customerEmail || "";
 
@@ -114,6 +117,81 @@ export function MercadoPagoPayment({
       }
     }
   }, [publicKey]);
+
+  // Polling em tempo real a cada 3 a 4 segundos checando o status do pedido ativo
+  useEffect(() => {
+    const targetId = orderId || paymentResult?.orderId || orderNumber || paymentResult?.orderNumber;
+    if (!paymentResult || paymentResult.status !== "pending" || !targetId || isPixPaid) {
+      return;
+    }
+
+    let isMounted = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/orders/${encodeURIComponent(targetId)}/status`, {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.success && data.isPaid && isMounted) {
+          clearInterval(interval);
+          setIsPixPaid(true);
+          if (data.orderNumber) setPaidOrderNumber(data.orderNumber);
+          toast.success("Pagamento via Pix confirmado com sucesso!");
+          onSuccess?.({
+            id: paymentResult?.id || targetId,
+            status: "approved",
+            status_detail: "accredited",
+            point_of_interaction: paymentResult?.point_of_interaction,
+            orderId: orderId || paymentResult?.orderId || null,
+            orderNumber: data.orderNumber || orderNumber || paymentResult?.orderNumber || null,
+            transaction_amount: paymentResult?.transaction_amount || amount,
+          });
+        }
+      } catch (err) {
+        console.warn("[Polling Pix] Erro ao consultar status do pedido:", err);
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [paymentResult, orderId, orderNumber, isPixPaid, onSuccess, amount]);
+
+  const handleManualCheckStatus = async () => {
+    const targetId = orderId || paymentResult?.orderId || orderNumber || paymentResult?.orderNumber;
+    if (!targetId) return;
+
+    setIsCheckingManual(true);
+    try {
+      const res = await fetch(`/api/orders/${encodeURIComponent(targetId)}/status`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (data.success && data.isPaid) {
+        setIsPixPaid(true);
+        if (data.orderNumber) setPaidOrderNumber(data.orderNumber);
+        toast.success("Pagamento confirmado com sucesso!");
+        onSuccess?.({
+          id: paymentResult?.id || targetId,
+          status: "approved",
+          status_detail: "accredited",
+          point_of_interaction: paymentResult?.point_of_interaction,
+          orderId: orderId || paymentResult?.orderId || null,
+          orderNumber: data.orderNumber || orderNumber || paymentResult?.orderNumber || null,
+          transaction_amount: paymentResult?.transaction_amount || amount,
+        });
+      } else {
+        toast.info("Aguardando confirmação bancária do Pix... O sistema está verificando a cada 3 segundos.");
+      }
+    } catch {
+      toast.error("Erro ao verificar status. Tente novamente.");
+    } finally {
+      setIsCheckingManual(false);
+    }
+  };
 
   // Função para copiar o código Pix Copia e Cola
   const handleCopyPix = async (code: string) => {
@@ -218,6 +296,83 @@ export function MercadoPagoPayment({
             <span className="text-zinc-300">Total Pago</span>
             <span className="font-mono text-emerald-400 text-base">
               {formatCurrency(paymentResult.transaction_amount || amount)}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-sans text-xs uppercase tracking-widest font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50"
+          >
+            <span>Concluir e Voltar à Loja</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
+          <ShieldCheck size={14} className="text-emerald-500" />
+          <span>Ambiente Seguro Cordeiro Ink & Mercado Pago</span>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // TELA DE SUCESSO PIX CONFIRMADO EM TEMPO REAL VIA WEBHOOK / POLLING
+  // =========================================================================
+  if (isPixPaid) {
+    return (
+      <div className="rounded-2xl border border-emerald-500/30 bg-zinc-950 p-6 text-zinc-100 shadow-2xl space-y-6 animate-in zoom-in-95 duration-300">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto shadow-lg shadow-emerald-500/10">
+            <CheckCircle2 size={36} className="text-emerald-400 animate-in zoom-in duration-300" />
+          </div>
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-white">
+            Pagamento Confirmado!
+          </h3>
+          <p className="text-sm text-zinc-300 max-w-sm mx-auto font-light">
+            Seu Pix foi compensado com sucesso. O pedido já entrou na <strong className="text-emerald-400 font-semibold">fila de produção artesanal</strong> do ateliê!
+          </p>
+        </div>
+
+        <div className="bg-zinc-900/80 rounded-xl p-4 border border-zinc-800/80 space-y-2.5 text-xs">
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Status da Operação</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold uppercase tracking-wider text-[10px] border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Aprovado / Pago
+            </span>
+          </div>
+
+          {(paidOrderNumber || orderNumber) && (
+            <div className="flex justify-between items-center text-zinc-400">
+              <span>Número do Pedido</span>
+              <span className="font-mono font-bold text-white text-sm">
+                {paidOrderNumber || orderNumber}
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Método de Pagamento</span>
+            <span className="font-semibold text-emerald-400">
+              Pix (Mercado Pago)
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Fila do Ateliê</span>
+            <span className="text-zinc-200 font-medium">
+              Aguardando Prensagem Térmica
+            </span>
+          </div>
+
+          <div className="pt-2 border-t border-zinc-800 flex justify-between items-center font-bold text-sm">
+            <span className="text-zinc-300">Total Pago</span>
+            <span className="font-mono text-emerald-400 text-base">
+              {formatCurrency(paymentResult?.transaction_amount || amount)}
             </span>
           </div>
         </div>
@@ -356,15 +511,13 @@ export function MercadoPagoPayment({
           </button>
           <button
             type="button"
-            onClick={() => {
-              toast.info("Verificando compensação bancária...");
-              window.location.reload();
-            }}
-            className="py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-sans text-xs uppercase tracking-wider font-semibold transition cursor-pointer border border-zinc-700 flex items-center gap-1.5"
+            onClick={handleManualCheckStatus}
+            disabled={isCheckingManual}
+            className="py-3 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-sans text-xs uppercase tracking-wider font-semibold transition cursor-pointer border border-zinc-700 flex items-center gap-1.5 disabled:opacity-50"
             title="Atualizar Status"
           >
-            <RefreshCw size={14} />
-            <span>Já paguei</span>
+            <RefreshCw size={14} className={isCheckingManual ? "animate-spin" : ""} />
+            <span>{isCheckingManual ? "Checando..." : "Já paguei"}</span>
           </button>
         </div>
 

@@ -460,7 +460,9 @@ export function StorefrontCartDrawer() {
                 </span>
                 <span className="font-mono">
                   {selectedShipping
-                    ? formatCurrency(selectedShipping.price)
+                    ? selectedShipping.price === 0
+                      ? "Grátis / R$ 0,00"
+                      : formatCurrency(selectedShipping.price)
                     : "Calcular acima"}
                 </span>
               </div>
