@@ -52,6 +52,10 @@ export interface MercadoPagoPaymentProps {
    */
   payerEmail?: string;
   /**
+   * Alias para payerEmail
+   */
+  customerEmail?: string;
+  /**
    * Nome do cliente.
    */
   payerName?: string;
@@ -60,7 +64,7 @@ export interface MercadoPagoPaymentProps {
    */
   description?: string;
   /**
-   * Callback invocado quando o pagamento for finalizado com sucesso ou ficar pendente (Pix).
+   * Callback invocado quando o pagamento for aprovado (cartão).
    */
   onSuccess?: (result: MercadoPagoPaymentResult) => void;
   /**
@@ -78,6 +82,7 @@ export function MercadoPagoPayment({
   orderId,
   orderNumber,
   payerEmail,
+  customerEmail,
   payerName,
   description,
   onSuccess,
@@ -91,6 +96,9 @@ export function MercadoPagoPayment({
   const [copiedPix, setCopiedPix] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const effectiveEmail = payerEmail || customerEmail || "";
+
+  // Suporte a chaves de produção ou homologação sem fallback destrutivo
   const publicKey =
     process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ||
     "TEST-4c19dc2d-884a-45ba-9a29-292ced213525";
@@ -151,12 +159,14 @@ export function MercadoPagoPayment({
       }
 
       setPaymentResult(data);
-      onSuccess?.(data);
 
       if (data.status === "approved") {
         toast.success("Pagamento aprovado com sucesso! Deus abençoe sua compra.");
+        // Apenas chamamos onSuccess para pagamentos imediatamente aprovados (cartão)
+        onSuccess?.(data);
       } else if (data.status === "pending") {
-        toast.info("Código Pix gerado! Efetue o pagamento no aplicativo do seu banco.");
+        toast.info("Código Pix gerado! Escaneie o QR Code ou utilize o código Copia e Cola.");
+        // Pagamento Pix: NÃO executa redirecionamento automático ou fechamento
       }
     } catch (error: any) {
       console.error("[MercadoPagoPayment] Erro no envio:", error);
@@ -418,7 +428,7 @@ export function MercadoPagoPayment({
             initialization={{
               amount: Number(amount) || 1,
               payer: {
-                email: payerEmail || undefined,
+                email: effectiveEmail || undefined,
               },
             }}
             customization={{

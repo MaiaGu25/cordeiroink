@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { OrderStatus, SalesChannel } from "@prisma/client";
+import { OrderStatus, SalesChannel, RawItemType } from "@prisma/client";
 import path from "path";
 import fs from "fs/promises";
 
@@ -318,6 +318,34 @@ export interface CreateStorefrontOrderInput {
   items: StorefrontOrderItemInput[];
 }
 
+export interface AvailableStockSize {
+  shirtColor: string | null;
+  shirtSize: string | null;
+  stockQuantity: number;
+}
+
+/**
+ * Consulta o estoque atual de camisetas lisas por cor e tamanho para bloqueio na vitrine.
+ */
+export async function getBlankShirtsStock(): Promise<AvailableStockSize[]> {
+  try {
+    const rawItems = await prisma.rawItem.findMany({
+      where: {
+        type: RawItemType.BLANK_SHIRT,
+      },
+      select: {
+        shirtColor: true,
+        shirtSize: true,
+        stockQuantity: true,
+      },
+    });
+    return rawItems;
+  } catch (err) {
+    console.error("Erro ao buscar estoque de camisetas lisas:", err);
+    return [];
+  }
+}
+
 /**
  * Criação de pedido direto da vitrine pública (Checkout sem Gateway).
  * Salva o pedido no banco com status PENDING e retorna a URL padrão do WhatsApp com o resumo completo.
@@ -331,6 +359,38 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
     throw new Error("A sua sacola de compras está vazia.");
   }
 
+  // 1. Validação estrita de disponibilidade de estoque antes de salvar o pedido
+  for (const item of data.items) {
+    if (item.size) {
+      const colorRaw = (item.colorName || "").split(" ")[0].trim();
+      const availableItems = await prisma.rawItem.findMany({
+        where: {
+          type: RawItemType.BLANK_SHIRT,
+          shirtSize: { equals: item.size, mode: "insensitive" },
+          ...(colorRaw
+            ? {
+                shirtColor: { contains: colorRaw, mode: "insensitive" },
+              }
+            : {}),
+        },
+        select: {
+          stockQuantity: true,
+          name: true,
+        },
+      });
+
+      const totalStock = availableItems.reduce((acc, r) => acc + (r.stockQuantity || 0), 0);
+      const requestedQty = Math.max(1, Number(item.quantity) || 1);
+
+      // Se houver insumo cadastrado para esta combinação e o estoque for menor que o solicitado
+      if (availableItems.length > 0 && totalStock < requestedQty) {
+        throw new Error(
+          `O tamanho "${item.size}" ${item.colorName ? `na cor ${item.colorName}` : ""} está esgotado no estoque do ateliê (disponível: ${totalStock}). Por favor, escolha outro tamanho ou cor.`
+        );
+      }
+    }
+  }
+
   const cleanPhone = data.customerPhone.replace(/\D/g, "");
   const subtotal = data.items.reduce(
     (acc, i) => acc + Number(i.price) * Math.max(1, Number(i.quantity) || 1),
@@ -339,11 +399,11 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
   const shippingCost = Number(data.shippingPrice) || 0;
   const grandTotal = subtotal + shippingCost;
 
-  // 1. Gerar número do pedido sequencial (#WPP-100X)
+  // 2. Gerar número do pedido sequencial (#WPP-100X)
   const count = await prisma.order.count();
   const orderNumber = `#WPP-${1001 + count}`;
 
-  // 2. Montar endereço completo com CEP
+  // 3. Montar endereço completo com CEP
   let fullAddress = data.shippingAddress?.trim() || "";
   if (data.destinationCep?.trim()) {
     const cleanCep = data.destinationCep.replace(/\D/g, "");
@@ -356,7 +416,7 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
     }
   }
 
-  // 3. Salva o pedido na tabela Order com status "PENDING"
+  // 4. Salva o pedido na tabela Order com status "PENDING"
   const order = await prisma.order.create({
     data: {
       orderNumber,

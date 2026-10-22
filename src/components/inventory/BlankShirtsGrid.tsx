@@ -76,11 +76,21 @@ export function BlankShirtsGrid({ items, onAdjust, onEdit, onAddNew, onDelete }:
     groups[key].sizes[size] = item;
   });
 
-  const SIZES_ORDER = ["P", "M", "G", "GG", "XG"];
+  const ADULT_SIZES = ["P", "M", "G", "GG", "XG"];
+  const CHILD_SIZES = ["2", "4", "6", "8", "10", "12", "14", "16"];
 
   return (
     <div className="space-y-4">
       {Object.entries(groups).map(([key, group]) => {
+        const hasChild = Object.keys(group.sizes).some((s) => CHILD_SIZES.includes(s));
+        const hasAdult = Object.keys(group.sizes).some((s) => ADULT_SIZES.includes(s));
+        const currentSizesOrder =
+          hasChild && !hasAdult
+            ? CHILD_SIZES
+            : hasAdult && !hasChild
+            ? ADULT_SIZES
+            : [...CHILD_SIZES, ...ADULT_SIZES];
+
         return (
           <div
             key={key}
@@ -114,7 +124,7 @@ export function BlankShirtsGrid({ items, onAdjust, onEdit, onAddNew, onDelete }:
 
               <div className="flex items-center gap-2">
                 <span className="text-xs text-zinc-500 font-mono hidden sm:inline">
-                  Grade Cor x Tamanho
+                  {hasChild ? "Grade Infantil / Adulto" : "Grade Cor x Tamanho"}
                 </span>
                 {onEdit && Object.values(group.sizes)[0] && (
                   <button
@@ -131,8 +141,14 @@ export function BlankShirtsGrid({ items, onAdjust, onEdit, onAddNew, onDelete }:
             </div>
 
             {/* Matrix of Sizes: Minimal Numbers with HoverCards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {SIZES_ORDER.map((sizeKey) => {
+            <div
+              className={`grid gap-3 ${
+                currentSizesOrder.length <= 5
+                  ? "grid-cols-2 sm:grid-cols-5"
+                  : "grid-cols-2 sm:grid-cols-4 md:grid-cols-8"
+              }`}
+            >
+              {currentSizesOrder.map((sizeKey) => {
                 const item = group.sizes[sizeKey];
 
                 if (!item) {

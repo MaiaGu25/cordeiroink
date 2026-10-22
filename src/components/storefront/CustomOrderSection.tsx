@@ -18,6 +18,7 @@ import { uploadStorefrontFile, createLeadQuote } from "@/actions/storefront";
 import { SafeImage } from "@/components/ui/SafeImage";
 import { useCart } from "@/components/storefront/CartContext";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
 
 export function CustomOrderSection() {
   const [isPending, startTransition] = useTransition();
@@ -25,8 +26,9 @@ export function CustomOrderSection() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addItem, openCart } = useCart();
 
-  // Tipo de Pedido: Individual (1 peça) vs Lote (Conferências / Igrejas)
+  // Tipo de Pedido: Individual (1 a 10 peças) vs Lote (Conferências / Igrejas)
   const [orderType, setOrderType] = useState<"INDIVIDUAL" | "BULK">("INDIVIDUAL");
+  const [individualQuantity, setIndividualQuantity] = useState(1);
 
   const [customerName, setCustomerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
@@ -74,14 +76,16 @@ export function CustomOrderSection() {
 
     startTransition(async () => {
       try {
+        const unitPrice = 97.90;
+
         // Registra lead no banco de dados para rastreabilidade
         await createLeadQuote({
           customerName,
           whatsapp,
           shirtModel: `${shirtModel} (Cor: ${color})`,
-          size,
+          size: `${size} (${individualQuantity} un)`,
           customDesignUrl,
-          notes: notes ? `[Pedido Varejo 1 un] ${notes}` : "[Pedido Varejo 1 un]",
+          notes: notes ? `[Pedido Varejo ${individualQuantity} un] ${notes}` : `[Pedido Varejo ${individualQuantity} un]`,
         });
 
         // Adiciona a peça personalizada ao Carrinho com a arte enviada
@@ -90,8 +94,8 @@ export function CustomOrderSection() {
           title: `Camiseta Personalizada (${shirtModel})`,
           colorName: color,
           size,
-          price: 99.90,
-          quantity: 1,
+          price: unitPrice,
+          quantity: individualQuantity,
           imageUrl:
             customDesignUrl ||
             "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=600&auto=format&fit=crop",
@@ -268,7 +272,7 @@ export function CustomOrderSection() {
                         Pedido Individual
                       </span>
                       <span className="text-[10px] font-mono opacity-80">
-                        1 unidade • R$ 99,90
+                        1 a 10 unidades • R$ 97,90 / un
                       </span>
                     </div>
                   </button>
@@ -311,7 +315,7 @@ export function CustomOrderSection() {
                       required
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Ex: Matheus Cordeiro"
+                      placeholder="Ex: Lucas Silva"
                       className="w-full px-4 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] placeholder:text-[#999999] focus:outline-none focus:border-[#0A0A0A] transition"
                     />
                   </div>
@@ -332,7 +336,7 @@ export function CustomOrderSection() {
                 </div>
 
                 {/* Modelagem, Cor & Tamanho / Quantidade de Lote */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
                       Modelagem *
@@ -364,24 +368,54 @@ export function CustomOrderSection() {
                   </div>
 
                   {orderType === "INDIVIDUAL" ? (
-                    <div>
-                      <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
-                        Tamanho *
-                      </label>
-                      <select
-                        value={size}
-                        onChange={(e) => setSize(e.target.value)}
-                        className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
-                      >
-                        <option value="P">P — Pequeno</option>
-                        <option value="M">M — Médio</option>
-                        <option value="G">G — Street Fit</option>
-                        <option value="GG">GG — Extra Grande</option>
-                        <option value="XG">XG — Big Size</option>
-                      </select>
-                    </div>
+                    <>
+                      <div>
+                        <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
+                          Tamanho *
+                        </label>
+                        <select
+                          value={size}
+                          onChange={(e) => setSize(e.target.value)}
+                          className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                        >
+                          <option value="P">P — Pequeno</option>
+                          <option value="M">M — Médio</option>
+                          <option value="G">G — Street Fit</option>
+                          <option value="GG">GG — Extra Grande</option>
+                          <option value="XG">XG — Big Size</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
+                          Qtd (1 a 10) *
+                        </label>
+                        <select
+                          value={individualQuantity}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "11+") {
+                              setOrderType("BULK");
+                              toast.info(
+                                "Para pedidos a partir de 11 unidades, utilize o pedido de Lote para condições e descontos especiais!"
+                              );
+                              return;
+                            }
+                            setIndividualQuantity(Number(val));
+                          }}
+                          className="w-full px-3.5 py-3 rounded-xl bg-[#F7F4EE] border border-[#E6DED2] text-xs font-sans text-[#0A0A0A] focus:outline-none focus:border-[#0A0A0A] transition cursor-pointer"
+                        >
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                            <option key={num} value={num}>
+                              {num} {num === 1 ? "peça" : "peças"}
+                            </option>
+                          ))}
+                          <option value="11+">11+ (Lote com desconto)</option>
+                        </select>
+                      </div>
+                    </>
                   ) : (
-                    <div>
+                    <div className="sm:col-span-2">
                       <label className="block font-sans text-xs font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1.5">
                         Qtd. Estimada *
                       </label>
@@ -511,12 +545,14 @@ export function CustomOrderSection() {
                       ) : (
                         <>
                           <ShoppingBag size={16} />
-                          <span>Adicionar ao Carrinho & Calcular Frete (R$ 99,90)</span>
+                          <span>
+                            Adicionar ao Carrinho & Calcular Frete ({formatCurrency(97.90 * individualQuantity)})
+                          </span>
                         </>
                       )}
                     </button>
                     <p className="text-center font-mono text-[11px] text-[#737373]">
-                      ✓ Produzida sob demanda em até 2 dias úteis no ateliê.
+                      ✓ Produzida sob demanda em até 5 dias úteis no ateliê.
                     </p>
                   </div>
                 ) : (

@@ -13,11 +13,11 @@ export function StorefrontHeader() {
     <header className="sticky top-0 z-50 bg-[#F7F4EE]/90 backdrop-blur-md border-b border-[#E6DED2] transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Logo in Serif */}
-        <Link href="/" className="flex flex-col group">
+        <Link href="/" className="flex flex-col items-center text-center group">
           <span className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[#0A0A0A] uppercase transition group-hover:opacity-80">
             Cordeiro Ink
           </span>
-          <span className="font-sans text-[10px] tracking-[0.25em] text-[#737373] uppercase font-medium">
+          <span className="font-sans text-[10px] tracking-[0.25em] text-[#737373] uppercase font-medium text-center w-full">
             Streetwear Cristão
           </span>
         </Link>

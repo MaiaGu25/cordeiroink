@@ -13,11 +13,13 @@ import {
   Loader2,
   Trash2,
   FileText,
+  Printer,
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { receivePurchaseOrder, deleteSupplier } from "@/actions/purchases";
 import { NewSupplierModal } from "./NewSupplierModal";
 import { NewPurchaseOrderModal } from "./NewPurchaseOrderModal";
+import { PurchaseOrderPrintModal } from "./PurchaseOrderPrintModal";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -32,6 +34,7 @@ export function PurchasesView({ purchaseOrders, suppliers, rawItems = [] }: Purc
   const [isPending, startTransition] = useTransition();
   const [isNewSupplierOpen, setIsNewSupplierOpen] = useState(false);
   const [isNewPurchaseOrderOpen, setIsNewPurchaseOrderOpen] = useState(false);
+  const [printOrder, setPrintOrder] = useState<any | null>(null);
 
   const handleReceive = (poId: string, orderCode: string) => {
     startTransition(async () => {
@@ -272,30 +275,42 @@ export function PurchasesView({ purchaseOrders, suppliers, rawItems = [] }: Purc
                       </span>
                     </div>
 
-                    {!isReceived ? (
+                    <div className="flex items-center gap-2">
                       <button
-                        disabled={isPending}
-                        onClick={() => handleReceive(po.id, po.orderCode)}
-                        className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        type="button"
+                        onClick={() => setPrintOrder(po)}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                        title="Imprimir ordem de compra ou exportar PDF"
                       >
-                        {isPending ? (
-                          <>
-                            <Loader2 size={13} className="animate-spin" />
-                            Atualizando Estoque...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 size={14} />
-                            <span>Marcar como Recebido e Atualizar Estoque</span>
-                          </>
-                        )}
+                        <Printer size={13} className="text-amber-400" />
+                        <span>Imprimir / PDF</span>
                       </button>
-                    ) : (
-                      <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                        <CheckCircle2 size={13} />
-                        <span>Estoque alimentado</span>
-                      </div>
-                    )}
+
+                      {!isReceived ? (
+                        <button
+                          disabled={isPending}
+                          onClick={() => handleReceive(po.id, po.orderCode)}
+                          className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                        >
+                          {isPending ? (
+                            <>
+                              <Loader2 size={13} className="animate-spin" />
+                              Atualizando...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 size={14} />
+                              <span>Receber Estoque</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-medium px-2 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                          <CheckCircle2 size={13} />
+                          <span>Estoque alimentado</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -318,6 +333,13 @@ export function PurchasesView({ purchaseOrders, suppliers, rawItems = [] }: Purc
         suppliers={suppliers}
         rawItems={rawItems}
         onCreated={() => router.refresh()}
+      />
+
+      {/* Modal de Impressão e PDF da Ordem de Compra */}
+      <PurchaseOrderPrintModal
+        isOpen={!!printOrder}
+        onClose={() => setPrintOrder(null)}
+        order={printOrder}
       />
     </div>
   );

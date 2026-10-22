@@ -48,6 +48,7 @@ export function NewRawItemModal({
   const [shirtModel, setShirtModel] = useState("Streetwear Oversized 26.1");
   const [shirtColor, setShirtColor] = useState("Preto");
   const [shirtSize, setShirtSize] = useState("M");
+  const [gradeType, setGradeType] = useState<"ADULT" | "CHILD">("ADULT");
   const [isBatchSizes, setIsBatchSizes] = useState(false);
   const [batchQuantities, setBatchQuantities] = useState<Record<string, number | "">>({
     P: 0,
@@ -55,6 +56,14 @@ export function NewRawItemModal({
     G: 0,
     GG: 0,
     XG: 0,
+    "2": 0,
+    "4": 0,
+    "6": 0,
+    "8": 0,
+    "10": 0,
+    "12": 0,
+    "14": 0,
+    "16": 0,
   });
 
   // Campos Gerais
@@ -119,10 +128,15 @@ export function NewRawItemModal({
           const colorName = shirtColor.trim() || "Preto";
 
           if (isBatchSizes) {
-            // Cadastrar grade completa (P, M, G, GG, XG)
-            const sizesToCreate = Object.entries(batchQuantities).map(([sz, qty]) => ({
+            // Cadastrar grade completa (Adulto: P ao XG | Infantil: 2 ao 16)
+            const activeSizes =
+              gradeType === "ADULT"
+                ? ["P", "M", "G", "GG", "XG"]
+                : ["2", "4", "6", "8", "10", "12", "14", "16"];
+
+            const sizesToCreate = activeSizes.map((sz) => ({
               size: sz,
-              quantity: Number(qty) || 0,
+              quantity: Number(batchQuantities[sz]) || 0,
             }));
 
             await createBatchBlankShirts({
@@ -133,7 +147,9 @@ export function NewRawItemModal({
               sizes: sizesToCreate,
             });
 
-            toast.success(`Grade completa de ${modelName} (${colorName}) cadastrada com sucesso!`);
+            toast.success(
+              `Grade ${gradeType === "ADULT" ? "Adulto" : "Infantil"} de ${modelName} (${colorName}) cadastrada com sucesso!`
+            );
           } else {
             // Cadastrar tamanho único
             const fullName = name.trim() || `${modelName} - ${colorName} ${shirtSize}`;
@@ -339,9 +355,48 @@ export function NewRawItemModal({
                 </div>
               </div>
 
-              {/* Opção de Grade Completa vs Tamanho Único */}
-              <div className="pt-2 border-t border-zinc-850">
-                <div className="flex items-center justify-between mb-2">
+              {/* Opção de Grade Completa vs Tamanho Único & Grade Adulto vs Infantil */}
+              <div className="pt-2 border-t border-zinc-850 space-y-3">
+                {/* Seletor de Tipo de Grade: Adulto vs Infantil */}
+                <div>
+                  <label className="block text-zinc-400 mb-1.5 font-medium">Grade de Tamanhos</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGradeType("ADULT");
+                        if (!["P", "M", "G", "GG", "XG"].includes(shirtSize)) {
+                          setShirtSize("M");
+                        }
+                      }}
+                      className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                        gradeType === "ADULT"
+                          ? "bg-amber-500 text-zinc-950 border-amber-400 shadow-sm"
+                          : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                      }`}
+                    >
+                      <span>Grade Adulto (P ao XG)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGradeType("CHILD");
+                        if (!["2", "4", "6", "8", "10", "12", "14", "16"].includes(shirtSize)) {
+                          setShirtSize("6");
+                        }
+                      }}
+                      className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                        gradeType === "CHILD"
+                          ? "bg-amber-500 text-zinc-950 border-amber-400 shadow-sm"
+                          : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                      }`}
+                    >
+                      <span>Grade Infantil (2 ao 16)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
                     <input
                       type="checkbox"
@@ -351,7 +406,7 @@ export function NewRawItemModal({
                     />
                     <span className="font-semibold text-xs text-amber-400 flex items-center gap-1.5">
                       <Layers size={13} />
-                      Cadastrar Grade Completa (P, M, G, GG, XG) de uma vez
+                      Cadastrar Grade Completa ({gradeType === "ADULT" ? "P, M, G, GG, XG" : "2 ao 16"}) de uma vez
                     </span>
                   </label>
                 </div>
@@ -359,10 +414,17 @@ export function NewRawItemModal({
                 {isBatchSizes ? (
                   <div className="space-y-1.5">
                     <span className="text-[11px] text-zinc-400 block mb-1">
-                      Informe o estoque inicial de cada tamanho:
+                      Informe o estoque inicial de cada tamanho ({gradeType === "ADULT" ? "Adulto" : "Infantil"}):
                     </span>
-                    <div className="grid grid-cols-5 gap-2">
-                      {["P", "M", "G", "GG", "XG"].map((sz) => (
+                    <div
+                      className={`grid gap-2 ${
+                        gradeType === "ADULT" ? "grid-cols-5" : "grid-cols-4 sm:grid-cols-8"
+                      }`}
+                    >
+                      {(gradeType === "ADULT"
+                        ? ["P", "M", "G", "GG", "XG"]
+                        : ["2", "4", "6", "8", "10", "12", "14", "16"]
+                      ).map((sz) => (
                         <div key={sz} className="text-center">
                           <label className="block text-[10px] font-mono text-zinc-400 mb-1 font-bold">
                             Tam. {sz}
@@ -379,7 +441,7 @@ export function NewRawItemModal({
                               }))
                             }
                             placeholder="0"
-                            className="w-full px-2 py-1.5 text-center font-mono rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-zinc-700"
+                            className="w-full px-1.5 py-1.5 text-center font-mono rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-zinc-700"
                           />
                         </div>
                       ))}
@@ -387,9 +449,18 @@ export function NewRawItemModal({
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-zinc-400 mb-1">Tamanho da Peça</label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {["P", "M", "G", "GG", "XG"].map((sz) => (
+                    <label className="block text-zinc-400 mb-1">
+                      Tamanho da Peça ({gradeType === "ADULT" ? "Adulto" : "Infantil"})
+                    </label>
+                    <div
+                      className={`grid gap-2 ${
+                        gradeType === "ADULT" ? "grid-cols-5" : "grid-cols-4 sm:grid-cols-8"
+                      }`}
+                    >
+                      {(gradeType === "ADULT"
+                        ? ["P", "M", "G", "GG", "XG"]
+                        : ["2", "4", "6", "8", "10", "12", "14", "16"]
+                      ).map((sz) => (
                         <button
                           type="button"
                           key={sz}

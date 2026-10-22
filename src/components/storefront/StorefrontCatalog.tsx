@@ -19,6 +19,8 @@ import { useCart } from "./CartContext";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
 import type { ShippingOption } from "@/actions/shipping";
 
+import type { AvailableStockSize } from "@/actions/storefront";
+
 export interface CatalogVariant {
   id: string;
   catalogItemId?: string;
@@ -40,6 +42,7 @@ export interface CatalogItem {
 
 interface StorefrontCatalogProps {
   items: CatalogItem[];
+  stockItems?: AvailableStockSize[];
 }
 
 // Exemplos realistas com múltiplas variações e fotos para a vitrine
@@ -161,7 +164,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
   },
 ];
 
-export function StorefrontCatalog({ items }: StorefrontCatalogProps) {
+export function StorefrontCatalog({ items, stockItems }: StorefrontCatalogProps) {
   const displayItems = items && items.length > 0 ? items : PLACEHOLDER_ITEMS;
   const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
 
@@ -266,6 +269,7 @@ export function StorefrontCatalog({ items }: StorefrontCatalogProps) {
         <ProductDetailModal
           product={activeModalProduct}
           brandPhone={brandPhone}
+          stockItems={stockItems}
           onClose={() => setActiveModalProduct(null)}
         />
       )}
@@ -407,10 +411,12 @@ function ProductCard({
 function ProductDetailModal({
   product,
   brandPhone,
+  stockItems,
   onClose,
 }: {
   product: CatalogItem;
   brandPhone: string;
+  stockItems?: AvailableStockSize[];
   onClose: () => void;
 }) {
   const variants = product.variants && product.variants.length > 0 ? product.variants : [];
@@ -442,6 +448,32 @@ function ProductDetailModal({
 
   const activeSlide = slides[currentSlideIndex] || slides[0];
 
+  const isSizeAvailable = (sz: string) => {
+    if (!stockItems || stockItems.length === 0) return true;
+    const colorPrefix = (activeSlide.colorName || "").split(" ")[0].toLowerCase();
+
+    const matchingColorShirts = stockItems.filter((item) => {
+      if (!item.shirtColor) return true;
+      const c = item.shirtColor.toLowerCase();
+      return (
+        c.includes(colorPrefix) ||
+        colorPrefix.includes(c) ||
+        c === activeSlide.colorName?.toLowerCase()
+      );
+    });
+
+    if (matchingColorShirts.length === 0) return true;
+
+    const sizeItem = matchingColorShirts.find(
+      (item) => item.shirtSize?.trim().toUpperCase() === sz.trim().toUpperCase()
+    );
+
+    if (!sizeItem) return false;
+    return sizeItem.stockQuantity > 0;
+  };
+
+  const isCurrentSizeAvailable = isSizeAvailable(selectedSize);
+
   const handleSelectColor = (hexCode: string) => {
     const idx = slides.findIndex((s) => s.hexCode === hexCode);
     if (idx !== -1) {
@@ -470,6 +502,10 @@ function ProductDetailModal({
   const waLink = `https://wa.me/${brandPhone}?text=${whatsappMsg}`;
 
   const handleAddToCart = () => {
+    if (!isCurrentSizeAvailable) {
+      alert("O tamanho selecionado está esgotado no estoque.");
+      return;
+    }
     addItem({
       productId: product.id,
       title: product.title,
@@ -647,20 +683,27 @@ function ProductDetailModal({
               </div>
 
               <div className="grid grid-cols-5 gap-2">
-                {["P", "M", "G", "GG", "XG"].map((sz) => (
-                  <button
-                    key={sz}
-                    type="button"
-                    onClick={() => setSelectedSize(sz)}
-                    className={`py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
-                      selectedSize === sz
-                        ? "bg-[#0A0A0A] text-[#F7F4EE] border-[#0A0A0A]"
-                        : "bg-[#F7F4EE] text-[#0A0A0A] border-[#E6DED2] hover:border-[#0A0A0A]"
-                    }`}
-                  >
-                    {sz}
-                  </button>
-                ))}
+                {["P", "M", "G", "GG", "XG"].map((sz) => {
+                  const available = isSizeAvailable(sz);
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => setSelectedSize(sz)}
+                      title={!available ? `Tamanho ${sz} esgotado no estoque` : undefined}
+                      className={`py-2 rounded-xl text-xs font-mono font-bold transition border ${
+                        !available
+                          ? "opacity-30 line-through cursor-not-allowed bg-zinc-200/50 text-zinc-400 border-zinc-200"
+                          : selectedSize === sz
+                          ? "bg-[#0A0A0A] text-[#F7F4EE] border-[#0A0A0A] cursor-pointer"
+                          : "bg-[#F7F4EE] text-[#0A0A0A] border-[#E6DED2] hover:border-[#0A0A0A] cursor-pointer"
+                      }`}
+                    >
+                      {sz}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -737,10 +780,15 @@ function ProductDetailModal({
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="w-full py-3.5 rounded-full bg-[#FAF9F6] border-2 border-[#0A0A0A] text-[#0A0A0A] hover:bg-black/5 font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition cursor-pointer"
+                disabled={!isCurrentSizeAvailable}
+                className={`w-full py-3.5 rounded-full border-2 font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition ${
+                  !isCurrentSizeAvailable
+                    ? "bg-zinc-200 border-zinc-300 text-zinc-400 cursor-not-allowed"
+                    : "bg-[#FAF9F6] border-[#0A0A0A] text-[#0A0A0A] hover:bg-black/5 cursor-pointer"
+                }`}
               >
                 <ShoppingBag size={15} />
-                <span>Adicionar à Sacola</span>
+                <span>{isCurrentSizeAvailable ? "Adicionar à Sacola" : "Tamanho Esgotado"}</span>
               </button>
 
               <a

@@ -3,7 +3,7 @@
 import { Heart, Sparkles, Flame, ArrowUpRight } from "lucide-react";
 
 export function AboutSection() {
-  const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511999999999";
+  const brandPhone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "5511917446969";
 
   return (
     <section id="sobre" className="py-20 sm:py-32 px-4 sm:px-6 lg:px-8 bg-[#F2ECE1]/50 border-t border-[#E6DED2]">
@@ -86,7 +86,7 @@ export function AboutSection() {
             rel="noopener noreferrer"
             className="px-8 py-3.5 rounded-full bg-[#FAF9F6] hover:bg-white text-[#0A0A0A] font-sans text-xs uppercase tracking-widest font-bold flex items-center gap-2 transition shrink-0 shadow hover:shadow-lg"
           >
-            <span>Falar com o Igor & Grazi</span>
+            <span>Falar com o Igor & Grazi • (11) 91744-6969</span>
             <ArrowUpRight size={14} />
           </a>
         </div>

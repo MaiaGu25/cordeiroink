@@ -21,7 +21,6 @@ import {
   MapPin,
   Mail,
   CreditCard,
-  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -49,6 +48,7 @@ export function StorefrontCartDrawer() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMercadoPago, setShowMercadoPago] = useState(false);
   const [activeOrder, setActiveOrder] = useState<{ id: string; orderNumber: string } | null>(null);
+  const [checkoutGrandTotal, setCheckoutGrandTotal] = useState(0);
 
   if (!isOpen) return null;
 
@@ -84,6 +84,9 @@ export function StorefrontCartDrawer() {
 
     setIsSubmitting(true);
     try {
+      const currentTotal = grandTotal;
+      setCheckoutGrandTotal(currentTotal);
+
       const res = await createStorefrontOrder({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
@@ -117,9 +120,7 @@ export function StorefrontCartDrawer() {
     }
   };
 
-  // Finalização do Checkout sem Gateway (WhatsApp):
-  // 1. Salva na tabela Order do Prisma com status "PENDING"
-  // 2. Redireciona imediatamente para o WhatsApp com mensagem formatada
+  // Finalização do Checkout via WhatsApp
   const handleCheckout = async () => {
     if (!customerName.trim()) {
       toast.error("Por favor, preencha seu nome completo.");
@@ -159,7 +160,6 @@ export function StorefrontCartDrawer() {
           `Pedido ${res.orderNumber} registrado! Abrindo WhatsApp do Ateliê...`
         );
         clearCart();
-        // Redirecionamento imediato para a URL do WhatsApp
         setTimeout(() => {
           window.location.href = res.whatsappUrl;
         }, 600);
@@ -170,10 +170,16 @@ export function StorefrontCartDrawer() {
     }
   };
 
+  const handleCloseDrawer = () => {
+    setShowMercadoPago(false);
+    setActiveOrder(null);
+    closeCart();
+  };
+
   return (
     <div
       className="fixed inset-0 z-[120] flex justify-end bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={closeCart}
+      onClick={handleCloseDrawer}
     >
       <div
         className="w-full max-w-md bg-[#FAF9F6] h-full shadow-2xl flex flex-col border-l border-[#E6DED2] animate-in slide-in-from-right duration-300"
@@ -187,19 +193,23 @@ export function StorefrontCartDrawer() {
             </div>
             <div>
               <h3 className="font-serif text-lg font-bold text-[#0A0A0A] flex items-center gap-2">
-                <span>Sua Sacola</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0A0A0A]/10 text-[#0A0A0A]">
-                  {totalItemsCount} {totalItemsCount === 1 ? "peça" : "peças"}
-                </span>
+                <span>{showMercadoPago ? "Pagamento" : "Sua Sacola"}</span>
+                {!showMercadoPago && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0A0A0A]/10 text-[#0A0A0A]">
+                    {totalItemsCount} {totalItemsCount === 1 ? "peça" : "peças"}
+                  </span>
+                )}
               </h3>
               <p className="text-[10px] text-[#737373] font-sans tracking-wide">
-                Produção artesanal sob demanda
+                {showMercadoPago
+                  ? "Ambiente Seguro Mercado Pago"
+                  : "Produção artesanal sob demanda"}
               </p>
             </div>
           </div>
 
           <button
-            onClick={closeCart}
+            onClick={handleCloseDrawer}
             className="p-2 rounded-full hover:bg-black/5 text-[#0A0A0A] transition cursor-pointer"
             aria-label="Fechar sacola"
           >
@@ -208,7 +218,39 @@ export function StorefrontCartDrawer() {
         </div>
 
         {/* Drawer Body */}
-        {items.length === 0 ? (
+        {showMercadoPago && activeOrder ? (
+          <div className="p-5 overflow-y-auto flex-1 bg-black/5">
+            <div className="mb-3 flex justify-between items-center">
+              <button
+                type="button"
+                onClick={() => setShowMercadoPago(false)}
+                className="text-xs text-[#0A0A0A] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+              >
+                ← Voltar para revisão da sacola
+              </button>
+              <span className="font-mono text-xs font-bold text-zinc-600">
+                #{activeOrder.orderNumber}
+              </span>
+            </div>
+            <MercadoPagoPayment
+              amount={checkoutGrandTotal || grandTotal}
+              orderId={activeOrder.id}
+              orderNumber={activeOrder.orderNumber}
+              customerEmail={customerEmail || undefined}
+              onSuccess={(result) => {
+                if (result.status === "approved") {
+                  clearCart();
+                }
+              }}
+              onCancel={() => {
+                clearCart();
+                setShowMercadoPago(false);
+                setActiveOrder(null);
+                closeCart();
+              }}
+            />
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-[#F2ECE1] flex items-center justify-center text-[#A0988A]">
               <ShoppingBag size={28} />
@@ -227,32 +269,6 @@ export function StorefrontCartDrawer() {
             >
               Explorar Coleção
             </button>
-          </div>
-        ) : showMercadoPago && activeOrder ? (
-          <div className="p-5 overflow-y-auto flex-1 bg-black/5">
-            <div className="mb-3 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => setShowMercadoPago(false)}
-                className="text-xs text-[#0A0A0A] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
-              >
-                ← Voltar para revisão da sacola
-              </button>
-              <span className="font-mono text-xs font-bold text-zinc-600">
-                {activeOrder.orderNumber}
-              </span>
-            </div>
-            <MercadoPagoPayment
-              amount={grandTotal}
-              orderId={activeOrder.id}
-              orderNumber={activeOrder.orderNumber}
-              payerName={customerName}
-              payerEmail={customerEmail || undefined}
-              onCancel={() => setShowMercadoPago(false)}
-              onSuccess={() => {
-                clearCart();
-              }}
-            />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
@@ -325,7 +341,7 @@ export function StorefrontCartDrawer() {
               ))}
             </div>
 
-            {/* Módulo de Cálculo de Frete (Melhor Envio / Correios) */}
+            {/* Módulo de Cálculo de Frete */}
             <div className="space-y-2">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
                 Entrega & Frete
@@ -340,7 +356,7 @@ export function StorefrontCartDrawer() {
               />
             </div>
 
-            {/* Dados do Cliente para Envio & Contato */}
+            {/* Dados do Cliente */}
             <div className="space-y-3 pt-2 border-t border-[#E6DED2]">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
                 Seus Dados para Contato & Envio
@@ -459,7 +475,7 @@ export function StorefrontCartDrawer() {
               </div>
             </div>
 
-            {/* Botão Principal: Mercado Pago Transparente (Pix, Débito e Crédito) */}
+            {/* Botão Principal: Mercado Pago */}
             <button
               type="button"
               onClick={handleStartMercadoPago}
