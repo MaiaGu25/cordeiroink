@@ -42,7 +42,11 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
   const isStorefront = pathname === "/";
-  const isPublicApi = pathname.startsWith("/api/upload") || pathname.startsWith("/api/reset-db");
+  const isPublicApi =
+    pathname.startsWith("/api/checkout") ||
+    pathname.startsWith("/api/orders") ||
+    pathname.startsWith("/api/webhooks") ||
+    pathname.startsWith("/api/upload");
   const isPublicRoute = isStorefront || isLoginPage || isPublicApi;
 
   // Se o usuário não estiver logado e tentar acessar uma rota privada (/admin/*, /pedidos, /estoque, etc.)

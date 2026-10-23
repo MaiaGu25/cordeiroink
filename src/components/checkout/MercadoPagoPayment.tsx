@@ -101,19 +101,28 @@ export function MercadoPagoPayment({
 
   const effectiveEmail = payerEmail || customerEmail || "";
 
-  // Suporte a chaves de produção ou homologação sem fallback destrutivo
-  const publicKey =
-    process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ||
-    "TEST-4c19dc2d-884a-45ba-9a29-292ced213525";
+  // Carrega estritamente a chave pública oficial do ambiente (sem fallback fixo de teste)
+  const publicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY?.trim();
 
   // 1. Inicializa o SDK oficial do Mercado Pago no cliente
   useEffect(() => {
-    if (publicKey && typeof window !== "undefined") {
+    if (!publicKey) {
+      console.error(
+        "[MercadoPagoPayment] Erro crítico de configuração: NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY não está definida no ambiente."
+      );
+      setErrorMessage(
+        "Chave pública do Mercado Pago não configurada no ambiente. Não é possível iniciar o pagamento."
+      );
+      return;
+    }
+
+    if (typeof window !== "undefined") {
       try {
         initMercadoPago(publicKey, { locale: "pt-BR" });
         setIsSdkInitialized(true);
       } catch (err) {
         console.error("[MercadoPagoPayment] Falha ao inicializar SDK:", err);
+        setErrorMessage("Falha ao inicializar o gateway de pagamento Mercado Pago.");
       }
     }
   }, [publicKey]);
@@ -565,7 +574,7 @@ export function MercadoPagoPayment({
       )}
 
       {/* Loader visual enquanto o Brick carrega */}
-      {(!isSdkInitialized || !isBrickReady) && (
+      {(!isSdkInitialized || !isBrickReady) && !errorMessage && (
         <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
           <Loader2 size={24} className="animate-spin text-emerald-400" />
           <span className="text-xs font-sans tracking-wide">

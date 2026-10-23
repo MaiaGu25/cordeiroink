@@ -90,7 +90,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Inicialização do SDK do Mercado Pago
+    // 2. Proteção Anti-Fraude de Preço: Calcula o valor a ser cobrado diretamente no servidor
+    let secureAmount: number;
+    let existingOrder: any = null;
+
+    if (orderId) {
+      existingOrder = await prisma.order.findUnique({
+        where: { id: orderId },
+      });
+
+      if (!existingOrder) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Pedido não encontrado com o ID informado (${orderId}).`,
+          },
+          { status: 404 }
+        );
+      }
+
+      // Calcula o valor a ser cobrado diretamente no servidor
+      secureAmount = Number(
+        (Number(existingOrder.totalProducts) + Number(existingOrder.shippingCost)).toFixed(2)
+      );
+
+      const clientAmount = Number(parseFloat(String(transaction_amount)).toFixed(2));
+      if (Math.abs(clientAmount - secureAmount) > 0.01) {
+        console.warn(
+          `[Alerta de Segurança Checkout] Divergência de preço detectada no pedido ${existingOrder.orderNumber} (${orderId}). Valor enviado pelo cliente: R$ ${clientAmount}, Valor real do pedido no banco: R$ ${secureAmount}. Forçando valor real do banco.`
+        );
+      }
+    } else {
+      secureAmount = Number(parseFloat(String(transaction_amount)).toFixed(2));
+      if (!secureAmount || secureAmount <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Valor da transação inválido (deve ser maior que zero).",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 3. Inicialização do SDK do Mercado Pago
     const client = new MercadoPagoConfig({
       accessToken,
       options: {
@@ -100,13 +143,13 @@ export async function POST(req: NextRequest) {
 
     const payment = new Payment(client);
 
-    // 3. Montagem do payload oficial para payment.create()
+    // 4. Montagem do payload oficial para payment.create() com secureAmount
     const paymentDescription =
       description ||
-      `Cordeiro Ink - Pedido ${orderNumber || orderId || "Ateliê"}`.trim();
+      `Cordeiro Ink - Pedido ${existingOrder?.orderNumber || orderNumber || orderId || "Ateliê"}`.trim();
 
     const paymentPayload: any = {
-      transaction_amount: Number(parseFloat(String(transaction_amount)).toFixed(2)),
+      transaction_amount: secureAmount,
       description: paymentDescription,
       payment_method_id,
       payer: {
@@ -120,10 +163,10 @@ export async function POST(req: NextRequest) {
             }
           : undefined,
       },
-      external_reference: orderId || orderNumber || undefined,
+      external_reference: orderId || existingOrder?.orderNumber || orderNumber || undefined,
       metadata: {
         order_id: orderId || null,
-        order_number: orderNumber || null,
+        order_number: existingOrder?.orderNumber || orderNumber || null,
       },
     };
 
@@ -141,7 +184,7 @@ export async function POST(req: NextRequest) {
       paymentPayload.notification_url = process.env.MERCADO_PAGO_WEBHOOK_URL;
     }
 
-    // 4. Executa a criação do pagamento no Mercado Pago
+    // 5. Executa a criação do pagamento no Mercado Pago
     const response = await payment.create({
       body: paymentPayload,
     });
@@ -151,61 +194,56 @@ export async function POST(req: NextRequest) {
     const paymentId = response.id;
     const pointOfInteraction = response.point_of_interaction;
 
-    // 5. Se o pedido já existir no banco, atualiza status e método de pagamento
-    if (orderId) {
+    // 6. Se o pedido já existir no banco, atualiza status e método de pagamento
+    if (orderId && existingOrder) {
       try {
-        const order = await prisma.order.findUnique({
+        const order = existingOrder;
+        const isApproved = status === "approved";
+        const methodUpper = payment_method_id.toUpperCase();
+
+        await prisma.order.update({
           where: { id: orderId },
+          data: {
+            status: isApproved ? OrderStatus.PAID : OrderStatus.PENDING,
+            paidAt: isApproved ? new Date() : null,
+            paymentMethod:
+              payment_method_id === "pix"
+                ? "PIX"
+                : methodUpper.includes("DEBIT")
+                ? "CARTAO_DEBITO"
+                : "CARTAO_CREDITO",
+            notes: `${order.notes ? `${order.notes} | ` : ""}Mercado Pago ID: ${paymentId} (${status})`,
+          },
         });
 
-        if (order) {
-          const isApproved = status === "approved";
-          const methodUpper = payment_method_id.toUpperCase();
-
-          await prisma.order.update({
-            where: { id: orderId },
-            data: {
-              status: isApproved ? OrderStatus.PAID : OrderStatus.PENDING,
-              paidAt: isApproved ? new Date() : null,
-              paymentMethod:
-                payment_method_id === "pix"
-                  ? "PIX"
-                  : methodUpper.includes("DEBIT")
-                  ? "CARTAO_DEBITO"
-                  : "CARTAO_CREDITO",
-              notes: `${order.notes ? `${order.notes} | ` : ""}Mercado Pago ID: ${paymentId} (${status})`,
-            },
+        // Se o pagamento foi aprovado imediatamente (ex: cartão), registra a transação financeira
+        if (isApproved) {
+          const existingTx = await prisma.financialTransaction.findFirst({
+            where: { orderId: order.id, type: TransactionType.INCOME },
           });
 
-          // Se o pagamento foi aprovado imediatamente (ex: cartão), registra a transação financeira
-          if (isApproved) {
-            const existingTx = await prisma.financialTransaction.findFirst({
-              where: { orderId: order.id, type: TransactionType.INCOME },
-            });
-
-            if (!existingTx) {
-              await prisma.financialTransaction.create({
-                data: {
-                  type: TransactionType.INCOME,
-                  category: TransactionCategory.SALES_ORDER,
-                  amount: Number(transaction_amount),
-                  description: `Recebimento Pedido ${order.orderNumber} via Mercado Pago (${methodUpper})`,
-                  orderId: order.id,
-                  date: new Date(),
-                },
-              });
-            }
-
-            await prisma.auditLog.create({
+          if (!existingTx) {
+            await prisma.financialTransaction.create({
               data: {
-                action: "ORDER_PAID_MERCADOPAGO",
-                entity: "ORDER",
-                entityId: order.id,
+                type: TransactionType.INCOME,
+                category: TransactionCategory.SALES_ORDER,
+                amount: secureAmount,
+                description: `Recebimento Pedido ${order.orderNumber} via Mercado Pago (${methodUpper})`,
                 orderId: order.id,
-                details: `Pagamento aprovado instantaneamente via Mercado Pago (ID: ${paymentId}, Status: ${status})`,
+                date: new Date(),
               },
             });
           }
+
+          await prisma.auditLog.create({
+            data: {
+              action: "ORDER_PAID_MERCADOPAGO",
+              entity: "ORDER",
+              entityId: order.id,
+              orderId: order.id,
+              details: `Pagamento aprovado instantaneamente via Mercado Pago (ID: ${paymentId}, Status: ${status})`,
+            },
+          });
         }
       } catch (dbError) {
         console.error("[MercadoPago Checkout] Erro ao sincronizar pedido no banco:", dbError);
@@ -213,17 +251,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Retorno estruturado para o frontend
+    // 7. Retorno estruturado para o frontend
     return NextResponse.json({
       success: true,
       id: paymentId,
       status,
       status_detail: statusDetail,
       payment_method_id,
-      transaction_amount: Number(transaction_amount),
+      transaction_amount: secureAmount,
       point_of_interaction: pointOfInteraction,
       orderId: orderId || null,
-      orderNumber: orderNumber || null,
+      orderNumber: existingOrder?.orderNumber || orderNumber || null,
     });
   } catch (error: any) {
     console.error("[MercadoPago API Checkout Error]:", error);
@@ -239,7 +277,6 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         error: errorMessage,
-        cause: error.cause || null,
       },
       { status: statusCode }
     );
