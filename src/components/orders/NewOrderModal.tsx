@@ -24,7 +24,7 @@ import { SafeImage } from "@/components/ui/SafeImage";
 import { SalesChannel } from "@prisma/client";
 import { toast } from "sonner";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
-import type { ShippingOption } from "@/actions/shipping";
+import type { ShippingOption } from "@/lib/shipping-constants";
 
 export interface RawOption {
   id: string;

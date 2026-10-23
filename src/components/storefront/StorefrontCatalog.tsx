@@ -17,7 +17,7 @@ import {
 import { CATALOG_CATEGORIES, type CatalogCategory } from "@/lib/storefront-constants";
 import { useCart } from "./CartContext";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
-import type { ShippingOption } from "@/actions/shipping";
+import type { ShippingOption } from "@/lib/shipping-constants";
 
 import type { AvailableStockSize } from "@/actions/storefront";
 

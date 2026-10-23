@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Truck, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
-import { calculateShippingRate, COMBINAR_WHATSAPP_OPTION, type ShippingOption } from "@/actions/shipping";
+import { calculateShippingRate } from "@/actions/shipping";
+import { COMBINAR_WHATSAPP_OPTION, type ShippingOption } from "@/lib/shipping-constants";
 import { formatCurrency } from "@/lib/utils";
 
 interface ShippingCalculatorProps {

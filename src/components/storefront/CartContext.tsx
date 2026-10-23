@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { ShippingOption } from "@/actions/shipping";
+import type { ShippingOption } from "@/lib/shipping-constants";
 
 export interface CartItem {
   id: string;
