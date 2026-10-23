@@ -90,7 +90,8 @@ export function EditOrderModal({
         if (onSaved) onSaved();
         handleClose();
       } catch (err: any) {
-        toast.error("Erro ao salvar alterações: " + err.message);
+        const message = err?.message || (typeof err === "string" ? err : "Erro interno");
+        toast.error(`Erro ao salvar alterações: ${String(message)}`);
       }
     });
   };

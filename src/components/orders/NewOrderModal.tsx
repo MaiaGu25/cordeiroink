@@ -355,7 +355,8 @@ export function NewOrderModal({
         if (onOrderCreated) onOrderCreated();
         onClose();
       } catch (err: any) {
-        toast.error("Erro ao salvar pedido: " + err.message);
+        const message = err?.message || (typeof err === "string" ? err : "Erro interno");
+        toast.error(`Erro ao salvar pedido: ${String(message)}`);
       }
     });
   };

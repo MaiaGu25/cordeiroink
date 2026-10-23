@@ -30,14 +30,22 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
   const handleTogglePayment = () => {
     startTransition(async () => {
       try {
-        await toggleOrderPaymentStatus(order.id);
+        const res = await toggleOrderPaymentStatus(order.id);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          const message =
+            res.error || (typeof res.error === "string" ? res.error : "Erro ao alterar pagamento");
+          toast.error(`Erro ao alterar pagamento: ${String(message)}`);
+          return;
+        }
         toast.success(
           `Pagamento do pedido ${order.orderNumber} alterado para ${order.paidAt ? "PENDENTE" : "PAGO"}!`
         );
         if (onOrderUpdated) onOrderUpdated();
         onClose();
-      } catch (err: any) {
-        toast.error("Erro ao alterar pagamento: " + err.message);
+      } catch (error: any) {
+        const message =
+          error?.message || (typeof error === "string" ? error : "Erro interno");
+        toast.error(`Erro ao alterar pagamento: ${String(message)}`);
       }
     });
   };
@@ -45,12 +53,20 @@ export function OrderDetailModal({ order, onClose, onOrderUpdated }: OrderDetail
   const handleStatusChange = (newStatus: OrderStatus) => {
     startTransition(async () => {
       try {
-        await updateOrderStatus(order.id, newStatus);
+        const res = await updateOrderStatus(order.id, newStatus);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          const message =
+            res.error || (typeof res.error === "string" ? res.error : "Erro ao atualizar status");
+          toast.error(`Erro ao atualizar status: ${String(message)}`);
+          return;
+        }
         toast.success(`Status do pedido ${order.orderNumber} atualizado para ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
         if (onOrderUpdated) onOrderUpdated();
         onClose();
-      } catch (err: any) {
-        toast.error("Erro ao atualizar status: " + err.message);
+      } catch (error: any) {
+        const message =
+          error?.message || (typeof error === "string" ? error : "Erro interno");
+        toast.error(`Erro ao atualizar status: ${String(message)}`);
       }
     });
   };

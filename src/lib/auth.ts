@@ -30,12 +30,37 @@ export async function getCurrentUser(): Promise<CurrentUser> {
         };
       }
 
-      return {
-        id: "operador-sistema",
-        email: "operador@cordeiroink.com.br",
-        name: "Operador do Ateliê",
-        role: "ADMIN",
-      };
+      try {
+        let systemUser = await prisma.user.findUnique({
+          where: { email: "operador@cordeiroink.com.br" },
+        });
+
+        if (!systemUser) {
+          systemUser = await prisma.user.create({
+            data: {
+              email: "operador@cordeiroink.com.br",
+              name: "Operador do Ateliê",
+              role: "ADMIN",
+            },
+          });
+        }
+
+        return {
+          id: systemUser.id,
+          supabaseUid: systemUser.supabaseUid || undefined,
+          email: systemUser.email,
+          name: systemUser.name,
+          role: systemUser.role,
+        };
+      } catch {
+        // Se houver falha de escrita temporária, retorna o fallback seguro
+        return {
+          id: "operador-sistema",
+          email: "operador@cordeiroink.com.br",
+          name: "Operador do Ateliê",
+          role: "ADMIN",
+        };
+      }
     }
 
     // Busca usuário no banco pelo supabaseUid ou e-mail
@@ -95,3 +120,9 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     };
   }
 }
+
+export function getAuditUserId(user?: { id?: string | null } | null): string | null {
+  if (!user?.id || user.id === "operador-sistema") return null;
+  return user.id;
+}
+

@@ -68,7 +68,8 @@ export function CancelOrderModal({
         if (onCancelled) onCancelled();
         handleClose();
       } catch (err: any) {
-        toast.error("Erro ao cancelar pedido: " + err.message);
+        const message = err?.message || (typeof err === "string" ? err : "Erro interno");
+        toast.error(`Erro ao cancelar pedido: ${String(message)}`);
       }
     });
   };

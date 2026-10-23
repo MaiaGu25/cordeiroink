@@ -64,11 +64,19 @@ export function OrdersKanban({ orders, onSelectOrder, onRefresh }: OrdersKanbanP
   const handleAdvance = (orderId: string, orderNumber: string, nextStatus: OrderStatus) => {
     startTransition(async () => {
       try {
-        await updateOrderStatus(orderId, nextStatus);
+        const res = await updateOrderStatus(orderId, nextStatus);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          const message =
+            res.error || (typeof res.error === "string" ? res.error : "Erro ao mover pedido");
+          toast.error(`Erro ao mover pedido: ${String(message)}`);
+          return;
+        }
         toast.success(`Pedido ${orderNumber} movido para ${STATUS_CONFIG[nextStatus]?.label || nextStatus}`);
         if (onRefresh) onRefresh();
-      } catch (err: any) {
-        toast.error("Erro ao mover pedido: " + err.message);
+      } catch (error: any) {
+        const message =
+          error?.message || (typeof error === "string" ? error : "Erro interno");
+        toast.error(`Erro ao mover pedido: ${String(message)}`);
       }
     });
   };

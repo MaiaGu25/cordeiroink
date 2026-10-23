@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { OrderStatus, SalesChannel, JobPriority, RawItemType, TransactionType, TransactionCategory } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getAuditUserId } from "@/lib/auth";
 
 export async function getOrders(filter?: {
   channel?: string;
@@ -142,56 +142,66 @@ export async function getOrderById(id: string) {
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  const user = await getCurrentUser();
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { productionJob: true },
-  });
+  try {
+    const user = await getCurrentUser();
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { productionJob: true },
+    });
 
-  if (!order) throw new Error("Pedido não encontrado");
+    if (!order) {
+      return { success: false, error: "Pedido não encontrado." };
+    }
 
-  // Se o pedido passar para PAID ou WAITING_PRODUCTION e não tiver productionJob, cria o job
-  if (
-    (status === OrderStatus.PAID || status === OrderStatus.WAITING_PRODUCTION) &&
-    !order.productionJob
-  ) {
-    await prisma.productionJob.create({
+    // Se o pedido passar para PAID ou WAITING_PRODUCTION e não tiver productionJob, cria o job
+    if (
+      (status === OrderStatus.PAID || status === OrderStatus.WAITING_PRODUCTION) &&
+      !order.productionJob
+    ) {
+      await prisma.productionJob.create({
+        data: {
+          orderId: order.id,
+          priority: JobPriority.NORMAL,
+        },
+      });
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
       data: {
-        orderId: order.id,
-        priority: JobPriority.NORMAL,
+        status,
+        paidAt: status === OrderStatus.PAID && !order.paidAt ? new Date() : order.paidAt,
+        shippedAt: status === OrderStatus.SHIPPED ? new Date() : order.shippedAt,
       },
     });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: getAuditUserId(user),
+        userName: user.name,
+        userEmail: user.email,
+        orderId: orderId,
+        action: "ORDER_STATUS_CHANGED",
+        entity: "Order",
+        entityId: orderId,
+        details: `Status alterado de ${order.status} para ${status} por ${user.name}`,
+        oldPayload: JSON.stringify({ status: order.status }),
+        newPayload: JSON.stringify({ status, updatedBy: user.name }),
+      },
+    });
+
+    revalidatePath("/pedidos");
+    revalidatePath("/producao");
+    revalidatePath("/historico");
+    revalidatePath("/");
+    return { success: true, ...updated, order: updated };
+  } catch (error: any) {
+    console.error("Erro ao atualizar status:", error);
+    return {
+      success: false,
+      error: String(error?.message || "Erro interno ao atualizar status"),
+    };
   }
-
-  const updated = await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      status,
-      paidAt: status === OrderStatus.PAID && !order.paidAt ? new Date() : order.paidAt,
-      shippedAt: status === OrderStatus.SHIPPED ? new Date() : order.shippedAt,
-    },
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      orderId: orderId,
-      action: "ORDER_STATUS_CHANGED",
-      entity: "Order",
-      entityId: orderId,
-      details: `Status alterado de ${order.status} para ${status} por ${user.name}`,
-      oldPayload: JSON.stringify({ status: order.status }),
-      newPayload: JSON.stringify({ status, updatedBy: user.name }),
-    },
-  });
-
-  revalidatePath("/pedidos");
-  revalidatePath("/producao");
-  revalidatePath("/historico");
-  revalidatePath("/");
-  return updated;
 }
 
 export async function cancelOrder(orderId: string, reason: string) {
@@ -291,7 +301,7 @@ export async function cancelOrder(orderId: string, reason: string) {
   // 4. Registro no AuditLog
   await prisma.auditLog.create({
     data: {
-      userId: user.id,
+      userId: getAuditUserId(user),
       userName: user.name,
       userEmail: user.email,
       orderId: order.id,
@@ -392,7 +402,7 @@ export async function editOrder(data: {
 
   await prisma.auditLog.create({
     data: {
-      userId: user.id,
+      userId: getAuditUserId(user),
       userName: user.name,
       userEmail: user.email,
       orderId: order.id,
@@ -419,67 +429,82 @@ export async function editOrder(data: {
 }
 
 export async function toggleOrderPaymentStatus(orderId: string) {
-  const user = await getCurrentUser();
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { financialTx: true },
-  });
+  try {
+    const user = await getCurrentUser();
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { financialTx: true },
+    });
 
-  if (!order) throw new Error("Pedido não encontrado");
-
-  const willBePaid = !order.paidAt;
-  const newPaidAt = willBePaid ? new Date() : null;
-
-  const updated = await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      paidAt: newPaidAt,
-      status: willBePaid && (order.status === OrderStatus.PENDING || order.status === OrderStatus.NEW)
-        ? OrderStatus.WAITING_PRODUCTION
-        : order.status,
-    },
-  });
-
-  if (willBePaid) {
-    // Registra transação financeira se não existir uma para esse pedido
-    const existingTx = order.financialTx.find(
-      (tx) => tx.type === TransactionType.INCOME && tx.category === TransactionCategory.SALES_ORDER
-    );
-    if (!existingTx) {
-      await prisma.financialTransaction.create({
-        data: {
-          type: TransactionType.INCOME,
-          category: TransactionCategory.SALES_ORDER,
-          amount: order.totalProducts + order.shippingCost,
-          description: `Venda ${order.orderNumber} - ${order.customerName} (${order.paymentMethod || "Pix"})`,
-          orderId: order.id,
-        },
-      });
+    if (!order) {
+      return { success: false, error: "Pedido não encontrado." };
     }
+
+    const willBePaid = !order.paidAt;
+    const newPaidAt = willBePaid ? new Date() : null;
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        paidAt: newPaidAt,
+        status: willBePaid && (order.status === OrderStatus.PENDING || order.status === OrderStatus.NEW)
+          ? OrderStatus.WAITING_PRODUCTION
+          : order.status,
+      },
+    });
+
+    if (willBePaid) {
+      // Registra transação financeira se não existir uma para esse pedido
+      const existingTx = order.financialTx.find(
+        (tx) => tx.type === TransactionType.INCOME && tx.category === TransactionCategory.SALES_ORDER
+      );
+      if (!existingTx) {
+        await prisma.financialTransaction.create({
+          data: {
+            type: TransactionType.INCOME,
+            category: TransactionCategory.SALES_ORDER,
+            amount: order.totalProducts + order.shippingCost,
+            description: `Venda ${order.orderNumber} - ${order.customerName} (${order.paymentMethod || "Pix"})`,
+            orderId: order.id,
+          },
+        });
+      }
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        userId: getAuditUserId(user),
+        userName: user.name,
+        userEmail: user.email,
+        orderId: order.id,
+        action: willBePaid ? "ORDER_PAYMENT_CONFIRMED" : "ORDER_PAYMENT_PENDING",
+        entity: "Order",
+        entityId: order.id,
+        details: `Status de pagamento do pedido ${order.orderNumber} alterado para ${willBePaid ? "PAGO" : "PENDENTE"} por ${user.name}`,
+        oldPayload: JSON.stringify({ paidAt: order.paidAt }),
+        newPayload: JSON.stringify({ paidAt: newPaidAt, updatedBy: user.name }),
+      },
+    });
+
+    revalidatePath("/pedidos");
+    revalidatePath("/producao");
+    revalidatePath("/financeiro");
+    revalidatePath("/historico");
+    revalidatePath("/");
+
+    return {
+      success: true,
+      paidAt: updated.paidAt,
+      status: updated.status,
+      order: updated,
+    };
+  } catch (error: any) {
+    console.error("Erro ao alterar pagamento:", error);
+    return {
+      success: false,
+      error: String(error?.message || "Erro interno ao alterar pagamento"),
+    };
   }
-
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      orderId: order.id,
-      action: willBePaid ? "ORDER_PAYMENT_CONFIRMED" : "ORDER_PAYMENT_PENDING",
-      entity: "Order",
-      entityId: order.id,
-      details: `Status de pagamento do pedido ${order.orderNumber} alterado para ${willBePaid ? "PAGO" : "PENDENTE"} por ${user.name}`,
-      oldPayload: JSON.stringify({ paidAt: order.paidAt }),
-      newPayload: JSON.stringify({ paidAt: newPaidAt, updatedBy: user.name }),
-    },
-  });
-
-  revalidatePath("/pedidos");
-  revalidatePath("/producao");
-  revalidatePath("/financeiro");
-  revalidatePath("/historico");
-  revalidatePath("/");
-
-  return updated;
 }
 
 export interface ManualOrderItemInput {
@@ -716,7 +741,7 @@ export async function createManualOrder(data: {
   const user = await getCurrentUser();
   await prisma.auditLog.create({
     data: {
-      userId: user.id,
+      userId: getAuditUserId(user),
       userName: user.name,
       userEmail: user.email,
       orderId: order.id,
