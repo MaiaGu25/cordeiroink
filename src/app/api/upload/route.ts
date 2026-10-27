@@ -5,30 +5,45 @@ import fs from "fs/promises";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Rota universal de upload de arquivos para a Arara Virtual, Catálogo e Estampas.
+ * Suporta Supabase Storage com fallback automático para armazenamento local.
+ */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Nenhum arquivo enviado no corpo da requisição." },
+        { status: 400 }
+      );
     }
+
+    const rawFolder = (formData.get("folder") as string) || "mockups";
+    // Sanitiza a pasta de destino
+    const safeFolder = rawFolder.replace(/[^a-zA-Z0-9_-]/g, "") || "mockups";
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const targetFolder =
-      (formData.get("folder") as string) === "artes-clientes"
-        ? "artes-clientes"
-        : "estampas";
-
-    // Nome único e seguro para o arquivo
+    // Formata o nome do arquivo para padrão seguro
     const ext = path.extname(file.name).toLowerCase() || ".png";
     const rawBaseName = path.basename(file.name, ext);
-    const safeBaseName = rawBaseName.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 30) || "arte";
+    const safeBaseName =
+      rawBaseName.replace(/[^a-zA-Z0-9_-]/g, "").substring(0, 30) || "upload";
     const fileName = `${safeBaseName}-${Date.now()}${ext}`;
 
-    // 1. Upload para Supabase Storage (Produção / Vercel)
+    // Decide o bucket ideal (storefront para mockups, prints, catalog; estampas para estampas de clientes)
+    const isStorefrontAsset = ["mockups", "prints", "catalog", "banners"].includes(
+      safeFolder
+    );
+    const targetBucket = isStorefrontAsset ? "storefront" : "estampas";
+    const storagePath = `${safeFolder}/${fileName}`;
+    const contentType = file.type || "image/png";
+
+    // 1. Tentar upload para o Supabase Storage
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "")
       .replace(/\/rest\/v1\/?$/, "")
       .replace(/\/$/, "");
@@ -38,63 +53,89 @@ export async function POST(req: NextRequest) {
 
     if (supabaseUrl && supabaseKey) {
       try {
-        const supabase = createClient(supabaseUrl, supabaseKey);
-        const storagePath = `${targetFolder}/${fileName}`;
-        const contentType = file.type || "image/png";
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
 
-        // Garante que o bucket 'estampas' exista se service role key estiver disponível
+        // Garante a existência do bucket se tiver permissão
         if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
           try {
             const { data: buckets } = await supabase.storage.listBuckets();
-            const hasBucket = buckets?.some((b) => b.name === "estampas");
-            if (!hasBucket) {
-              await supabase.storage.createBucket("estampas", { public: true });
+            const exists = buckets?.some((b) => b.name === targetBucket);
+            if (!exists) {
+              await supabase.storage.createBucket(targetBucket, { public: true });
             }
-          } catch (bucketErr) {
-            console.warn("Aviso ao verificar bucket 'estampas':", bucketErr);
+          } catch (bErr: any) {
+            console.warn(`Aviso ao verificar bucket '${targetBucket}':`, bErr?.message);
           }
         }
 
         const { data, error } = await supabase.storage
-          .from("estampas")
+          .from(targetBucket)
           .upload(storagePath, buffer, {
             contentType,
             upsert: true,
           });
 
-        if (!error) {
-          // Obtém a URL pública permanente
+        if (!error && data) {
           const { data: publicUrlData } = supabase.storage
-            .from("estampas")
+            .from(targetBucket)
             .getPublicUrl(storagePath);
 
           return NextResponse.json({
+            success: true,
             url: publicUrlData.publicUrl,
             fileName,
+            bucket: targetBucket,
           });
         }
 
-        console.warn("Falha no upload para o Supabase Storage, aplicando fallback local:", error.message);
-      } catch (uploadCatchErr: any) {
-        console.warn("Erro ao comunicar com Supabase Storage, aplicando fallback local:", uploadCatchErr?.message);
+        console.warn(
+          `Falha no upload para o Supabase Storage (bucket: ${targetBucket}), aplicando fallback local:`,
+          error?.message
+        );
+      } catch (supabaseErr: any) {
+        console.warn(
+          "Exceção ao comunicar com Supabase Storage, aplicando fallback local:",
+          supabaseErr?.message
+        );
       }
     }
 
-    // 2. Fallback para ambiente local se as variáveis do Supabase não estiverem definidas
-    console.warn(
-      "NEXT_PUBLIC_SUPABASE_URL ou NEXT_PUBLIC_SUPABASE_ANON_KEY não configurados. Salvando localmente em public/uploads/"
-    );
-    const uploadDir = path.join(process.cwd(), "public", "uploads", targetFolder);
-    await fs.mkdir(uploadDir, { recursive: true });
-    const filePath = path.join(uploadDir, fileName);
-    await fs.writeFile(filePath, buffer);
+    // 2. Fallback de salvamento local seguro em public/uploads/
+    try {
+      const localSubDir = isStorefrontAsset
+        ? path.join("storefront", safeFolder)
+        : safeFolder;
+      const uploadDir = path.join(process.cwd(), "public", "uploads", localSubDir);
+      await fs.mkdir(uploadDir, { recursive: true });
+      const filePath = path.join(uploadDir, fileName);
+      await fs.writeFile(filePath, buffer);
 
-    const relativeUrl = `/uploads/${targetFolder}/${fileName}`;
-    return NextResponse.json({ url: relativeUrl, fileName });
+      const relativeUrl = `/uploads/${localSubDir.replace(/\\/g, "/")}/${fileName}`;
+      return NextResponse.json({
+        success: true,
+        url: relativeUrl,
+        fileName,
+        storage: "local",
+      });
+    } catch (fsErr: any) {
+      console.error("Erro no fallback de armazenamento local:", fsErr);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Falha ao gravar arquivo localmente: " + (fsErr?.message || String(fsErr)),
+        },
+        { status: 500 }
+      );
+    }
   } catch (err: any) {
-    console.error("Erro ao realizar upload de estampa:", err);
+    console.error("Erro global no endpoint de upload:", err);
     return NextResponse.json(
-      { error: "Erro ao processar upload: " + (err.message || "Erro interno") },
+      {
+        success: false,
+        error: "Erro inesperado ao processar upload: " + (err?.message || String(err)),
+      },
       { status: 500 }
     );
   }

@@ -106,7 +106,12 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     formData.append("folder", folder);
 
     try {
-      const res = await uploadStorefrontFile(formData);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const res = await response.json();
+
       if (res.success && res.url) {
         if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
         else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);

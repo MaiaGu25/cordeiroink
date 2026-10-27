@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
+import {
   X,
   ShoppingBag,
   Sparkles,
-  Check,
   Plus,
   Minus,
   MessageCircle,
@@ -24,35 +27,36 @@ interface VirtualRackProps {
 }
 
 /**
- * Cabide de madeira esculpida com gancho metálico realista suspenso no trilho.
+ * Cabide de madeira esculpida agrupado diretamente no topo da peça.
+ * Move-se solidariamente com a camiseta durante o arraste e física da arara.
  */
 function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
   if (isMini) {
     return (
-      <div className="flex flex-col items-center select-none pointer-events-none -mb-1.5 z-30">
+      <div className="flex flex-col items-center select-none pointer-events-none -mb-1 z-30">
         <svg
-          width="16"
-          height="16"
+          width="18"
+          height="18"
           viewBox="0 0 26 26"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="text-neutral-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+          className="text-neutral-500"
         >
           <path
-            d="M13 3C15.5 3 17.5 5 17.5 7.5C17.5 9.5 16 11 14.5 11.8L13 12.8V17"
+            d="M13 2C15.5 2 17.5 4 17.5 6.5C17.5 8.5 16 10 14.5 10.8L13 11.8V16"
             stroke="currentColor"
-            strokeWidth="2.5"
+            strokeWidth="2.4"
             strokeLinecap="round"
           />
-          <circle cx="13" cy="3" r="1.5" fill="currentColor" />
+          <circle cx="13" cy="2" r="1.5" fill="currentColor" />
         </svg>
         <svg
-          width="64"
-          height="13"
+          width="70"
+          height="14"
           viewBox="0 0 110 22"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="-mt-1.5 drop-shadow-[0_2px_3px_rgba(0,0,0,0.2)]"
+          className="-mt-1.5"
         >
           <path
             d="M55 2C42 7 18 13 4 19C15 20 40 16 55 16C70 16 95 20 106 19C92 13 68 7 55 2Z"
@@ -65,36 +69,36 @@ function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
 
   return (
     <div className="flex flex-col items-center select-none pointer-events-none -mb-3 z-30">
-      {/* Gancho Metálico Prateado */}
+      {/* Gancho Metálico Prateado - alinhado com o trilho da arara */}
       <svg
-        width="26"
-        height="26"
-        viewBox="0 0 26 26"
+        width="28"
+        height="28"
+        viewBox="0 0 28 28"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-neutral-500 drop-shadow-[0_2px_3px_rgba(0,0,0,0.35)]"
+        className="text-neutral-500 drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
       >
         <path
-          d="M13 3C15.5 3 17.5 5 17.5 7.5C17.5 9.5 16 11 14.5 11.8L13 12.8V17"
+          d="M14 2C16.8 2 19 4.2 19 7C19 9.2 17.2 11 15.5 11.9L14 12.9V18"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2.6"
           strokeLinecap="round"
         />
-        <circle cx="13" cy="3" r="1.5" fill="currentColor" />
+        <circle cx="14" cy="2" r="1.5" fill="currentColor" />
       </svg>
 
-      {/* Corpo de Madeira Esculpida */}
+      {/* Corpo de Madeira Esculpida com Chanfros Realistas */}
       <svg
-        width="110"
-        height="22"
+        width="116"
+        height="24"
         viewBox="0 0 110 22"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="-mt-2.5 drop-shadow-[0_4px_6px_rgba(0,0,0,0.25)]"
+        className="-mt-2.5 drop-shadow-[0_4px_6px_rgba(0,0,0,0.2)]"
       >
         <path
           d="M55 2C42 7 18 13 4 19C15 20 40 16 55 16C70 16 95 20 106 19C92 13 68 7 55 2Z"
-          fill="url(#woodGradient)"
+          fill="url(#hangerWoodGrad)"
         />
         <path
           d="M55 2L4 19C15 20 40 16 55 16C70 16 95 20 106 19L55 2Z"
@@ -104,7 +108,7 @@ function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
         />
         <defs>
           <linearGradient
-            id="woodGradient"
+            id="hangerWoodGrad"
             x1="4"
             y1="2"
             x2="106"
@@ -123,9 +127,9 @@ function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
 
 /**
  * Renderizador de 3 Camadas Dinâmicas com CSS Blend Modes:
- * 1. Fundo (cor selecionada, silhueta com maskImage)
- * 2. Textura (camiseta cinza neutro com mix-blend-multiply)
- * 3. Arte (estampa PNG isolada com coordenadas dinâmicas)
+ * 1. Fundo (cor selecionada mascarada pela silhueta exata da peça)
+ * 2. Textura cinza neutro com volume e sombras em mix-blend-multiply (SEM filter drop-shadow para evitar quadrados brancos)
+ * 3. Arte (estampa PNG isolada com coordenadas dinâmicas e fundo 100% transparente)
  */
 interface ShirtLayeredRenderProps {
   baseImage: string;
@@ -149,10 +153,10 @@ export function ShirtLayeredRender({
   const effectiveBase = baseImage || "/mockups/blank-front.svg";
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden select-none">
-      {/* Camada 1: Fundo com a cor selecionada (mascarada pela silhueta da camiseta) */}
+    <div className="relative w-full h-full flex items-center justify-center overflow-visible select-none bg-transparent">
+      {/* Camada 1: Fundo com a cor selecionada (mascarada com o contorno da camiseta) */}
       <div
-        className="absolute inset-0 transition-colors duration-300 pointer-events-none"
+        className="absolute inset-0 pointer-events-none transition-colors duration-300 bg-transparent"
         style={{
           backgroundColor: colorHex,
           maskImage: `url('${effectiveBase}')`,
@@ -166,18 +170,18 @@ export function ShirtLayeredRender({
         }}
       />
 
-      {/* Camada 2: Textura de sombra/volume da camiseta cinza em mix-blend-multiply */}
+      {/* Camada 2: Mockup cinza em mix-blend-multiply (SEM filter drop-shadow para não quebrar a transparência) */}
       <img
         src={effectiveBase}
         alt={alt}
-        className="absolute inset-0 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none filter drop-shadow-[0_18px_30px_rgba(0,0,0,0.18)]"
-        loading="lazy"
+        className="absolute inset-0 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none bg-transparent"
+        loading="eager"
       />
 
-      {/* Camada 3: Arte isolada da estampa com posicionamento dinâmico */}
+      {/* Camada 3: Arte isolada da estampa PNG transparente com posicionamento dinâmico */}
       {printImage && (
         <div
-          className="absolute pointer-events-none select-none transition-all duration-150"
+          className="absolute pointer-events-none select-none transition-all duration-150 z-20"
           style={{
             top: `${printTop}%`,
             left: `${printLeft}%`,
@@ -188,8 +192,8 @@ export function ShirtLayeredRender({
           <img
             src={printImage}
             alt="Estampa"
-            className="w-full h-auto object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.22)] select-none"
-            loading="lazy"
+            className="w-full h-auto object-contain select-none bg-transparent"
+            loading="eager"
           />
         </div>
       )}
@@ -198,8 +202,7 @@ export function ShirtLayeredRender({
 }
 
 /**
- * Coleção rica de demonstração streetwear caso o banco tenha poucas peças.
- * Inspirada exatamente no vídeo de referência do usuário.
+ * Coleção de demonstração fiel ao vídeo de referência do usuário.
  */
 const DEFAULT_STREETWEAR_ITEMS: VirtualRackProduct[] = [
   {
@@ -209,7 +212,7 @@ const DEFAULT_STREETWEAR_ITEMS: VirtualRackProduct[] = [
     category: "Camisa",
     collection: "Drop 01 - Lagos",
     description:
-      "Camisa manga longa estruturada em algodão premium com estampa de punhal e sangue no peito e arte dorsal impactante.",
+      "Camisa manga longa estruturada em algodão premium com estampa de punhal no peito e arte dorsal impactante.",
     baseImage: "/mockups/blank-front.svg",
     baseBackImage: "/mockups/blank-back.svg",
     printImage:
@@ -447,7 +450,6 @@ const DEFAULT_STREETWEAR_ITEMS: VirtualRackProduct[] = [
 export function VirtualRack({ products = [] }: VirtualRackProps) {
   const { addItem, openCart } = useCart();
 
-  // Se houver menos de 4 produtos no banco, mescla para garantir a arara cheia e cinematográfica
   const activeProducts =
     products.length >= 4
       ? products
@@ -464,21 +466,17 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Estados do Modal de Disponibilidade
+  // Estados do Modal de Compra
   const [modalSize, setModalSize] = useState("M");
   const [modalQuantity, setModalQuantity] = useState(1);
 
   const total = activeProducts.length;
   const currentProduct = activeProducts[selectedIndex] || activeProducts[0];
 
-  // Índices para o efeito carrossel em profundidade de arara
-  const prevIndex = (selectedIndex - 1 + total) % total;
-  const nextIndex = (selectedIndex + 1) % total;
+  // Motion value para arraste e rotação dinâmica
+  const dragX = useMotionValue(0);
+  const rackRotation = useTransform(dragX, [-200, 0, 200], [4.5, 0, -4.5]);
 
-  const prevProduct = activeProducts[prevIndex];
-  const nextProduct = activeProducts[nextIndex];
-
-  // Cor selecionada
   const currentColor =
     currentProduct.colors?.[selectedColorIndex] ||
     currentProduct.colors?.[0] || {
@@ -487,14 +485,12 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
       imageUrl: "",
     };
 
-  // Imagens base e estampas da peça ativa
   const currentBase = currentProduct.baseImage || "/mockups/blank-front.svg";
   const currentBaseBack = currentProduct.baseBackImage || "/mockups/blank-back.svg";
   const currentPrint = currentProduct.printImage || currentProduct.imageUrl;
   const currentPrintBack =
     currentProduct.printBackImage || currentProduct.backImageUrl || currentPrint;
 
-  // Coordenadas dinâmicas
   const printTop = currentProduct.printTop ?? 28.0;
   const printLeft = currentProduct.printLeft ?? 50.0;
   const printWidth = currentProduct.printWidth ?? 45.0;
@@ -522,6 +518,21 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
     setViewMode("FOCUS");
   };
 
+  // Arraste fluido via Framer Motion sem necessidade de setas genéricas
+  const handleDragEnd = (
+    _: any,
+    info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
+  ) => {
+    const swipeThreshold = 50;
+    const velocityThreshold = 250;
+
+    if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
+      handleNext();
+    } else if (info.offset.x > swipeThreshold || info.velocity.x > velocityThreshold) {
+      handlePrev();
+    }
+  };
+
   const handleAddToCart = () => {
     addItem({
       productId: currentProduct.id,
@@ -544,10 +555,10 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
   const waLink = `https://wa.me/${brandPhone}?text=${waMsg}`;
 
   return (
-    <section className="relative w-full bg-[#F7F4EE] text-[#0A0A0A] pt-8 sm:pt-12 md:pt-16 pb-0 overflow-hidden select-none border-b border-neutral-300">
+    <section className="relative w-full bg-[#F7F4EE] text-[#0A0A0A] pt-6 sm:pt-10 md:pt-12 pb-0 overflow-hidden select-none border-b border-neutral-300">
       <div className="max-w-6xl mx-auto px-4 relative">
-        {/* BARRA SUPERIOR: ALTERNADOR DISCRETO [ ⊞ ARARA COMPLETA | ◫ DETALHE ] */}
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
+        {/* BARRA SUPERIOR: ALTERNADOR DISCRETO [ ⊞ ARARA COMPLETA | ◫ FOCAR PEÇA ] */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] sm:text-[11px] font-mono font-bold tracking-widest uppercase text-neutral-500">
@@ -586,42 +597,41 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
         </div>
 
         {/* TRILHO METÁLICO DA ARARA (RACK BAR) */}
-        <div className="relative w-full max-w-5xl mx-auto mb-2">
+        <div className="relative w-full max-w-5xl mx-auto mb-[-6px] z-10 pointer-events-none">
           <div className="h-2 w-full bg-gradient-to-r from-neutral-400 via-neutral-300 to-neutral-400 rounded-full shadow-[0_2px_8px_rgba(0,0,0,0.15)] border border-neutral-300 relative">
-            {/* Ponteiras de fixação industrial nas extremidades */}
+            {/* Ponteiras industriais */}
             <div className="absolute -left-2 -top-1 w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600 shadow" />
             <div className="absolute -right-2 -top-1 w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600 shadow" />
-            {/* Brilho sutil do metal escovado */}
+            {/* Brilho do metal escovado */}
             <div className="absolute inset-x-8 top-0.5 h-[1px] bg-white/60" />
           </div>
         </div>
 
         {/* ============================================================== */}
-        {/* MODO 1: VISÃO DA ARARA COMPLETA (PANORÂMICA / OVERVIEW)         */}
-        {/* Todas as peças penduradas lado a lado no trilho (igual ao vídeo) */}
+        {/* MODO 1: VISÃO DA ARARA COMPLETA (PANORÂMICA)                    */}
         {/* ============================================================== */}
         {viewMode === "OVERVIEW" && (
           <div className="flex flex-col items-center py-6 sm:py-10 animate-in fade-in duration-300">
-            {/* Peças penduradas em fila indiana no trilho */}
             <div className="w-full overflow-x-auto pb-6 scrollbar-none flex items-start justify-center gap-4 sm:gap-6 md:gap-8 px-4">
               {activeProducts.map((prod, idx) => {
                 const isCurrent = idx === selectedIndex;
                 const prodColor = prod.colors?.[0]?.hex || "#18181b";
                 return (
-                  <div
+                  <motion.div
                     key={prod.id}
                     onClick={() => handleSelectProduct(idx)}
-                    className="flex flex-col items-center cursor-pointer group shrink-0 transition-transform duration-300 hover:-translate-y-2"
+                    whileHover={{ y: -6, scale: 1.03 }}
+                    className="flex flex-col items-center cursor-pointer group shrink-0 transition-all bg-transparent"
                   >
-                    {/* Cabide individual */}
+                    {/* Cabide agrupado dentro do container da peça */}
                     <WoodenHanger isMini />
 
-                    {/* Miniatura da Peça com Sanduíche de Camadas */}
+                    {/* Miniatura com 3 camadas estritamente transparentes */}
                     <div
-                      className={`w-28 h-36 sm:w-36 sm:h-48 md:w-40 md:h-52 relative transition-all duration-300 ${
+                      className={`w-28 h-36 sm:w-36 sm:h-48 md:w-40 md:h-52 relative bg-transparent transition-all duration-300 ${
                         isCurrent
-                          ? "scale-105 filter drop-shadow-[0_12px_20px_rgba(0,0,0,0.25)]"
-                          : "opacity-85 group-hover:opacity-100 filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.15)]"
+                          ? "scale-105 filter drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)]"
+                          : "opacity-85 group-hover:opacity-100 filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.12)]"
                       }`}
                     >
                       <ShirtLayeredRender
@@ -635,234 +645,240 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                       />
                     </div>
 
-                    {/* Título e Preço da Peça */}
                     <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-center max-w-[120px] mt-2 group-hover:text-amber-600 transition-colors line-clamp-1">
                       {prod.name}
                     </span>
                     <span className="text-[9px] font-mono font-bold text-neutral-500">
                       {formatCurrency(prod.price)}
                     </span>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
-            {/* Botão SEE AVAILABILITY no modo panorâmico */}
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="px-6 py-2 rounded-md border border-neutral-800 hover:bg-[#0A0A0A] hover:text-[#F7F4EE] text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-              >
-                SEE AVAILABILITY
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="mt-4 px-6 py-2 rounded-md border border-neutral-800 hover:bg-[#0A0A0A] hover:text-[#F7F4EE] text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+            >
+              SEE AVAILABILITY
+            </button>
           </div>
         )}
 
         {/* ============================================================== */}
-        {/* MODO 2: VISÃO DE FOCO STREETWEAR COM GIRO 3D E PROFUNDIDADE     */}
-        {/* A peça selecionada em destaque com vizinhas desfocadas          */}
+        {/* MODO 2: VISÃO DE FOCO COM CARROSSEL NATIVO DE ARRASTE (DRAG)    */}
+        {/* Sem setas genéricas. Cabide agrupado e física suave via Motion  */}
         {/* ============================================================== */}
         {viewMode === "FOCUS" && (
-          <div className="relative flex items-center justify-center min-h-[440px] sm:min-h-[500px] md:min-h-[540px] animate-in fade-in duration-300">
-            {/* Botão de Navegação Esquerda (<) */}
-            {total > 1 && (
-              <button
-                type="button"
-                onClick={handlePrev}
-                aria-label="Peça anterior"
-                className="absolute left-2 sm:left-6 md:left-10 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full border border-neutral-300/80 bg-white/80 hover:bg-white text-neutral-800 hover:text-black flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-sm"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
+          <div className="relative flex items-center justify-center min-h-[460px] sm:min-h-[520px] md:min-h-[560px] overflow-visible">
+            {/* Área de Arraste Touch & Mouse fluida (Framer Motion) */}
+            <motion.div
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.65}
+              onDragEnd={handleDragEnd}
+              style={{ x: dragX, rotate: rackRotation }}
+              className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing bg-transparent select-none touch-pan-y"
+            >
+              {/* RENDERIZAÇÃO DAS PEÇAS EM PROFUNDIDADE DE CAMPO AO LONGO DO TRILHO */}
+              {activeProducts.map((prod, idx) => {
+                let diff = (idx - selectedIndex + total) % total;
+                if (diff > total / 2) diff -= total;
 
-            {/* Peça Vizinha Esquerda (Desfocada / Em Profundidade de Campo) */}
-            {total > 1 && (
-              <div
-                onClick={handlePrev}
-                className="hidden md:flex flex-col items-center absolute -left-14 lg:left-2 z-10 opacity-30 hover:opacity-50 transition-all duration-500 scale-75 blur-[1.8px] cursor-pointer pointer-events-auto"
-                title={`Ver ${prevProduct.name}`}
-              >
-                <WoodenHanger />
-                <div className="w-56 h-72 relative">
-                  <ShirtLayeredRender
-                    baseImage={prevProduct.baseImage || "/mockups/blank-front.svg"}
-                    printImage={prevProduct.printImage || prevProduct.imageUrl}
-                    colorHex={prevProduct.colors?.[0]?.hex || "#18181b"}
-                    printTop={prevProduct.printTop ?? 28}
-                    printLeft={prevProduct.printLeft ?? 50}
-                    printWidth={prevProduct.printWidth ?? 45}
-                    alt={prevProduct.name}
-                  />
-                </div>
-              </div>
-            )}
+                // Renderiza a peça ativa e até 2 vizinhas de cada lado
+                if (Math.abs(diff) > 2) return null;
 
-            {/* PEÇA CENTRAL PRINCIPAL (DESTAQUE MÁXIMO COM HANGTAGS) */}
-            <div className="relative flex flex-col items-center z-20 transition-transform duration-500">
-              {/* Cabide de Madeira Suspenso */}
-              <WoodenHanger />
+                const isCenter = diff === 0;
+                const prodBase = isCenter
+                  ? viewSide === "FRONT"
+                    ? currentBase
+                    : currentBaseBack
+                  : prod.baseImage || "/mockups/blank-front.svg";
 
-              {/* CONTAINER DO PRODUTO COM AS HANGTAGS SUSPENSAS NO OMBRO DIREITO */}
-              <div className="relative">
-                {/* -------------------------------------------------------- */}
-                {/* HANGTAGS DE CORES SUSPENSAS POR CORDINHA (IGUAL AO VÍDEO) */}
-                {/* Ficam penduradas na lateral direita da peça              */}
-                {/* -------------------------------------------------------- */}
-                {currentProduct.colors && currentProduct.colors.length > 1 && (
-                  <div className="absolute -right-4 sm:-right-8 top-8 sm:top-10 z-40 flex items-start gap-1.5 sm:gap-2">
-                    {currentProduct.colors.map((color, idx) => {
-                      const isSelected = selectedColorIndex === idx;
-                      return (
-                        <button
-                          key={color.hex + idx}
-                          type="button"
-                          onClick={() => setSelectedColorIndex(idx)}
-                          title={`Selecionar cor: ${color.name}`}
-                          className="group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                const prodPrint = isCenter
+                  ? viewSide === "FRONT"
+                    ? currentPrint
+                    : currentPrintBack
+                  : prod.printImage || prod.imageUrl;
+
+                const prodColor = isCenter
+                  ? currentColor.hex
+                  : prod.colors?.[0]?.hex || "#18181b";
+
+                const pTop = isCenter
+                  ? viewSide === "FRONT"
+                    ? printTop
+                    : printTopBack
+                  : prod.printTop ?? 28;
+
+                const pLeft = isCenter
+                  ? viewSide === "FRONT"
+                    ? printLeft
+                    : printLeftBack
+                  : prod.printLeft ?? 50;
+
+                const pWidth = isCenter
+                  ? viewSide === "FRONT"
+                    ? printWidth
+                    : printWidthBack
+                  : prod.printWidth ?? 45;
+
+                return (
+                  <motion.div
+                    key={prod.id}
+                    onClick={() => {
+                      if (!isCenter) handleSelectProduct(idx);
+                    }}
+                    animate={{
+                      x: diff * (typeof window !== "undefined" && window.innerWidth < 640 ? 210 : 280),
+                      scale: isCenter ? 1 : 0.76,
+                      opacity: isCenter ? 1 : Math.abs(diff) === 1 ? 0.32 : 0,
+                      filter: isCenter ? "blur(0px)" : "blur(2.2px)",
+                      zIndex: isCenter ? 30 : 10 - Math.abs(diff),
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 280,
+                      damping: 28,
+                      mass: 0.8,
+                    }}
+                    className={`absolute flex flex-col items-center bg-transparent ${
+                      isCenter ? "cursor-default" : "cursor-pointer pointer-events-auto"
+                    }`}
+                  >
+                    {/* CABIDE AGRUPADO DENTRO DO CONTAINER DA CAMISETA */}
+                    {/* Move-se solidariamente com a peça durante o arraste */}
+                    <WoodenHanger />
+
+                    {/* CONTAINER DO PRODUTO (3D FLIP & HANGTAGS) */}
+                    <div className="relative bg-transparent">
+                      {/* HANGTAGS DE CORES SUSPENSAS NO OMBRO DIREITO (APENAS NA PEÇA ATIVA) */}
+                      {isCenter && currentProduct.colors && currentProduct.colors.length > 1 && (
+                        <div className="absolute -right-4 sm:-right-8 top-8 sm:top-10 z-40 flex items-start gap-1.5 sm:gap-2">
+                          {currentProduct.colors.map((color, cIdx) => {
+                            const isSelected = selectedColorIndex === cIdx;
+                            return (
+                              <button
+                                key={color.hex + cIdx}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedColorIndex(cIdx);
+                                }}
+                                title={`Selecionar cor: ${color.name}`}
+                                className="group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                              >
+                                <div
+                                  className={`w-[1px] transition-colors ${
+                                    isSelected
+                                      ? "h-6 sm:h-8 bg-neutral-800"
+                                      : "h-4 sm:h-6 bg-neutral-400 group-hover:bg-neutral-600"
+                                  }`}
+                                />
+                                <div
+                                  className={`w-4 h-7 sm:w-5 sm:h-9 rounded-[2px] border transition-all shadow-md relative overflow-hidden ${
+                                    isSelected
+                                      ? "border-black ring-2 ring-black/50 scale-110 shadow-lg"
+                                      : "border-neutral-400 hover:border-neutral-700 opacity-90 hover:opacity-100"
+                                  }`}
+                                  style={{ backgroundColor: color.hex }}
+                                >
+                                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/80 border border-black/30" />
+                                </div>
+                                <span
+                                  className={`text-[8px] font-mono mt-1 uppercase transition-opacity ${
+                                    isSelected
+                                      ? "font-bold text-neutral-900 opacity-100"
+                                      : "text-neutral-500 opacity-0 group-hover:opacity-100"
+                                  }`}
+                                >
+                                  {color.name.slice(0, 5)}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* CONTAINER DA CAMISETA (100% TRANSPARENTE E SEM FUNDO BRANCO) */}
+                      <div
+                        className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent"
+                        style={{ perspective: "1400px" }}
+                        onClick={(e) => {
+                          if (isCenter) {
+                            e.stopPropagation();
+                            setIsModalOpen(true);
+                          }
+                        }}
+                      >
+                        <div
+                          className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent"
+                          style={{
+                            transformStyle: "preserve-3d",
+                            transform:
+                              isCenter && viewSide === "BACK"
+                                ? "rotateY(180deg)"
+                                : "rotateY(0deg)",
+                          }}
                         >
-                          {/* Fio / Cordinha que suspende a etiqueta */}
                           <div
-                            className={`w-[1px] transition-colors ${
-                              isSelected
-                                ? "h-6 sm:h-8 bg-neutral-800"
-                                : "h-4 sm:h-6 bg-neutral-400 group-hover:bg-neutral-600"
-                            }`}
-                          />
-
-                          {/* Etiqueta retangular de tecido (Hangtag) */}
-                          <div
-                            className={`w-4 h-7 sm:w-5 sm:h-9 rounded-[2px] border transition-all shadow-md relative overflow-hidden ${
-                              isSelected
-                                ? "border-black ring-2 ring-black/50 scale-110 shadow-lg"
-                                : "border-neutral-400 hover:border-neutral-700 opacity-90 hover:opacity-100"
-                            }`}
-                            style={{ backgroundColor: color.hex }}
+                            className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
+                            style={{
+                              backfaceVisibility: "hidden",
+                              WebkitBackfaceVisibility: "hidden",
+                            }}
                           >
-                            {/* Ilhós/furo no topo da etiqueta */}
-                            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/80 border border-black/30" />
+                            <ShirtLayeredRender
+                              baseImage={prodBase}
+                              printImage={prodPrint}
+                              colorHex={prodColor}
+                              printTop={pTop}
+                              printLeft={pLeft}
+                              printWidth={pWidth}
+                              alt={prod.name}
+                            />
                           </div>
 
-                          {/* Nome da cor */}
-                          <span
-                            className={`text-[8px] font-mono mt-1 uppercase transition-opacity ${
-                              isSelected
-                                ? "font-bold text-neutral-900 opacity-100"
-                                : "text-neutral-500 opacity-0 group-hover:opacity-100"
-                            }`}
-                          >
-                            {color.name.slice(0, 5)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Container 3D Flip da Camiseta */}
-                <div
-                  className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center cursor-pointer"
-                  style={{ perspective: "1400px" }}
-                  onClick={() => setIsModalOpen(true)}
-                  title="Clique para ver disponibilidade e comprar"
-                >
-                  <div
-                    className="w-full h-full relative transition-transform duration-700 ease-out"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      transform: viewSide === "BACK" ? "rotateY(180deg)" : "rotateY(0deg)",
-                    }}
-                  >
-                    {/* Face Frontal (3 Camadas: Cor + Textura + Arte) */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center overflow-visible"
-                      style={{
-                        backfaceVisibility: "hidden",
-                        WebkitBackfaceVisibility: "hidden",
-                      }}
-                    >
-                      <ShirtLayeredRender
-                        baseImage={currentBase}
-                        printImage={currentPrint}
-                        colorHex={currentColor.hex}
-                        printTop={printTop}
-                        printLeft={printLeft}
-                        printWidth={printWidth}
-                        alt={`${currentProduct.name} - Frente`}
-                      />
+                          {/* Face Traseira se for a peça central */}
+                          {isCenter && (
+                            <div
+                              className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
+                              style={{
+                                backfaceVisibility: "hidden",
+                                WebkitBackfaceVisibility: "hidden",
+                                transform: "rotateY(180deg)",
+                              }}
+                            >
+                              <ShirtLayeredRender
+                                baseImage={currentBaseBack}
+                                printImage={currentPrintBack}
+                                colorHex={currentColor.hex}
+                                printTop={printTopBack}
+                                printLeft={printLeftBack}
+                                printWidth={printWidthBack}
+                                alt={`${currentProduct.name} - Costas`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Face Traseira (3 Camadas Costas) */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center overflow-visible"
-                      style={{
-                        backfaceVisibility: "hidden",
-                        WebkitBackfaceVisibility: "hidden",
-                        transform: "rotateY(180deg)",
-                      }}
-                    >
-                      <ShirtLayeredRender
-                        baseImage={currentBaseBack}
-                        printImage={currentPrintBack}
-                        colorHex={currentColor.hex}
-                        printTop={printTopBack}
-                        printLeft={printLeftBack}
-                        printWidth={printWidthBack}
-                        alt={`${currentProduct.name} - Costas`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Peça Vizinha Direita (Desfocada / Em Profundidade de Campo) */}
-            {total > 1 && (
-              <div
-                onClick={handleNext}
-                className="hidden md:flex flex-col items-center absolute -right-14 lg:right-2 z-10 opacity-30 hover:opacity-50 transition-all duration-500 scale-75 blur-[1.8px] cursor-pointer pointer-events-auto"
-                title={`Ver ${nextProduct.name}`}
-              >
-                <WoodenHanger />
-                <div className="w-56 h-72 relative">
-                  <ShirtLayeredRender
-                    baseImage={nextProduct.baseImage || "/mockups/blank-front.svg"}
-                    printImage={nextProduct.printImage || nextProduct.imageUrl}
-                    colorHex={nextProduct.colors?.[0]?.hex || "#18181b"}
-                    printTop={nextProduct.printTop ?? 28}
-                    printLeft={nextProduct.printLeft ?? 50}
-                    printWidth={nextProduct.printWidth ?? 45}
-                    alt={nextProduct.name}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Botão de Navegação Direita (>) */}
-            {total > 1 && (
-              <button
-                type="button"
-                onClick={handleNext}
-                aria-label="Próxima peça"
-                className="absolute right-2 sm:right-6 md:right-10 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full border border-neutral-300/80 bg-white/80 hover:bg-white text-neutral-800 hover:text-black flex items-center justify-center transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer backdrop-blur-sm"
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
           </div>
         )}
 
         {/* CONTROLES INFERIORES NO MODO FOCO (TÍTULO, TOGGLE FRONT/BACK, SEE AVAILABILITY) */}
         {viewMode === "FOCUS" && (
           <div className="flex flex-col items-center text-center mt-2 sm:mt-4 space-y-2.5 pb-8">
-            {/* Título da Peça em Tipografia Streetwear Bold */}
             <h3 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-[#0A0A0A] max-w-md mx-auto">
               {currentProduct.name}
             </h3>
 
-            {/* Botão Cápsula Minimalista: FRONT | BACK */}
+            {/* Alternador Cápsula Minimalista: FRONT | BACK */}
             <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-200/90 border border-neutral-300 shadow-inner">
               <button
                 type="button"
@@ -888,12 +904,11 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               </button>
             </div>
 
-            {/* Preço Discreto */}
             <div className="text-[11px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
               {formatCurrency(currentProduct.price)}
             </div>
 
-            {/* BOTÃO SEE AVAILABILITY (IGUAL AO VÍDEO) */}
+            {/* BOTÃO SEE AVAILABILITY */}
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
@@ -906,233 +921,231 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
       </div>
 
       {/* ============================================================== */}
-      {/* FAIXA MARQUEE STREETWEAR VERDE NEON (IGUAL AO VÍDEO)            */}
-      {/* Ticker contínuo horizontal com mensagem autoral Cordeiro Ink     */}
+      {/* FAIXA MARQUEE STREETWEAR VERDE NEON                             */}
       {/* ============================================================== */}
       <div className="w-full bg-[#10E63D] text-black py-2.5 overflow-hidden select-none border-y border-black font-mono font-black text-xs tracking-widest uppercase">
         <div className="animate-marquee flex whitespace-nowrap">
           <span className="mx-4 flex items-center gap-3">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> CONFIRA A ARARA
+            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
           </span>
           <span className="mx-4 flex items-center gap-3" aria-hidden="true">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> CONFIRA A ARARA
+            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
           </span>
           <span className="mx-4 flex items-center gap-3" aria-hidden="true">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> CONFIRA A ARARA
+            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
           </span>
         </div>
       </div>
 
       {/* ============================================================== */}
       {/* MODAL DE DISPONIBILIDADE & COMPRA (SEE AVAILABILITY)           */}
-      {/* Abre ao clicar em SEE AVAILABILITY ou na própria camiseta        */}
       {/* ============================================================== */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setIsModalOpen(false)}
-        >
+      <AnimatePresence>
+        {isModalOpen && (
           <div
-            className="relative w-full max-w-3xl bg-[#FAF9F6] border border-[#E6DED2] rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col md:flex-row"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setIsModalOpen(false)}
           >
-            {/* Botão Fechar (X) */}
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer"
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="relative w-full max-w-3xl bg-[#FAF9F6] border border-[#E6DED2] rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col md:flex-row"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={18} />
-            </button>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
 
-            {/* LADO ESQUERDO: PREVIEW DA PEÇA EM CABIDE COM COR SELECIONADA */}
-            <div className="w-full md:w-1/2 bg-[#F2ECE1] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E6DED2] relative">
-              <WoodenHanger />
-              <div className="w-56 h-72 sm:w-64 sm:h-80 relative my-2">
-                <ShirtLayeredRender
-                  baseImage={viewSide === "FRONT" ? currentBase : currentBaseBack}
-                  printImage={viewSide === "FRONT" ? currentPrint : currentPrintBack}
-                  colorHex={currentColor.hex}
-                  printTop={viewSide === "FRONT" ? printTop : printTopBack}
-                  printLeft={viewSide === "FRONT" ? printLeft : printLeftBack}
-                  printWidth={viewSide === "FRONT" ? printWidth : printWidthBack}
-                  alt={currentProduct.name}
-                />
-              </div>
-
-              {/* Botãozinho para alternar Frente / Costas dentro do modal */}
-              <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-300/80 border border-neutral-400 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setViewSide("FRONT")}
-                  className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                    viewSide === "FRONT"
-                      ? "bg-[#0A0A0A] text-white shadow-sm"
-                      : "text-neutral-700 hover:text-neutral-900"
-                  }`}
-                >
-                  FRENTE
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewSide("BACK")}
-                  className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                    viewSide === "BACK"
-                      ? "bg-[#0A0A0A] text-white shadow-sm"
-                      : "text-neutral-700 hover:text-neutral-900"
-                  }`}
-                >
-                  COSTAS
-                </button>
-              </div>
-            </div>
-
-            {/* LADO DIREITO: SELETORES E FINALIZAÇÃO DE COMPRA */}
-            <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
-              <div className="space-y-4">
-                {/* Categoria / Coleção */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 font-bold">
-                    {currentProduct.collection || "Drop 01"} • {currentProduct.category}
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1">
-                    <Sparkles size={10} />
-                    Disponível
-                  </span>
+              {/* LADO ESQUERDO: PREVIEW DA PEÇA EM CABIDE */}
+              <div className="w-full md:w-1/2 bg-[#F2ECE1] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E6DED2] relative">
+                <WoodenHanger />
+                <div className="w-56 h-72 sm:w-64 sm:h-80 relative my-2 bg-transparent">
+                  <ShirtLayeredRender
+                    baseImage={viewSide === "FRONT" ? currentBase : currentBaseBack}
+                    printImage={viewSide === "FRONT" ? currentPrint : currentPrintBack}
+                    colorHex={currentColor.hex}
+                    printTop={viewSide === "FRONT" ? printTop : printTopBack}
+                    printLeft={viewSide === "FRONT" ? printLeft : printLeftBack}
+                    printWidth={viewSide === "FRONT" ? printWidth : printWidthBack}
+                    alt={currentProduct.name}
+                  />
                 </div>
 
-                {/* Título e Preço */}
-                <div>
-                  <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-[#0A0A0A]">
-                    {currentProduct.name}
-                  </h2>
-                  <p className="text-xl sm:text-2xl font-serif font-bold text-[#0A0A0A] mt-1">
-                    {formatCurrency(currentProduct.price)}
-                  </p>
+                <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-300/80 border border-neutral-400 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewSide("FRONT")}
+                    className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                      viewSide === "FRONT"
+                        ? "bg-[#0A0A0A] text-white shadow-sm"
+                        : "text-neutral-700 hover:text-neutral-900"
+                    }`}
+                  >
+                    FRENTE
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewSide("BACK")}
+                    className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                      viewSide === "BACK"
+                        ? "bg-[#0A0A0A] text-white shadow-sm"
+                        : "text-neutral-700 hover:text-neutral-900"
+                    }`}
+                  >
+                    COSTAS
+                  </button>
                 </div>
+              </div>
 
-                {/* Seletor de Cores */}
-                {currentProduct.colors && currentProduct.colors.length > 0 && (
+              {/* LADO DIREITO: SELETORES E COMPRA */}
+              <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 font-bold">
+                      {currentProduct.collection || "Drop 01"} • {currentProduct.category}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1">
+                      <Sparkles size={10} />
+                      Disponível
+                    </span>
+                  </div>
+
                   <div>
-                    <label className="block text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600 mb-1.5">
-                      Cor: <span className="text-black font-black">{currentColor.name}</span>
-                    </label>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {currentProduct.colors.map((c, idx) => {
-                        const isSel = selectedColorIndex === idx;
+                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-[#0A0A0A]">
+                      {currentProduct.name}
+                    </h2>
+                    <p className="text-xl sm:text-2xl font-serif font-bold text-[#0A0A0A] mt-1">
+                      {formatCurrency(currentProduct.price)}
+                    </p>
+                  </div>
+
+                  {/* Seletor de Cores */}
+                  {currentProduct.colors && currentProduct.colors.length > 0 && (
+                    <div>
+                      <label className="block text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600 mb-1.5">
+                        Cor: <span className="text-black font-black">{currentColor.name}</span>
+                      </label>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {currentProduct.colors.map((c, idx) => {
+                          const isSel = selectedColorIndex === idx;
+                          return (
+                            <button
+                              key={c.hex + idx}
+                              type="button"
+                              onClick={() => setSelectedColorIndex(idx)}
+                              className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-2 transition cursor-pointer ${
+                                isSel
+                                  ? "border-[#0A0A0A] bg-[#0A0A0A] text-white shadow-sm"
+                                  : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-600"
+                              }`}
+                            >
+                              <span
+                                className="w-3 h-3 rounded-full border border-white/40 shrink-0"
+                                style={{ backgroundColor: c.hex }}
+                              />
+                              <span>{c.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seletor de Tamanhos */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600">
+                        Tamanho
+                      </label>
+                      <span className="text-[10px] font-mono text-neutral-500">
+                        Modelagem Streetwear Ampla
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {["P", "M", "G", "GG"].map((sz) => {
+                        const isSel = modalSize === sz;
                         return (
                           <button
-                            key={c.hex + idx}
+                            key={sz}
                             type="button"
-                            onClick={() => setSelectedColorIndex(idx)}
-                            className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-2 transition cursor-pointer ${
+                            onClick={() => setModalSize(sz)}
+                            className={`py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
                               isSel
                                 ? "border-[#0A0A0A] bg-[#0A0A0A] text-white shadow-sm"
-                                : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-600"
+                                : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-500"
                             }`}
                           >
-                            <span
-                              className="w-3 h-3 rounded-full border border-white/40 shrink-0"
-                              style={{ backgroundColor: c.hex }}
-                            />
-                            <span>{c.name}</span>
+                            {sz}
                           </button>
                         );
                       })}
                     </div>
                   </div>
-                )}
 
-                {/* Seletor de Tamanhos */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600">
-                      Tamanho
-                    </label>
-                    <span className="text-[10px] font-mono text-neutral-500">
-                      Modelagem Streetwear Ampla
+                  {/* Quantidade */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600">
+                      Qtd:
                     </span>
+                    <div className="flex items-center border border-neutral-300 rounded-xl bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
+                        className="p-1.5 hover:bg-neutral-100 transition cursor-pointer"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="px-3 text-xs font-mono font-bold">{modalQuantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => setModalQuantity((q) => q + 1)}
+                        className="p-1.5 hover:bg-neutral-100 transition cursor-pointer"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {["P", "M", "G", "GG"].map((sz) => {
-                      const isSel = modalSize === sz;
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => setModalSize(sz)}
-                          className={`py-2 rounded-xl text-xs font-mono font-bold transition cursor-pointer border ${
-                            isSel
-                              ? "border-[#0A0A0A] bg-[#0A0A0A] text-white shadow-sm"
-                              : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-500"
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      );
-                    })}
+
+                  <div className="pt-2 border-t border-neutral-200/80 space-y-1 text-[11px] text-neutral-600 leading-relaxed">
+                    <p>{currentProduct.description}</p>
+                    <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-neutral-500 pt-1">
+                      <li>100% Algodão Premium Penteado Heavyweight</li>
+                      <li>Gola canelada de 3cm com costura pespontada reforçada</li>
+                      <li>Estampa toque zero em alta definição</li>
+                    </ul>
                   </div>
                 </div>
 
-                {/* Quantidade */}
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="text-[11px] font-mono uppercase font-bold tracking-wider text-neutral-600">
-                    Qtd:
-                  </span>
-                  <div className="flex items-center border border-neutral-300 rounded-xl bg-white overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setModalQuantity((q) => Math.max(1, q - 1))}
-                      className="p-1.5 hover:bg-neutral-100 transition cursor-pointer"
-                    >
-                      <Minus size={14} />
-                    </button>
-                    <span className="px-3 text-xs font-mono font-bold">{modalQuantity}</span>
-                    <button
-                      type="button"
-                      onClick={() => setModalQuantity((q) => q + 1)}
-                      className="p-1.5 hover:bg-neutral-100 transition cursor-pointer"
-                    >
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </div>
+                <div className="pt-4 mt-4 border-t border-neutral-200/80 flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#0A0A0A] hover:bg-neutral-800 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <ShoppingBag size={14} />
+                    <span>Adicionar à Sacola</span>
+                  </button>
 
-                {/* Descrição & Especificações Técnicas */}
-                <div className="pt-2 border-t border-neutral-200/80 space-y-1 text-[11px] text-neutral-600 leading-relaxed">
-                  <p>{currentProduct.description}</p>
-                  <ul className="list-disc pl-4 space-y-0.5 text-[10px] text-neutral-500 pt-1">
-                    <li>100% Algodão Premium Penteado Heavyweight</li>
-                    <li>Gola canelada de 3cm com pesponto reforçado</li>
-                    <li>Estampa toque zero em alta resolução</li>
-                  </ul>
+                  <a
+                    href={waLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-3 px-4 rounded-xl border border-neutral-300 hover:border-emerald-600 hover:bg-emerald-50 text-neutral-800 hover:text-emerald-700 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
+                  >
+                    <MessageCircle size={14} />
+                    <span>Pedir no Whats</span>
+                  </a>
                 </div>
               </div>
-
-              {/* Botões de Ação */}
-              <div className="pt-4 mt-4 border-t border-neutral-200/80 flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="flex-1 py-3 px-4 rounded-xl bg-[#0A0A0A] hover:bg-neutral-800 text-white font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <ShoppingBag size={14} />
-                  <span>Adicionar à Sacola</span>
-                </button>
-
-                <a
-                  href={waLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-3 px-4 rounded-xl border border-neutral-300 hover:border-emerald-600 hover:bg-emerald-50 text-neutral-800 hover:text-emerald-700 font-mono text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition cursor-pointer"
-                >
-                  <MessageCircle size={14} />
-                  <span>Pedir no Whats</span>
-                </a>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </section>
   );
 }

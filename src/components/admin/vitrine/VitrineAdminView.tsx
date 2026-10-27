@@ -694,7 +694,12 @@ export function VitrineAdminView({
     formData.append("folder", folder);
 
     try {
-      const res = await uploadStorefrontFile(formData);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const res = await response.json();
+
       if (res.success && res.url) {
         if (isEdit) {
           if (target === "PRINT_FRONT") setEditPrintImageUrl(res.url);
@@ -745,7 +750,12 @@ export function VitrineAdminView({
     formData.append("folder", "catalog");
 
     try {
-      const res = await uploadStorefrontFile(formData);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const res = await response.json();
+
       if (res.success && res.url) {
         if (isEdit) {
           setEditImageUrl(res.url);
@@ -778,7 +788,12 @@ export function VitrineAdminView({
     formData.append("folder", "catalog");
 
     try {
-      const res = await uploadStorefrontFile(formData);
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const res = await response.json();
+
       if (res.success && res.url) {
         if (isEdit) {
           setEditVariants((prev) => {
@@ -798,7 +813,7 @@ export function VitrineAdminView({
         toast.error(res.error || "Erro no upload da foto da variação");
       }
     } catch (err: any) {
-      toast.error("Erro ao enviar arquivo: " + err.message);
+      toast.error("Erro ao enviar arquivo: " + (err?.message || String(err)));
     } finally {
       setUploadingVariantIndex(null);
     }
