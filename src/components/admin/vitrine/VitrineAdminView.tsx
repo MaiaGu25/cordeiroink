@@ -15,6 +15,12 @@ import {
   MessageCircle,
   Eye,
   Palette,
+  Sliders,
+  RotateCw,
+  Maximize2,
+  Move,
+  RefreshCw,
+  Layers,
 } from "lucide-react";
 import {
   createCatalogItem,
@@ -29,6 +35,16 @@ import { SafeImage } from "@/components/ui/SafeImage";
 import { BannerManagerSection, type BannerItem } from "./BannerManagerSection";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+const PREVIEW_PALETTE = [
+  { name: "Preto", hex: "#18181b" },
+  { name: "Branco", hex: "#f4f4f5" },
+  { name: "Off-White", hex: "#e7e5e4" },
+  { name: "Azul Marinho", hex: "#1e3a8a" },
+  { name: "Vinho", hex: "#7f1d1d" },
+  { name: "Verde Militar", hex: "#14532d" },
+  { name: "Mostarda", hex: "#b45309" },
+];
 
 interface CatalogVariant {
   id: string;
@@ -80,6 +96,424 @@ interface VitrineAdminViewProps {
   initialBanners?: BannerItem[];
 }
 
+interface PrintPositioningBlockProps {
+  isFront: boolean;
+  setIsFront: (front: boolean) => void;
+  previewColor: string;
+  setPreviewColor: (c: string) => void;
+  baseShirtUrl: string;
+  setBaseShirtUrl: (s: string) => void;
+  baseShirtBackUrl: string;
+  setBaseShirtBackUrl: (s: string) => void;
+  printImageUrl: string;
+  setPrintImageUrl: (s: string) => void;
+  printBackImageUrl: string;
+  setPrintBackImageUrl: (s: string) => void;
+  printWidth: number;
+  setPrintWidth: (n: number) => void;
+  printTop: number;
+  setPrintTop: (n: number) => void;
+  printLeft: number;
+  setPrintLeft: (n: number) => void;
+  printWidthBack: number;
+  setPrintWidthBack: (n: number) => void;
+  printTopBack: number;
+  setPrintTopBack: (n: number) => void;
+  printLeftBack: number;
+  setPrintLeftBack: (n: number) => void;
+  isUploading: boolean;
+  onUploadPrint: (file: File, isBack: boolean) => Promise<void>;
+}
+
+function PrintPositioningBlock({
+  isFront,
+  setIsFront,
+  previewColor,
+  setPreviewColor,
+  baseShirtUrl,
+  setBaseShirtUrl,
+  baseShirtBackUrl,
+  setBaseShirtBackUrl,
+  printImageUrl,
+  setPrintImageUrl,
+  printBackImageUrl,
+  setPrintBackImageUrl,
+  printWidth,
+  setPrintWidth,
+  printTop,
+  setPrintTop,
+  printLeft,
+  setPrintLeft,
+  printWidthBack,
+  setPrintWidthBack,
+  printTopBack,
+  setPrintTopBack,
+  printLeftBack,
+  setPrintLeftBack,
+  isUploading,
+  onUploadPrint,
+}: PrintPositioningBlockProps) {
+  const frontFileInputRef = useRef<HTMLInputElement>(null);
+  const backFileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentBase = isFront
+    ? baseShirtUrl || "/mockups/blank-front.svg"
+    : baseShirtBackUrl || "/mockups/blank-back.svg";
+  const currentPrint = isFront ? printImageUrl : printBackImageUrl;
+  const currentWidth = isFront ? printWidth : printWidthBack;
+  const currentTop = isFront ? printTop : printTopBack;
+  const currentLeft = isFront ? printLeft : printLeftBack;
+
+  const setCurrentWidth = (val: number) => {
+    if (isFront) setPrintWidth(val);
+    else setPrintWidthBack(val);
+  };
+  const setCurrentTop = (val: number) => {
+    if (isFront) setPrintTop(val);
+    else setPrintTopBack(val);
+  };
+  const setCurrentLeft = (val: number) => {
+    if (isFront) setPrintLeft(val);
+    else setPrintLeftBack(val);
+  };
+
+  const handleReset = () => {
+    if (isFront) {
+      setPrintWidth(45);
+      setPrintTop(28);
+      setPrintLeft(50);
+    } else {
+      setPrintWidthBack(50);
+      setPrintTopBack(25);
+      setPrintLeftBack(50);
+    }
+  };
+
+  return (
+    <div className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 space-y-4">
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={frontFileInputRef}
+        accept="image/png,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUploadPrint(f, false);
+          if (e.target) e.target.value = "";
+        }}
+      />
+      <input
+        type="file"
+        ref={backFileInputRef}
+        accept="image/png,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUploadPrint(f, true);
+          if (e.target) e.target.value = "";
+        }}
+      />
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+        <div className="flex items-center gap-2">
+          <Layers size={16} className="text-amber-400" />
+          <h4 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
+            Posicionamento da Estampa & Preview em Tempo Real (Arara Virtual)
+          </h4>
+        </div>
+
+        {/* Tab Frente / Costas */}
+        <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] font-semibold w-fit">
+          <button
+            type="button"
+            onClick={() => setIsFront(true)}
+            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+              isFront
+                ? "bg-amber-500 text-zinc-950 font-bold shadow"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Frente
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFront(false)}
+            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+              !isFront
+                ? "bg-amber-500 text-zinc-950 font-bold shadow"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Costas
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+        {/* PREVIEW VISUAL EM TEMPO REAL (MOCKUP CINZA + BLEND MODE + ESTAMPA) */}
+        <div className="md:col-span-5 flex flex-col items-center">
+          <div className="w-full flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase font-semibold text-zinc-400">
+              Mockup Visual ({isFront ? "Frente" : "Costas"}):
+            </span>
+            <div className="flex items-center gap-1.5">
+              {PREVIEW_PALETTE.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  onClick={() => setPreviewColor(c.hex)}
+                  title={c.name}
+                  className={`w-4 h-4 rounded-full border transition cursor-pointer ${
+                    previewColor === c.hex
+                      ? "border-amber-400 scale-125 ring-1 ring-amber-400/50"
+                      : "border-zinc-700 hover:scale-110"
+                  }`}
+                  style={{ backgroundColor: c.hex }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="relative w-full aspect-[3/4] max-h-[290px] rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden shadow-inner select-none">
+            {/* Camada 1: Cor de fundo mascarada pela silhueta */}
+            <div
+              className="absolute inset-0 transition-colors duration-300 pointer-events-none"
+              style={{
+                backgroundColor: previewColor,
+                maskImage: `url('${currentBase}')`,
+                WebkitMaskImage: `url('${currentBase}')`,
+                maskSize: "contain",
+                WebkitMaskSize: "contain",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskPosition: "center",
+              }}
+            />
+
+            {/* Camada 2: Mockup cinza em mix-blend-multiply */}
+            <img
+              src={currentBase}
+              alt="Mockup Camiseta"
+              className="relative z-10 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none"
+            />
+
+            {/* Camada 3: Arte PNG Isolada movida pelos sliders em tempo real */}
+            {currentPrint ? (
+              <div
+                className="absolute z-20 pointer-events-none transition-all duration-75 flex items-center justify-center"
+                style={{
+                  top: `${currentTop}%`,
+                  left: `${currentLeft}%`,
+                  width: `${currentWidth}%`,
+                  transform: "translateX(-50%)",
+                }}
+              >
+                <img
+                  src={currentPrint}
+                  alt="Estampa"
+                  className="w-full h-auto object-contain drop-shadow-md select-none"
+                />
+              </div>
+            ) : (
+              <div
+                className="absolute z-20 pointer-events-none border-2 border-dashed border-amber-400/60 rounded-lg p-2 text-center flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]"
+                style={{
+                  top: `${currentTop}%`,
+                  left: `${currentLeft}%`,
+                  width: `${currentWidth}%`,
+                  transform: "translateX(-50%)",
+                  minHeight: "60px",
+                }}
+              >
+                <span className="text-[9px] font-bold text-amber-300 uppercase">
+                  Área da Estampa
+                </span>
+                <span className="text-[8px] text-zinc-300">
+                  Suba o PNG transparente ao lado
+                </span>
+              </div>
+            )}
+
+            <div className="absolute bottom-1.5 right-1.5 z-30 px-1.5 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[8px] font-mono text-zinc-400">
+              W:{currentWidth}% Y:{currentTop}% X:{currentLeft}%
+            </div>
+          </div>
+        </div>
+
+        {/* CONTROLES DESLIZANTES (RANGE SLIDERS) & INPUTS */}
+        <div className="md:col-span-7 space-y-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+              <Sliders size={13} className="text-amber-400" />
+              <span>Controles Deslizantes ({isFront ? "Frente" : "Costas"})</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition"
+              title="Restaurar valores padrão"
+            >
+              <RefreshCw size={10} />
+              <span>Restaurar Padrão</span>
+            </button>
+          </div>
+
+          {/* Slider 1: Escala / Tamanho (printWidth) */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-zinc-400 flex items-center gap-1">
+                <Maximize2 size={11} /> Escala da Estampa (Tamanho %):
+              </span>
+              <span className="font-mono font-bold text-amber-400">{currentWidth}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="15"
+                max="90"
+                step="1"
+                value={currentWidth}
+                onChange={(e) => setCurrentWidth(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer"
+              />
+              <input
+                type="number"
+                min="15"
+                max="90"
+                value={currentWidth}
+                onChange={(e) => setCurrentWidth(Number(e.target.value))}
+                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+              />
+            </div>
+          </div>
+
+          {/* Slider 2: Posição Vertical (printTop / Eixo Y) */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-zinc-400 flex items-center gap-1">
+                <Move size={11} /> Posição Vertical (Eixo Y %):
+              </span>
+              <span className="font-mono font-bold text-amber-400">{currentTop}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="5"
+                max="85"
+                step="1"
+                value={currentTop}
+                onChange={(e) => setCurrentTop(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer"
+              />
+              <input
+                type="number"
+                min="5"
+                max="85"
+                value={currentTop}
+                onChange={(e) => setCurrentTop(Number(e.target.value))}
+                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+              />
+            </div>
+          </div>
+
+          {/* Slider 3: Posição Horizontal (printLeft / Eixo X) */}
+          <div>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-zinc-400 flex items-center gap-1">
+                <Move size={11} className="rotate-90" /> Posição Horizontal (Eixo X %):
+              </span>
+              <span className="font-mono font-bold text-amber-400">{currentLeft}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="15"
+                max="85"
+                step="1"
+                value={currentLeft}
+                onChange={(e) => setCurrentLeft(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer"
+              />
+              <input
+                type="number"
+                min="15"
+                max="85"
+                value={currentLeft}
+                onChange={(e) => setCurrentLeft(Number(e.target.value))}
+                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+              />
+            </div>
+          </div>
+
+          {/* Input e Upload da Estampa PNG */}
+          <div className="pt-2 border-t border-zinc-800 space-y-2">
+            <div>
+              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                {isFront ? "Estampa PNG Frente (transparente)" : "Estampa PNG Costas (transparente)"}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={isFront ? printImageUrl : printBackImageUrl}
+                  onChange={(e) => {
+                    if (isFront) setPrintImageUrl(e.target.value);
+                    else setPrintBackImageUrl(e.target.value);
+                  }}
+                  placeholder="https://.../estampa.png"
+                  className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  disabled={isUploading}
+                  onClick={() => {
+                    if (isFront) frontFileInputRef.current?.click();
+                    else backFileInputRef.current?.click();
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
+                >
+                  {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                  <span>Upload PNG</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mockups de Camiseta Cinza Base (Opcionais) */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-0.5">
+                  Mockup Base Frente
+                </label>
+                <input
+                  type="text"
+                  value={baseShirtUrl}
+                  onChange={(e) => setBaseShirtUrl(e.target.value)}
+                  placeholder="/mockups/blank-front.svg"
+                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-zinc-400 mb-0.5">
+                  Mockup Base Costas
+                </label>
+                <input
+                  type="text"
+                  value={baseShirtBackUrl}
+                  onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                  placeholder="/mockups/blank-back.svg"
+                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function VitrineAdminView({
   initialItems,
   initialLeads,
@@ -104,6 +538,21 @@ export function VitrineAdminView({
   const [variants, setVariants] = useState<VariantInput[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados de Criação de Estampa & Mockup
+  const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
+  const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [printImageUrl, setPrintImageUrl] = useState("");
+  const [printBackImageUrl, setPrintBackImageUrl] = useState("");
+  const [printWidth, setPrintWidth] = useState(45);
+  const [printTop, setPrintTop] = useState(28);
+  const [printLeft, setPrintLeft] = useState(50);
+  const [printWidthBack, setPrintWidthBack] = useState(50);
+  const [printTopBack, setPrintTopBack] = useState(25);
+  const [printLeftBack, setPrintLeftBack] = useState(50);
+  const [previewSide, setPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
+  const [previewColor, setPreviewColor] = useState("#18181b");
+  const [isUploadingPrint, setIsUploadingPrint] = useState(false);
+
   // Estados de Edição
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -115,6 +564,52 @@ export function VitrineAdminView({
   const [editShowOnVirtualRack, setEditShowOnVirtualRack] = useState(false);
   const [editVariants, setEditVariants] = useState<VariantInput[]>([]);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados de Edição de Estampa & Mockup
+  const [editBaseShirtUrl, setEditBaseShirtUrl] = useState("/mockups/blank-front.svg");
+  const [editBaseShirtBackUrl, setEditBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [editPrintImageUrl, setEditPrintImageUrl] = useState("");
+  const [editPrintBackImageUrl, setEditPrintBackImageUrl] = useState("");
+  const [editPrintWidth, setEditPrintWidth] = useState(45);
+  const [editPrintTop, setEditPrintTop] = useState(28);
+  const [editPrintLeft, setEditPrintLeft] = useState(50);
+  const [editPrintWidthBack, setEditPrintWidthBack] = useState(50);
+  const [editPrintTopBack, setEditPrintTopBack] = useState(25);
+  const [editPrintLeftBack, setEditPrintLeftBack] = useState(50);
+  const [editPreviewSide, setEditPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
+  const [editPreviewColor, setEditPreviewColor] = useState("#18181b");
+  const [isUploadingEditPrint, setIsUploadingEditPrint] = useState(false);
+
+  // Upload handler for isolated prints
+  const handleUploadPrintFile = async (file: File, isBack: boolean, isEdit = false) => {
+    if (isEdit) setIsUploadingEditPrint(true);
+    else setIsUploadingPrint(true);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "prints");
+
+    try {
+      const res = await uploadStorefrontFile(formData);
+      if (res.success && res.url) {
+        if (isEdit) {
+          if (isBack) setEditPrintBackImageUrl(res.url);
+          else setEditPrintImageUrl(res.url);
+        } else {
+          if (isBack) setPrintBackImageUrl(res.url);
+          else setPrintImageUrl(res.url);
+        }
+        toast.success("Estampa PNG isolada enviada com sucesso!");
+      } else {
+        toast.error(res.error || "Erro no upload da estampa");
+      }
+    } catch (err: any) {
+      toast.error("Erro no upload: " + (err?.message || String(err)));
+    } finally {
+      if (isEdit) setIsUploadingEditPrint(false);
+      else setIsUploadingPrint(false);
+    }
+  };
 
   // Estado de Exclusão
   const [itemToDelete, setItemToDelete] = useState<CatalogItem | null>(null);
@@ -230,6 +725,16 @@ export function VitrineAdminView({
           imageUrl,
           backImageUrl: backImageUrl.trim() || undefined,
           showOnVirtualRack,
+          baseShirtUrl: baseShirtUrl.trim() || undefined,
+          baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
+          printImageUrl: printImageUrl.trim() || undefined,
+          printBackImageUrl: printBackImageUrl.trim() || undefined,
+          printWidth: Number(printWidth),
+          printTop: Number(printTop),
+          printLeft: Number(printLeft),
+          printWidthBack: Number(printWidthBack),
+          printTopBack: Number(printTopBack),
+          printLeftBack: Number(printLeftBack),
           variants,
         });
 
@@ -246,6 +751,16 @@ export function VitrineAdminView({
         setImageUrl("");
         setBackImageUrl("");
         setShowOnVirtualRack(false);
+        setBaseShirtUrl("/mockups/blank-front.svg");
+        setBaseShirtBackUrl("/mockups/blank-back.svg");
+        setPrintImageUrl("");
+        setPrintBackImageUrl("");
+        setPrintWidth(45);
+        setPrintTop(28);
+        setPrintLeft(50);
+        setPrintWidthBack(50);
+        setPrintTopBack(25);
+        setPrintLeftBack(50);
         setVariants([]);
         router.refresh();
       } catch (err: any) {
@@ -263,6 +778,18 @@ export function VitrineAdminView({
     setEditImageUrl(item.imageUrl);
     setEditBackImageUrl(item.backImageUrl || "");
     setEditShowOnVirtualRack(Boolean(item.showOnVirtualRack));
+    setEditBaseShirtUrl(item.baseShirtUrl || "/mockups/blank-front.svg");
+    setEditBaseShirtBackUrl(item.baseShirtBackUrl || "/mockups/blank-back.svg");
+    setEditPrintImageUrl(item.printImageUrl || "");
+    setEditPrintBackImageUrl(item.printBackImageUrl || "");
+    setEditPrintWidth(item.printWidth ?? 45);
+    setEditPrintTop(item.printTop ?? 28);
+    setEditPrintLeft(item.printLeft ?? 50);
+    setEditPrintWidthBack(item.printWidthBack ?? 50);
+    setEditPrintTopBack(item.printTopBack ?? 25);
+    setEditPrintLeftBack(item.printLeftBack ?? 50);
+    setEditPreviewSide("FRONT");
+    setEditPreviewColor(item.variants?.[0]?.hexCode || "#18181b");
     setEditVariants(
       (item.variants || []).map((v) => ({
         id: v.id,
@@ -288,6 +815,16 @@ export function VitrineAdminView({
           imageUrl: finalImageUrl,
           backImageUrl: editBackImageUrl?.trim() || undefined,
           showOnVirtualRack: editShowOnVirtualRack,
+          baseShirtUrl: editBaseShirtUrl.trim() || undefined,
+          baseShirtBackUrl: editBaseShirtBackUrl.trim() || undefined,
+          printImageUrl: editPrintImageUrl.trim() || undefined,
+          printBackImageUrl: editPrintBackImageUrl.trim() || undefined,
+          printWidth: Number(editPrintWidth),
+          printTop: Number(editPrintTop),
+          printLeft: Number(editPrintLeft),
+          printWidthBack: Number(editPrintWidthBack),
+          printTopBack: Number(editPrintTopBack),
+          printLeftBack: Number(editPrintLeftBack),
           variants: editVariants,
         });
 
@@ -675,7 +1212,7 @@ export function VitrineAdminView({
           onClick={() => !isPending && setIsNewModalOpen(false)}
         >
           <div
-            className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
+            className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -981,6 +1518,37 @@ export function VitrineAdminView({
                 </label>
               </div>
 
+              {showOnVirtualRack && (
+                <PrintPositioningBlock
+                  isFront={previewSide === "FRONT"}
+                  setIsFront={(f) => setPreviewSide(f ? "FRONT" : "BACK")}
+                  previewColor={previewColor}
+                  setPreviewColor={setPreviewColor}
+                  baseShirtUrl={baseShirtUrl}
+                  setBaseShirtUrl={setBaseShirtUrl}
+                  baseShirtBackUrl={baseShirtBackUrl}
+                  setBaseShirtBackUrl={setBaseShirtBackUrl}
+                  printImageUrl={printImageUrl}
+                  setPrintImageUrl={setPrintImageUrl}
+                  printBackImageUrl={printBackImageUrl}
+                  setPrintBackImageUrl={setPrintBackImageUrl}
+                  printWidth={printWidth}
+                  setPrintWidth={setPrintWidth}
+                  printTop={printTop}
+                  setPrintTop={setPrintTop}
+                  printLeft={printLeft}
+                  setPrintLeft={setPrintLeft}
+                  printWidthBack={printWidthBack}
+                  setPrintWidthBack={setPrintWidthBack}
+                  printTopBack={printTopBack}
+                  setPrintTopBack={setPrintTopBack}
+                  printLeftBack={printLeftBack}
+                  setPrintLeftBack={setPrintLeftBack}
+                  isUploading={isUploadingPrint}
+                  onUploadPrint={(file, isBack) => handleUploadPrintFile(file, isBack, false)}
+                />
+              )}
+
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
                 <button
                   type="button"
@@ -1009,7 +1577,7 @@ export function VitrineAdminView({
           onClick={() => !isPending && setEditingItem(null)}
         >
           <div
-            className="w-full max-w-2xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
+            className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
@@ -1301,6 +1869,37 @@ export function VitrineAdminView({
                   </div>
                 </label>
               </div>
+
+              {editShowOnVirtualRack && (
+                <PrintPositioningBlock
+                  isFront={editPreviewSide === "FRONT"}
+                  setIsFront={(f) => setEditPreviewSide(f ? "FRONT" : "BACK")}
+                  previewColor={editPreviewColor}
+                  setPreviewColor={setEditPreviewColor}
+                  baseShirtUrl={editBaseShirtUrl}
+                  setBaseShirtUrl={setEditBaseShirtUrl}
+                  baseShirtBackUrl={editBaseShirtBackUrl}
+                  setBaseShirtBackUrl={setEditBaseShirtBackUrl}
+                  printImageUrl={editPrintImageUrl}
+                  setPrintImageUrl={setEditPrintImageUrl}
+                  printBackImageUrl={editPrintBackImageUrl}
+                  setPrintBackImageUrl={setEditPrintBackImageUrl}
+                  printWidth={editPrintWidth}
+                  setPrintWidth={setEditPrintWidth}
+                  printTop={editPrintTop}
+                  setPrintTop={setEditPrintTop}
+                  printLeft={editPrintLeft}
+                  setPrintLeft={setEditPrintLeft}
+                  printWidthBack={editPrintWidthBack}
+                  setPrintWidthBack={setEditPrintWidthBack}
+                  printTopBack={editPrintTopBack}
+                  setPrintTopBack={setEditPrintTopBack}
+                  printLeftBack={editPrintLeftBack}
+                  setPrintLeftBack={setEditPrintLeftBack}
+                  isUploading={isUploadingEditPrint}
+                  onUploadPrint={(file, isBack) => handleUploadPrintFile(file, isBack, true)}
+                />
+              )}
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
                 <button
