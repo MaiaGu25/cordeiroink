@@ -96,12 +96,12 @@ model Product {
   baseShirtBackUrl  String?          // Mockup cinza liso costas
   printImageUrl     String?          // Arte/Estampa PNG isolada frente
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas
-  printWidth        Float            @default(45.0) // Escala % frente
-  printTop          Float            @default(28.0) // Posição Top % frente
-  printLeft         Float            @default(50.0) // Posição Left % frente
-  printWidthBack    Float            @default(50.0) // Escala % costas
-  printTopBack      Float            @default(25.0) // Posição Top % costas
-  printLeftBack     Float            @default(50.0) // Posição Left % costas
+  printWidth        Float?
+  printTop          Float?
+  printLeft         Float?
+  printWidthBack    Float?
+  printTopBack      Float?
+  printLeftBack     Float?
 
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
@@ -118,7 +118,7 @@ model ProductVariant {
   title          String
   size           String
   color          String
-  colorHex       String?      @default("#000000")
+  colorHex       String?
   imageUrl       String?
   backImageUrl   String?
   basePrice      Float
@@ -396,12 +396,12 @@ model CatalogItem {
   baseShirtBackUrl  String?          // Mockup cinza liso costas
   printImageUrl     String?          // Arte/Estampa PNG isolada frente
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas
-  printWidth        Float            @default(45.0) // Escala % frente
-  printTop          Float            @default(28.0) // Posição Top % frente
-  printLeft         Float            @default(50.0) // Posição Left % frente
-  printWidthBack    Float            @default(50.0) // Escala % costas
-  printTopBack      Float            @default(25.0) // Posição Top % costas
-  printLeftBack     Float            @default(50.0) // Posição Left % costas
+  printWidth        Float?
+  printTop          Float?
+  printLeft         Float?
+  printWidthBack    Float?
+  printTopBack      Float?
+  printLeftBack     Float?
 
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
