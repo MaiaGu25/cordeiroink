@@ -6,17 +6,36 @@ import fs from "fs/promises";
 export const dynamic = "force-dynamic";
 
 /**
+ * Responde requisições GET para verificação de status e evitar respostas HTML 405.
+ */
+export async function GET() {
+  return NextResponse.json({
+    status: "online",
+    endpoint: "/api/upload",
+    acceptedMethods: ["POST"],
+  });
+}
+
+/**
  * Rota universal de upload de arquivos para a Arara Virtual, Catálogo e Estampas.
- * Suporta Supabase Storage com fallback automático para armazenamento local.
+ * Toda a lógica é encapsulada em try/catch e o retorno é ESTRITAMENTE JSON.
  */
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch (parseError: any) {
+      return NextResponse.json(
+        { error: "Falha ao processar arquivo multipart: " + (parseError?.message || "Corpo inválido") },
+        { status: 400 }
+      );
+    }
 
+    const file = formData.get("file") as File | null;
     if (!file) {
       return NextResponse.json(
-        { success: false, error: "Nenhum arquivo enviado no corpo da requisição." },
+        { error: "Nenhum arquivo enviado no corpo da requisição." },
         { status: 400 }
       );
     }
@@ -57,7 +76,7 @@ export async function POST(req: NextRequest) {
           auth: { persistSession: false, autoRefreshToken: false },
         });
 
-        // Garante a existência do bucket se tiver permissão
+        // Garante a existência do bucket se tiver service_role key
         if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
           try {
             const { data: buckets } = await supabase.storage.listBuckets();
@@ -66,7 +85,7 @@ export async function POST(req: NextRequest) {
               await supabase.storage.createBucket(targetBucket, { public: true });
             }
           } catch (bErr: any) {
-            console.warn(`Aviso ao verificar bucket '${targetBucket}':`, bErr?.message);
+            console.warn(`Aviso ao checar bucket '${targetBucket}':`, bErr?.message);
           }
         }
 
@@ -123,7 +142,6 @@ export async function POST(req: NextRequest) {
       console.error("Erro no fallback de armazenamento local:", fsErr);
       return NextResponse.json(
         {
-          success: false,
           error: "Falha ao gravar arquivo localmente: " + (fsErr?.message || String(fsErr)),
         },
         { status: 500 }
@@ -133,8 +151,7 @@ export async function POST(req: NextRequest) {
     console.error("Erro global no endpoint de upload:", err);
     return NextResponse.json(
       {
-        success: false,
-        error: "Erro inesperado ao processar upload: " + (err?.message || String(err)),
+        error: err?.message || "Erro inesperado ao processar upload",
       },
       { status: 500 }
     );

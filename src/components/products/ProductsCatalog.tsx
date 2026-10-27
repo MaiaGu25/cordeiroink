@@ -29,6 +29,7 @@ import {
   deleteProduct,
 } from "@/actions/products";
 import { uploadStorefrontFile } from "@/actions/storefront";
+import { uploadFileViaApi } from "@/lib/api-upload";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -105,37 +106,28 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     formData.append("file", file);
     formData.append("folder", folder);
 
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const res = await response.json();
+    const res = await uploadFileViaApi(formData);
 
-      if (res.success && res.url) {
-        if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
-        else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
-        else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
-        else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
+    if (res.success && res.url) {
+      if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
+      else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
+      else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
+      else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
 
-        const msg =
-          target === "BASE_FRONT"
-            ? "Mockup Base Frente enviado!"
-            : target === "BASE_BACK"
-            ? "Mockup Base Costas enviado!"
-            : target === "PRINT_FRONT"
-            ? "Estampa Frente PNG enviada!"
-            : "Estampa Costas PNG enviada!";
-        toast.success(msg);
-      } else {
-        toast.error(res.error || "Erro no upload da imagem");
-      }
-    } catch (err: any) {
-      toast.error("Erro no upload: " + (err?.message || String(err)));
-    } finally {
-      setIsUploadingPrint(false);
-      if (e.target) e.target.value = "";
+      const msg =
+        target === "BASE_FRONT"
+          ? "Mockup Base Frente enviado!"
+          : target === "BASE_BACK"
+          ? "Mockup Base Costas enviado!"
+          : target === "PRINT_FRONT"
+          ? "Estampa Frente PNG enviada!"
+          : "Estampa Costas PNG enviada!";
+      toast.success(msg);
+    } else {
+      toast.error(res.error || "Erro no upload da imagem");
     }
+    setIsUploadingPrint(false);
+    if (e.target) e.target.value = "";
   };
 
   // Abrir Modal para Novo Produto

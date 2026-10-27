@@ -29,6 +29,7 @@ import {
   deleteCatalogItem,
   uploadStorefrontFile,
 } from "@/actions/storefront";
+import { uploadFileViaApi } from "@/lib/api-upload";
 import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constants";
 import { formatCurrency } from "@/lib/utils";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
@@ -693,44 +694,35 @@ export function VitrineAdminView({
     formData.append("file", file);
     formData.append("folder", folder);
 
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const res = await response.json();
+    const res = await uploadFileViaApi(formData);
 
-      if (res.success && res.url) {
-        if (isEdit) {
-          if (target === "PRINT_FRONT") setEditPrintImageUrl(res.url);
-          else if (target === "PRINT_BACK") setEditPrintBackImageUrl(res.url);
-          else if (target === "BASE_FRONT") setEditBaseShirtUrl(res.url);
-          else if (target === "BASE_BACK") setEditBaseShirtBackUrl(res.url);
-        } else {
-          if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
-          else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
-          else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
-          else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
-        }
-
-        const label =
-          target === "BASE_FRONT"
-            ? "Mockup Base Frente enviado!"
-            : target === "BASE_BACK"
-            ? "Mockup Base Costas enviado!"
-            : target === "PRINT_FRONT"
-            ? "Estampa Frente PNG enviada!"
-            : "Estampa Costas PNG enviada!";
-        toast.success(label);
+    if (res.success && res.url) {
+      if (isEdit) {
+        if (target === "PRINT_FRONT") setEditPrintImageUrl(res.url);
+        else if (target === "PRINT_BACK") setEditPrintBackImageUrl(res.url);
+        else if (target === "BASE_FRONT") setEditBaseShirtUrl(res.url);
+        else if (target === "BASE_BACK") setEditBaseShirtBackUrl(res.url);
       } else {
-        toast.error(res.error || "Erro no upload da imagem");
+        if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
+        else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
+        else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
+        else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
       }
-    } catch (err: any) {
-      toast.error("Erro no upload: " + (err?.message || String(err)));
-    } finally {
-      if (isEdit) setIsUploadingEditPrint(false);
-      else setIsUploadingPrint(false);
+
+      const label =
+        target === "BASE_FRONT"
+          ? "Mockup Base Frente enviado!"
+          : target === "BASE_BACK"
+          ? "Mockup Base Costas enviado!"
+          : target === "PRINT_FRONT"
+          ? "Estampa Frente PNG enviada!"
+          : "Estampa Costas PNG enviada!";
+      toast.success(label);
+    } else {
+      toast.error(res.error || "Erro no upload da imagem");
     }
+    if (isEdit) setIsUploadingEditPrint(false);
+    else setIsUploadingPrint(false);
   };
 
   // Estado de Exclusão
@@ -749,30 +741,21 @@ export function VitrineAdminView({
     formData.append("file", file);
     formData.append("folder", "catalog");
 
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const res = await response.json();
-
-      if (res.success && res.url) {
-        if (isEdit) {
-          setEditImageUrl(res.url);
-        } else {
-          setImageUrl(res.url);
-        }
-        toast.success("Foto principal enviada com sucesso!");
+    const res = await uploadFileViaApi(formData);
+    if (res.success && res.url) {
+      if (isEdit) {
+        setEditImageUrl(res.url);
       } else {
-        toast.error(res.error || "Erro no upload da imagem");
+        setImageUrl(res.url);
       }
-    } catch (err: any) {
-      toast.error("Erro ao enviar arquivo: " + (err?.message || String(err)));
-    } finally {
-      setIsUploading(false);
-      if (e.target) {
-        e.target.value = "";
-      }
+      toast.success("Foto principal enviada com sucesso!");
+    } else {
+      toast.error(res.error || "Erro no upload da imagem");
+    }
+
+    setIsUploading(false);
+    if (e.target) {
+      e.target.value = "";
     }
   };
 
@@ -787,36 +770,26 @@ export function VitrineAdminView({
     formData.append("file", file);
     formData.append("folder", "catalog");
 
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const res = await response.json();
-
-      if (res.success && res.url) {
-        if (isEdit) {
-          setEditVariants((prev) => {
-            const next = [...prev];
-            next[index] = { ...next[index], imageUrl: res.url! };
-            return next;
-          });
-        } else {
-          setVariants((prev) => {
-            const next = [...prev];
-            next[index] = { ...next[index], imageUrl: res.url! };
-            return next;
-          });
-        }
-        toast.success("Foto da variação enviada com sucesso!");
+    const res = await uploadFileViaApi(formData);
+    if (res.success && res.url) {
+      if (isEdit) {
+        setEditVariants((prev) => {
+          const next = [...prev];
+          next[index] = { ...next[index], imageUrl: res.url! };
+          return next;
+        });
       } else {
-        toast.error(res.error || "Erro no upload da foto da variação");
+        setVariants((prev) => {
+          const next = [...prev];
+          next[index] = { ...next[index], imageUrl: res.url! };
+          return next;
+        });
       }
-    } catch (err: any) {
-      toast.error("Erro ao enviar arquivo: " + (err?.message || String(err)));
-    } finally {
-      setUploadingVariantIndex(null);
+      toast.success("Foto da variação enviada com sucesso!");
+    } else {
+      toast.error(res.error || "Erro no upload da foto da variação");
     }
+    setUploadingVariantIndex(null);
   };
 
   const handleAddVariant = (isEdit = false) => {
