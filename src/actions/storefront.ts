@@ -92,7 +92,110 @@ import {
   type CatalogCategory,
   type VariantInput,
   type AvailableStockSize,
+  type VirtualRackProduct,
 } from "@/lib/storefront-constants";
+
+/**
+ * Busca produtos configurados para a Arara Virtual na vitrine (Product e CatalogItem com showOnVirtualRack: true).
+ */
+export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
+  try {
+    const [erpProducts, catalogItems] = await Promise.all([
+      prisma.product.findMany({
+        where: { showOnVirtualRack: true, isActive: true },
+        include: {
+          variants: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.catalogItem.findMany({
+        where: { showOnVirtualRack: true, isActive: true },
+        include: {
+          variants: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const result: VirtualRackProduct[] = [];
+
+    erpProducts.forEach((p) => {
+      const colorMap = new Map<string, { name: string; hex: string; imageUrl: string; backImageUrl?: string | null }>();
+      p.variants.forEach((v) => {
+        if (!colorMap.has(v.color)) {
+          colorMap.set(v.color, {
+            name: v.color,
+            hex: v.colorHex || (v.color.toLowerCase().includes("off") ? "#F5F2EB" : "#111111"),
+            imageUrl: v.imageUrl || p.imageUrl || "",
+            backImageUrl: v.backImageUrl || p.backImageUrl || null,
+          });
+        }
+      });
+
+      const colors =
+        colorMap.size > 0
+          ? Array.from(colorMap.values())
+          : [
+              {
+                name: "Preto",
+                hex: "#111111",
+                imageUrl: p.imageUrl || "",
+                backImageUrl: p.backImageUrl || null,
+              },
+            ];
+
+      result.push({
+        id: p.id,
+        name: p.name,
+        price: p.variants?.[0]?.basePrice || 89.9,
+        category: p.category || "Oversized",
+        collection: p.collection || "Drop Especial",
+        description: p.description,
+        imageUrl: p.imageUrl || "",
+        backImageUrl: p.backImageUrl || null,
+        colors,
+      });
+    });
+
+    catalogItems.forEach((c) => {
+      if (result.some((item) => item.id === c.id)) return;
+
+      const colors =
+        c.variants.length > 0
+          ? c.variants.map((v) => ({
+              name: v.colorName,
+              hex: v.hexCode || (v.colorName.toLowerCase().includes("off") ? "#F5F2EB" : "#111111"),
+              imageUrl: v.imageUrl || c.imageUrl,
+              backImageUrl: v.backImageUrl || c.backImageUrl || null,
+            }))
+          : [
+              {
+                name: "Preto",
+                hex: "#111111",
+                imageUrl: c.imageUrl,
+                backImageUrl: c.backImageUrl || null,
+              },
+            ];
+
+      result.push({
+        id: c.id,
+        name: c.title,
+        price: c.price,
+        category: c.category || "Oversized",
+        collection: "Vitrine",
+        description: c.description,
+        imageUrl: c.imageUrl,
+        backImageUrl: c.backImageUrl || null,
+        colors,
+      });
+    });
+
+    return result;
+  } catch (err) {
+    console.error("Erro ao buscar produtos da Arara Virtual:", err);
+    return [];
+  }
+}
 
 /**
  * Busca itens do catálogo para a vitrine pública e para a área administrativa.
@@ -123,7 +226,9 @@ export async function createCatalogItem(data: {
   description?: string;
   price: number;
   imageUrl: string;
+  backImageUrl?: string;
   category?: string;
+  showOnVirtualRack?: boolean;
   variants?: VariantInput[];
 }) {
   try {
@@ -145,13 +250,16 @@ export async function createCatalogItem(data: {
         description: data.description?.trim() || null,
         price: Number(data.price) || 0,
         imageUrl: data.imageUrl.trim(),
+        backImageUrl: data.backImageUrl?.trim() || null,
         category: cleanCategory,
+        showOnVirtualRack: Boolean(data.showOnVirtualRack),
         isActive: true,
         variants: {
           create: validVariants.map((v) => ({
             colorName: v.colorName.trim(),
             hexCode: v.hexCode?.trim() || "#000000",
             imageUrl: v.imageUrl.trim(),
+            backImageUrl: v.backImageUrl?.trim() || null,
           })),
         },
       },
@@ -182,7 +290,9 @@ export async function updateCatalogItem(
     description?: string;
     price?: number;
     imageUrl?: string;
+    backImageUrl?: string;
     category?: string;
+    showOnVirtualRack?: boolean;
     isActive?: boolean;
     variants?: VariantInput[];
   }
@@ -211,6 +321,7 @@ export async function updateCatalogItem(
               colorName: v.colorName.trim(),
               hexCode: v.hexCode?.trim() || "#000000",
               imageUrl: v.imageUrl.trim(),
+              backImageUrl: v.backImageUrl?.trim() || null,
             })),
           });
         }
@@ -226,7 +337,11 @@ export async function updateCatalogItem(
             data.imageUrl !== undefined && data.imageUrl.trim() !== ""
               ? data.imageUrl.trim()
               : undefined,
+          backImageUrl:
+            data.backImageUrl !== undefined ? (data.backImageUrl.trim() || null) : undefined,
           category: cleanCategory,
+          showOnVirtualRack:
+            data.showOnVirtualRack !== undefined ? Boolean(data.showOnVirtualRack) : undefined,
           isActive: data.isActive !== undefined ? data.isActive : undefined,
         },
         include: {

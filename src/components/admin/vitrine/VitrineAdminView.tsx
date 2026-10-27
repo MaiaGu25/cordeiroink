@@ -44,7 +44,9 @@ interface CatalogItem {
   description: string | null;
   price: number;
   imageUrl: string;
+  backImageUrl?: string | null;
   category: string;
+  showOnVirtualRack?: boolean;
   isActive: boolean;
   createdAt: Date;
   variants?: CatalogVariant[];
@@ -87,6 +89,8 @@ export function VitrineAdminView({
   const [category, setCategory] = useState<string>("Adulto");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [backImageUrl, setBackImageUrl] = useState("");
+  const [showOnVirtualRack, setShowOnVirtualRack] = useState(false);
   const [variants, setVariants] = useState<VariantInput[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +101,8 @@ export function VitrineAdminView({
   const [editCategory, setEditCategory] = useState<string>("Adulto");
   const [editDescription, setEditDescription] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
+  const [editBackImageUrl, setEditBackImageUrl] = useState("");
+  const [editShowOnVirtualRack, setEditShowOnVirtualRack] = useState(false);
   const [editVariants, setEditVariants] = useState<VariantInput[]>([]);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,6 +218,8 @@ export function VitrineAdminView({
           category,
           description,
           imageUrl,
+          backImageUrl: backImageUrl.trim() || undefined,
+          showOnVirtualRack,
           variants,
         });
 
@@ -226,6 +234,8 @@ export function VitrineAdminView({
         setPrice("");
         setDescription("");
         setImageUrl("");
+        setBackImageUrl("");
+        setShowOnVirtualRack(false);
         setVariants([]);
         router.refresh();
       } catch (err: any) {
@@ -241,6 +251,8 @@ export function VitrineAdminView({
     setEditCategory(item.category);
     setEditDescription(item.description || "");
     setEditImageUrl(item.imageUrl);
+    setEditBackImageUrl(item.backImageUrl || "");
+    setEditShowOnVirtualRack(Boolean(item.showOnVirtualRack));
     setEditVariants(
       (item.variants || []).map((v) => ({
         id: v.id,
@@ -264,6 +276,8 @@ export function VitrineAdminView({
           category: editCategory,
           description: editDescription,
           imageUrl: finalImageUrl,
+          backImageUrl: editBackImageUrl?.trim() || undefined,
+          showOnVirtualRack: editShowOnVirtualRack,
           variants: editVariants,
         });
 
@@ -448,7 +462,7 @@ export function VitrineAdminView({
                         fallbackClassName="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-600"
                         iconSize={32}
                       />
-                      <div className="absolute top-2.5 right-2.5">
+                      <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
                         <span
                           className={`text-[10px] font-mono px-2 py-0.5 rounded-full border backdrop-blur-md font-semibold ${
                             item.isActive
@@ -458,6 +472,12 @@ export function VitrineAdminView({
                         >
                           {item.isActive ? "Ativo" : "Inativo"}
                         </span>
+                        {item.showOnVirtualRack && (
+                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full border backdrop-blur-md font-bold bg-amber-500/20 text-amber-400 border-amber-500/40 flex items-center gap-1 shadow">
+                            <Sparkles size={9} />
+                            Arara 3D
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -930,6 +950,27 @@ export function VitrineAdminView({
                 )}
               </div>
 
+              {/* Toggle Arara Virtual */}
+              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showOnVirtualRack}
+                    onChange={(e) => setShowOnVirtualRack(e.target.checked)}
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-amber-400" />
+                      Exibir na Arara Virtual 3D
+                    </span>
+                    <span className="text-[11px] text-zinc-400 block mt-0.5">
+                      Destaca esta peça no showroom interativo no topo da vitrine com rotação 360° e flip frente/costas.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
                 <button
                   type="button"
@@ -1228,6 +1269,27 @@ export function VitrineAdminView({
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Toggle Arara Virtual */}
+              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editShowOnVirtualRack}
+                    onChange={(e) => setEditShowOnVirtualRack(e.target.checked)}
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-amber-400" />
+                      Exibir na Arara Virtual 3D
+                    </span>
+                    <span className="text-[11px] text-zinc-400 block mt-0.5">
+                      Destaca esta peça no showroom interativo no topo da vitrine com rotação 360° e flip frente/costas.
+                    </span>
+                  </div>
+                </label>
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">

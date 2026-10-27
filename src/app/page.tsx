@@ -1,5 +1,11 @@
-import { getCatalogItems, getStorefrontBanners, getBlankShirtsStock } from "@/actions/storefront";
+import {
+  getCatalogItems,
+  getStorefrontBanners,
+  getBlankShirtsStock,
+  getVirtualRackProducts,
+} from "@/actions/storefront";
 import { StorefrontHeader } from "@/components/storefront/StorefrontHeader";
+import { VirtualRack } from "@/components/storefront/VirtualRack";
 import { StorefrontBannerCarousel } from "@/components/storefront/StorefrontBannerCarousel";
 import { StorefrontHero } from "@/components/storefront/StorefrontHero";
 import { BrandQuoteBanner } from "@/components/storefront/BrandQuoteBanner";
@@ -13,10 +19,11 @@ import { StorefrontCartDrawer } from "@/components/storefront/StorefrontCartDraw
 export const dynamic = "force-dynamic";
 
 export default async function StorefrontPage() {
-  const [catalogItems, banners, stockItems] = await Promise.all([
+  const [catalogItems, banners, stockItems, virtualRackProducts] = await Promise.all([
     getCatalogItems(false),
     getStorefrontBanners(false),
     getBlankShirtsStock(),
+    getVirtualRackProducts(),
   ]);
 
   return (
@@ -24,6 +31,7 @@ export default async function StorefrontPage() {
       <div className="min-h-screen bg-[#F7F4EE] text-[#0A0A0A] selection:bg-[#0A0A0A] selection:text-[#F7F4EE] flex flex-col justify-between">
         <div>
           <StorefrontHeader />
+          <VirtualRack products={virtualRackProducts} />
           <StorefrontBannerCarousel banners={banners} />
           <main>
             <StorefrontHero />
