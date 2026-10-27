@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Sparkles,
   ShoppingBag,
   RotateCw,
   Check,
-  ChevronLeft,
-  ChevronRight,
   Info,
-  Maximize2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useCart } from "./CartContext";
@@ -62,18 +59,93 @@ function HangerHook() {
   );
 }
 
+/**
+ * Renderizador de 3 Camadas Dinâmicas com CSS Blend Modes:
+ * 1. Fundo (cor selecionada, silhueta com maskImage)
+ * 2. Textura (camiseta cinza neutro com mix-blend-multiply)
+ * 3. Arte (estampa PNG isolada com coordenadas top/left/width dinâmicas)
+ */
+interface ShirtLayeredRenderProps {
+  baseImage: string;
+  printImage?: string | null;
+  colorHex: string;
+  printTop: number;
+  printLeft: number;
+  printWidth: number;
+  alt: string;
+}
+
+export function ShirtLayeredRender({
+  baseImage,
+  printImage,
+  colorHex,
+  printTop,
+  printLeft,
+  printWidth,
+  alt,
+}: ShirtLayeredRenderProps) {
+  const effectiveBase = baseImage || "/mockups/blank-front.svg";
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center overflow-hidden select-none">
+      {/* Camada 1: Fundo com a cor selecionada (mascarada pela silhueta da camiseta) */}
+      <div
+        className="absolute inset-0 transition-colors duration-300 pointer-events-none"
+        style={{
+          backgroundColor: colorHex,
+          maskImage: `url('${effectiveBase}')`,
+          WebkitMaskImage: `url('${effectiveBase}')`,
+          maskSize: "contain",
+          WebkitMaskSize: "contain",
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+          maskPosition: "center",
+          WebkitMaskPosition: "center",
+        }}
+      />
+
+      {/* Camada 2: Textura de sombra/volume da camiseta cinza em mix-blend-multiply */}
+      <img
+        src={effectiveBase}
+        alt={alt}
+        className="absolute inset-0 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none filter drop-shadow-[0_16px_28px_rgba(0,0,0,0.65)]"
+        loading="lazy"
+      />
+
+      {/* Camada 3: Arte isolada da estampa com posicionamento dinâmico consumido do banco */}
+      {printImage && (
+        <div
+          className="absolute pointer-events-none select-none transition-all duration-200"
+          style={{
+            top: `${printTop}%`,
+            left: `${printLeft}%`,
+            width: `${printWidth}%`,
+            transform: "translateX(-50%)",
+          }}
+        >
+          <img
+            src={printImage}
+            alt="Estampa DTF"
+            className="w-full h-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+            loading="lazy"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function VirtualRack({ products = [] }: VirtualRackProps) {
   const { addItem, openCart } = useCart();
   const [selectedProductIndex, setSelectedProductIndex] = useState(0);
   const [viewSide, setViewSide] = useState<"FRONT" | "BACK">("FRONT");
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<"P" | "M" | "G" | "GG">("G");
-  const [isFlipping, setIsFlipping] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const [dragConstraint, setDragConstraint] = useState(0);
 
-  // Fallback se nenhum produto for passado
+  // Fallback seguro caso a lista esteja vazia
   const activeProducts =
     products.length > 0
       ? products
@@ -85,26 +157,36 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
             category: "Oversized",
             collection: "Drop 01 - Cyber",
             description: "Camiseta streetwear premium 260g/m² com estampa em alta definição DTF.",
-            imageUrl:
+            baseImage: "/mockups/blank-front.svg",
+            baseBackImage: "/mockups/blank-back.svg",
+            printImage:
               "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/B-1792954601865.png",
-            backImageUrl:
+            printBackImage:
               "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/C-1792954620285.png",
+            printWidth: 44.0,
+            printTop: 28.0,
+            printLeft: 50.0,
+            printWidthBack: 52.0,
+            printTopBack: 24.0,
+            printLeftBack: 50.0,
             colors: [
               {
                 name: "Preto",
                 hex: "#111111",
-                imageUrl:
-                  "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/B-1792954601865.png",
-                backImageUrl:
-                  "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/C-1792954620285.png",
+                imageUrl: "/mockups/blank-front.svg",
+                backImageUrl: "/mockups/blank-back.svg",
               },
               {
                 name: "Off-White",
                 hex: "#F5F2EB",
-                imageUrl:
-                  "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/3M-1792954951055.png",
-                backImageUrl:
-                  "https://mghkmhcejxrwdpeaeebb.supabase.co/storage/v1/object/public/storefront/catalog/C-1792954569676.png",
+                imageUrl: "/mockups/blank-front.svg",
+                backImageUrl: "/mockups/blank-back.svg",
+              },
+              {
+                name: "Marrom Terra",
+                hex: "#4A3525",
+                imageUrl: "/mockups/blank-front.svg",
+                backImageUrl: "/mockups/blank-back.svg",
               },
             ],
           },
@@ -116,14 +198,23 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
     currentProduct.colors[0] || {
       name: "Preto",
       hex: "#111111",
-      imageUrl: currentProduct.imageUrl,
-      backImageUrl: currentProduct.backImageUrl,
+      imageUrl: "",
     };
 
-  // Imagens frontal e traseira ativas
-  const frontImage = currentColor.imageUrl || currentProduct.imageUrl;
-  const backImage =
-    currentColor.backImageUrl || currentProduct.backImageUrl || currentColor.imageUrl || currentProduct.imageUrl;
+  // Imagens base e estampas
+  const currentBase = currentProduct.baseImage || "/mockups/blank-front.svg";
+  const currentBaseBack = currentProduct.baseBackImage || "/mockups/blank-back.svg";
+  const currentPrint = currentProduct.printImage || currentProduct.imageUrl;
+  const currentPrintBack = currentProduct.printBackImage || currentProduct.backImageUrl || currentPrint;
+
+  // Coordenadas dinâmicas da estampa
+  const printTop = currentProduct.printTop ?? 28.0;
+  const printLeft = currentProduct.printLeft ?? 50.0;
+  const printWidth = currentProduct.printWidth ?? 45.0;
+
+  const printTopBack = currentProduct.printTopBack ?? 25.0;
+  const printLeftBack = currentProduct.printLeftBack ?? 50.0;
+  const printWidthBack = currentProduct.printWidthBack ?? 50.0;
 
   // Atualiza constraints de drag baseado na largura do conteúdo
   useEffect(() => {
@@ -141,14 +232,8 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
     setSelectedColorIndex(0);
   };
 
-  // Flip manual com animação controlada
   const handleToggleSide = (side: "FRONT" | "BACK") => {
-    if (viewSide === side) return;
-    setIsFlipping(true);
     setViewSide(side);
-    setTimeout(() => {
-      setIsFlipping(false);
-    }, 600);
   };
 
   const handleAddToCart = () => {
@@ -159,9 +244,9 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
       size: selectedSize,
       colorName: currentColor.name,
       quantity: 1,
-      imageUrl: frontImage,
+      imageUrl: currentPrint || currentBase,
     });
-    toast.success(`Peça adicionada à sua sacola: ${currentProduct.name} (${selectedSize})`);
+    toast.success(`Peça adicionada à sacola: ${currentProduct.name} (${currentColor.name} - ${selectedSize})`);
     openCart();
   };
 
@@ -178,7 +263,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
             <div className="flex items-center gap-2 mb-1.5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-widest bg-amber-500/10 text-amber-400 border border-amber-500/20">
                 <Sparkles size={11} />
-                Arara Virtual 3D
+                Arara Virtual 3D • Blend Mode
               </span>
               <span className="text-zinc-500 text-xs">•</span>
               <span className="text-zinc-400 text-xs font-mono">
@@ -189,7 +274,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               Showroom Interativo de Peças
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-xl mt-1">
-              Arraste a arara para escolher sua camiseta, alterne as cores e gire a peça em 360° para inspecionar a estampa frontal e traseira.
+              Arraste as camisetas suspensas no trilho, alterne entre vista frontal e traseira, e mude as cores em tempo real.
             </p>
           </div>
 
@@ -198,7 +283,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               Arrasto livre ↔
             </span>
             <span className="px-2 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300">
-              Flip 3D
+              CSS Blend Multiply
             </span>
           </div>
         </div>
@@ -209,7 +294,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
         <div className="relative mb-10 pt-4">
           {/* Trilho Metálico Superior (Rack Bar) */}
           <div className="relative w-full h-3.5 bg-gradient-to-r from-zinc-800 via-zinc-600 to-zinc-800 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.8)] border border-zinc-700/80 mb-2">
-            {/* Parafusos/Suportes industriais nas pontas */}
+            {/* Suportes industriais nas pontas */}
             <div className="absolute -left-1.5 -top-1 w-5 h-5 rounded-full bg-zinc-900 border-2 border-zinc-500 shadow-md flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
             </div>
@@ -231,7 +316,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
             >
               {activeProducts.map((prod, idx) => {
                 const isSelected = idx === selectedProductIndex;
-                const prodThumb = prod.colors?.[0]?.imageUrl || prod.imageUrl;
+                const prodColor = prod.colors?.[0]?.hex || "#111111";
 
                 return (
                   <motion.div
@@ -248,7 +333,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     {/* Gancho & Cabide fixado ao trilho */}
                     <HangerHook />
 
-                    {/* Card da Camiseta Pendurada */}
+                    {/* Card da Camiseta Pendurada com 3 Camadas Blend Mode */}
                     <div
                       className={`relative w-32 sm:w-36 md:w-40 aspect-[3/4] rounded-2xl p-2.5 transition-all duration-300 flex flex-col justify-between ${
                         isSelected
@@ -258,23 +343,26 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     >
                       {/* Badge Ativo */}
                       {isSelected && (
-                        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-mono font-bold text-[9px] uppercase tracking-wider shadow">
+                        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-mono font-bold text-[9px] uppercase tracking-wider shadow z-30">
                           Na Arara
                         </span>
                       )}
 
-                      {/* Imagem da Camiseta */}
-                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden py-1">
-                        <img
-                          src={prodThumb}
+                      {/* Montagem em 3 Camadas no Card Miniatura */}
+                      <div className="w-full flex-1 flex items-center justify-center overflow-hidden py-1 relative">
+                        <ShirtLayeredRender
+                          baseImage={prod.baseImage || "/mockups/blank-front.svg"}
+                          printImage={prod.printImage || prod.imageUrl}
+                          colorHex={prodColor}
+                          printTop={prod.printTop ?? 28}
+                          printLeft={prod.printLeft ?? 50}
+                          printWidth={prod.printWidth ?? 45}
                           alt={prod.name}
-                          className="w-full h-full object-contain filter drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]"
-                          loading="lazy"
                         />
                       </div>
 
                       {/* Detalhes rápidos */}
-                      <div className="text-center pt-1 border-t border-zinc-800/80">
+                      <div className="text-center pt-1 border-t border-zinc-800/80 z-20 relative bg-zinc-900/90 rounded-b-xl">
                         <p className="text-[11px] font-semibold text-zinc-100 truncate">
                           {prod.name}
                         </p>
@@ -310,42 +398,50 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     transform: viewSide === "BACK" ? "rotateY(180deg)" : "rotateY(0deg)",
                   }}
                 >
-                  {/* FACE FRONTAL */}
+                  {/* FACE FRONTAL COM 3 CAMADAS (Fundo + Textura + Arte) */}
                   <div
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950 p-4 border border-zinc-800 flex flex-col items-center justify-center shadow-2xl"
+                    className="absolute inset-0 rounded-2xl bg-zinc-950 p-4 border border-zinc-800 flex flex-col items-center justify-center shadow-2xl overflow-hidden"
                     style={{
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                     }}
                   >
-                    <span className="absolute top-3 left-3 text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700">
+                    <span className="absolute top-3 left-3 text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700 z-30">
                       VISTA FRONTAL
                     </span>
 
-                    <img
-                      src={frontImage}
+                    <ShirtLayeredRender
+                      baseImage={currentBase}
+                      printImage={currentPrint}
+                      colorHex={currentColor.hex}
+                      printTop={printTop}
+                      printLeft={printLeft}
+                      printWidth={printWidth}
                       alt={`${currentProduct.name} - Frente`}
-                      className="w-full h-full object-contain filter drop-shadow-[0_16px_24px_rgba(0,0,0,0.7)] transition-all duration-300"
                     />
                   </div>
 
-                  {/* FACE TRASEIRA (ROTATE 180 DEG) */}
+                  {/* FACE TRASEIRA COM 3 CAMADAS (Fundo + Textura Costas + Arte Costas) */}
                   <div
-                    className="absolute inset-0 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950 p-4 border border-zinc-800 flex flex-col items-center justify-center shadow-2xl"
+                    className="absolute inset-0 rounded-2xl bg-zinc-950 p-4 border border-zinc-800 flex flex-col items-center justify-center shadow-2xl overflow-hidden"
                     style={{
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <span className="absolute top-3 left-3 text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    <span className="absolute top-3 left-3 text-[10px] font-mono tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 z-30">
                       VISTA TRASEIRA
                     </span>
 
-                    <img
-                      src={backImage}
+                    <ShirtLayeredRender
+                      baseImage={currentBaseBack}
+                      printImage={currentPrintBack}
+                      colorHex={currentColor.hex}
+                      printTop={printTopBack}
+                      printLeft={printLeftBack}
+                      printWidth={printWidthBack}
                       alt={`${currentProduct.name} - Costas`}
-                      className="w-full h-full object-contain filter drop-shadow-[0_16px_24px_rgba(0,0,0,0.7)] transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -419,7 +515,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               <div className="space-y-2 pt-2 border-t border-zinc-800/80">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Cor Selecionada:
+                    Cor da Camiseta:
                   </span>
                   <span className="font-mono text-amber-400 font-medium">
                     {currentColor.name}

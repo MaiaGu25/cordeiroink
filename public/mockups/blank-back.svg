@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 580" fill="none">
+  <defs>
+    <!-- Gradiente Principal do Corpo Costas Cinza -->
+    <linearGradient id="bodyGradBack" x1="250" y1="35" x2="250" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EDEDED" />
+      <stop offset="35%" stop-color="#DFDFDF" />
+      <stop offset="70%" stop-color="#D2D2D2" />
+      <stop offset="100%" stop-color="#C4C4C4" />
+    </linearGradient>
+
+    <!-- Sombreamento de Volume 3D das Costas -->
+    <radialGradient id="backVolume" cx="250" cy="220" r="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3" />
+      <stop offset="60%" stop-color="#BDBDBD" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#808080" stop-opacity="0.48" />
+    </radialGradient>
+
+    <!-- Sombra das Mangas (Costas) -->
+    <linearGradient id="leftSleeveBack" x1="120" y1="110" x2="35" y2="255" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="85%" stop-color="#909090" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#606060" stop-opacity="0.75" />
+    </linearGradient>
+
+    <linearGradient id="rightSleeveBack" x1="380" y1="110" x2="465" y2="255" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="85%" stop-color="#909090" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#606060" stop-opacity="0.75" />
+    </linearGradient>
+  </defs>
+
+  <!-- Silhueta da Camiseta Oversized Streetwear (Costas) -->
+  <path
+    d="M175 42 
+       C210 36 290 36 325 42 
+       L388 84 
+       L472 195 
+       L415 258 
+       L372 208 
+       L370 545 
+       L130 545 
+       L128 208 
+       L85 258 
+       L28 195 
+       L112 84 
+       Z"
+    fill="url(#bodyGradBack)"
+    stroke="#AFAFAF"
+    stroke-width="1.5"
+  />
+
+  <!-- Sombra de Volume Global das Costas -->
+  <path
+    d="M175 42 
+       C210 36 290 36 325 42 
+       L388 84 
+       L472 195 
+       L415 258 
+       L372 208 
+       L370 545 
+       L130 545 
+       L128 208 
+       L85 258 
+       L28 195 
+       L112 84 
+       Z"
+    fill="url(#backVolume)"
+  />
+
+  <!-- Mangas Costas -->
+  <path d="M112 84 L128 208 L85 258 L28 195 Z" fill="url(#leftSleeveBack)" />
+  <path d="M388 84 L372 208 L415 258 L472 195 Z" fill="url(#rightSleeveBack)" />
+
+  <!-- Costura Drop Shoulder (Costas) -->
+  <path d="M142 98 C137 140 133 172 128 208" stroke="#9A9A9A" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.6" />
+  <path d="M358 98 C363 140 367 172 372 208" stroke="#9A9A9A" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.6" />
+
+  <!-- Costura do Ombro/Trapézio -->
+  <path d="M175 42 L112 84" stroke="#9A9A9A" stroke-width="1.3" opacity="0.5" />
+  <path d="M325 42 L388 84" stroke="#9A9A9A" stroke-width="1.3" opacity="0.5" />
+
+  <!-- Dobras e Sombra Escapular das Costas -->
+  <path d="M190 140 Q250 160 310 140" stroke="#777777" stroke-width="2" opacity="0.18" stroke-linecap="round" />
+  <path d="M132 250 Q160 265 188 255" stroke="#777777" stroke-width="2.2" opacity="0.22" stroke-linecap="round" />
+  <path d="M368 250 Q340 265 312 255" stroke="#777777" stroke-width="2.2" opacity="0.22" stroke-linecap="round" />
+  <path d="M136 390 Q175 408 215 398" stroke="#777777" stroke-width="2.5" opacity="0.2" stroke-linecap="round" />
+  <path d="M364 390 Q325 408 285 398" stroke="#777777" stroke-width="2.5" opacity="0.2" stroke-linecap="round" />
+  <path d="M138 485 Q175 498 215 488" stroke="#777777" stroke-width="2" opacity="0.16" stroke-linecap="round" />
+  <path d="M362 485 Q325 498 285 488" stroke="#777777" stroke-width="2" opacity="0.16" stroke-linecap="round" />
+
+  <!-- Sombra na Barra Inferior -->
+  <rect x="130" y="534" width="240" height="11" fill="#7E7E7E" opacity="0.3" />
+  <line x1="130" y1="534" x2="370" y2="534" stroke="#8A8A8A" stroke-width="1.5" opacity="0.5" />
+
+  <!-- Ribana da Gola (Costas - Mais alta e fechada) -->
+  <path
+    d="M175 42 C205 32 295 32 325 42 C302 54 198 54 175 42 Z"
+    fill="#D5D5D5"
+    stroke="#8E8E8E"
+    stroke-width="1.8"
+  />
+
+  <!-- Linhas de Ribana na Gola das Costas -->
+  <path d="M210 39 L210 47" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M235 37 L235 47" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M250 36 L250 48" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M265 37 L265 47" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M290 39 L290 47" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+</svg>

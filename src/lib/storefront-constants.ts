@@ -36,7 +36,25 @@ export interface VirtualRackProduct {
   category: string;
   collection?: string | null;
   description?: string | null;
-  imageUrl: string;
+
+  // Camadas de Blend Mode (Mockup cinza base e estampa PNG)
+  baseImage: string;
+  baseBackImage: string;
+  printImage?: string | null;
+  printBackImage?: string | null;
+
+  // Coordenadas dinâmicas da estampa frontal
+  printWidth: number;
+  printTop: number;
+  printLeft: number;
+
+  // Coordenadas dinâmicas da estampa traseira
+  printWidthBack: number;
+  printTopBack: number;
+  printLeftBack: number;
+
+  imageUrl?: string;
   backImageUrl?: string | null;
   colors: VirtualRackColor[];
 }
+

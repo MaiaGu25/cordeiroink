@@ -37,6 +37,16 @@ export async function createProduct(data: {
   backImageUrl?: string;
   description?: string;
   showOnVirtualRack?: boolean;
+  baseShirtUrl?: string;
+  baseShirtBackUrl?: string;
+  printImageUrl?: string;
+  printBackImageUrl?: string;
+  printWidth?: number;
+  printTop?: number;
+  printLeft?: number;
+  printWidthBack?: number;
+  printTopBack?: number;
+  printLeftBack?: number;
   variants: {
     sku: string;
     title: string;
@@ -61,6 +71,16 @@ export async function createProduct(data: {
         backImageUrl: data.backImageUrl?.trim() || null,
         description: data.description?.trim() || null,
         showOnVirtualRack: Boolean(data.showOnVirtualRack),
+        baseShirtUrl: data.baseShirtUrl?.trim() || null,
+        baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
+        printImageUrl: data.printImageUrl?.trim() || null,
+        printBackImageUrl: data.printBackImageUrl?.trim() || null,
+        printWidth: data.printWidth !== undefined ? Number(data.printWidth) : 45.0,
+        printTop: data.printTop !== undefined ? Number(data.printTop) : 28.0,
+        printLeft: data.printLeft !== undefined ? Number(data.printLeft) : 50.0,
+        printWidthBack: data.printWidthBack !== undefined ? Number(data.printWidthBack) : 50.0,
+        printTopBack: data.printTopBack !== undefined ? Number(data.printTopBack) : 25.0,
+        printLeftBack: data.printLeftBack !== undefined ? Number(data.printLeftBack) : 50.0,
         variants: {
           create: (data.variants || []).map((v) => ({
             sku: v.sku.trim(),
@@ -109,6 +129,16 @@ export async function updateProduct(
     backImageUrl?: string;
     description?: string;
     showOnVirtualRack?: boolean;
+    baseShirtUrl?: string;
+    baseShirtBackUrl?: string;
+    printImageUrl?: string;
+    printBackImageUrl?: string;
+    printWidth?: number;
+    printTop?: number;
+    printLeft?: number;
+    printWidthBack?: number;
+    printTopBack?: number;
+    printLeftBack?: number;
     isActive?: boolean;
     variants?: {
       sku: string;
@@ -167,6 +197,16 @@ export async function updateProduct(
           backImageUrl: data.backImageUrl !== undefined ? (data.backImageUrl?.trim() || null) : undefined,
           description: data.description !== undefined ? (data.description?.trim() || null) : undefined,
           showOnVirtualRack: data.showOnVirtualRack !== undefined ? Boolean(data.showOnVirtualRack) : undefined,
+          baseShirtUrl: data.baseShirtUrl !== undefined ? (data.baseShirtUrl?.trim() || null) : undefined,
+          baseShirtBackUrl: data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl?.trim() || null) : undefined,
+          printImageUrl: data.printImageUrl !== undefined ? (data.printImageUrl?.trim() || null) : undefined,
+          printBackImageUrl: data.printBackImageUrl !== undefined ? (data.printBackImageUrl?.trim() || null) : undefined,
+          printWidth: data.printWidth !== undefined ? Number(data.printWidth) : undefined,
+          printTop: data.printTop !== undefined ? Number(data.printTop) : undefined,
+          printLeft: data.printLeft !== undefined ? Number(data.printLeft) : undefined,
+          printWidthBack: data.printWidthBack !== undefined ? Number(data.printWidthBack) : undefined,
+          printTopBack: data.printTopBack !== undefined ? Number(data.printTopBack) : undefined,
+          printLeftBack: data.printLeftBack !== undefined ? Number(data.printLeftBack) : undefined,
           isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
         },
         include: {

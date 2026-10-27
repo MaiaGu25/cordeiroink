@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 580" fill="none">
+  <defs>
+    <!-- Gradiente Principal do Corpo Cinza -->
+    <linearGradient id="bodyGradFront" x1="250" y1="40" x2="250" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EBEBEB" />
+      <stop offset="40%" stop-color="#DDDDDD" />
+      <stop offset="75%" stop-color="#D0D0D0" />
+      <stop offset="100%" stop-color="#C2C2C2" />
+    </linearGradient>
+
+    <!-- Sombreamento de Volume 3D (Laterais e Peito) -->
+    <radialGradient id="chestVolume" cx="250" cy="240" r="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="65%" stop-color="#BDBDBD" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#888888" stop-opacity="0.5" />
+    </radialGradient>
+
+    <!-- Sombra de Dobras das Mangas -->
+    <linearGradient id="leftSleeveShadow" x1="120" y1="120" x2="40" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.2" />
+      <stop offset="80%" stop-color="#999999" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#666666" stop-opacity="0.7" />
+    </linearGradient>
+
+    <linearGradient id="rightSleeveShadow" x1="380" y1="120" x2="460" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.2" />
+      <stop offset="80%" stop-color="#999999" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#666666" stop-opacity="0.7" />
+    </linearGradient>
+
+    <!-- Sombra Interna da Gola -->
+    <linearGradient id="collarInnerShadow" x1="250" y1="45" x2="250" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#444444" stop-opacity="0.7" />
+      <stop offset="100%" stop-color="#888888" stop-opacity="0.1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Silhueta da Camiseta Oversized Streetwear -->
+  <path
+    d="M175 52 
+       C198 78 302 78 325 52 
+       L388 88 
+       L472 195 
+       L415 258 
+       L372 208 
+       L370 545 
+       L130 545 
+       L128 208 
+       L85 258 
+       L28 195 
+       L112 88 
+       Z"
+    fill="url(#bodyGradFront)"
+    stroke="#AFAFAF"
+    stroke-width="1.5"
+  />
+
+  <!-- Sombra de Volume Global -->
+  <path
+    d="M175 52 
+       C198 78 302 78 325 52 
+       L388 88 
+       L472 195 
+       L415 258 
+       L372 208 
+       L370 545 
+       L130 545 
+       L128 208 
+       L85 258 
+       L28 195 
+       L112 88 
+       Z"
+    fill="url(#chestVolume)"
+  />
+
+  <!-- Sombras das Mangas Drop-Shoulder -->
+  <path d="M112 88 L128 208 L85 258 L28 195 Z" fill="url(#leftSleeveShadow)" />
+  <path d="M388 88 L372 208 L415 258 L472 195 Z" fill="url(#rightSleeveShadow)" />
+
+  <!-- Costura Drop Shoulder (Ombro Caído) -->
+  <path d="M140 102 C135 145 132 175 128 208" stroke="#9A9A9A" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.6" />
+  <path d="M360 102 C365 145 368 175 372 208" stroke="#9A9A9A" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.6" />
+
+  <!-- Dobras e Vincos Naturais de Tecido Heavyweight -->
+  <path d="M132 245 Q155 260 178 250" stroke="#777777" stroke-width="2" opacity="0.25" stroke-linecap="round" />
+  <path d="M368 245 Q345 260 322 250" stroke="#777777" stroke-width="2" opacity="0.25" stroke-linecap="round" />
+  <path d="M135 380 Q170 395 210 385" stroke="#777777" stroke-width="2.5" opacity="0.22" stroke-linecap="round" />
+  <path d="M365 390 Q330 405 290 395" stroke="#777777" stroke-width="2.5" opacity="0.22" stroke-linecap="round" />
+  <path d="M138 480 Q175 492 215 484" stroke="#777777" stroke-width="2" opacity="0.18" stroke-linecap="round" />
+  <path d="M362 485 Q325 498 285 488" stroke="#777777" stroke-width="2" opacity="0.18" stroke-linecap="round" />
+
+  <!-- Sombra na Barra Inferior -->
+  <rect x="130" y="534" width="240" height="11" fill="#7E7E7E" opacity="0.3" />
+  <line x1="130" y1="534" x2="370" y2="534" stroke="#8A8A8A" stroke-width="1.5" opacity="0.5" />
+
+  <!-- Parte Interna Traseira da Gola (Vista de Frente) -->
+  <path
+    d="M175 52 C205 38 295 38 325 52 C295 62 205 62 175 52 Z"
+    fill="url(#collarInnerShadow)"
+  />
+
+  <!-- Ribana da Gola (Crewneck 3cm Streetwear) -->
+  <path
+    d="M175 52 C202 82 298 82 325 52 C302 70 198 70 175 52 Z"
+    fill="#D5D5D5"
+    stroke="#8E8E8E"
+    stroke-width="1.8"
+  />
+
+  <!-- Linhas de Ribana Canelada na Gola -->
+  <path d="M205 65 L204 70" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M225 69 L225 74" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M250 70 L250 76" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M275 69 L275 74" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+  <path d="M295 65 L296 70" stroke="#8E8E8E" stroke-width="1" opacity="0.4" />
+</svg>

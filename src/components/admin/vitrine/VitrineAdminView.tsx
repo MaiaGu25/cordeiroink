@@ -47,6 +47,16 @@ interface CatalogItem {
   backImageUrl?: string | null;
   category: string;
   showOnVirtualRack?: boolean;
+  baseShirtUrl?: string | null;
+  baseShirtBackUrl?: string | null;
+  printImageUrl?: string | null;
+  printBackImageUrl?: string | null;
+  printWidth?: number | null;
+  printTop?: number | null;
+  printLeft?: number | null;
+  printWidthBack?: number | null;
+  printTopBack?: number | null;
+  printLeftBack?: number | null;
   isActive: boolean;
   createdAt: Date;
   variants?: CatalogVariant[];

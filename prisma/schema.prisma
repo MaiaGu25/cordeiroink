@@ -90,6 +90,19 @@ model Product {
   backImageUrl      String?
   description       String?
   showOnVirtualRack Boolean          @default(false)
+
+  // Blend Mode & Posicionamento Dinâmico de Estampas
+  baseShirtUrl      String?          // Mockup cinza liso frente
+  baseShirtBackUrl  String?          // Mockup cinza liso costas
+  printImageUrl     String?          // Arte/Estampa PNG isolada frente
+  printBackImageUrl String?          // Arte/Estampa PNG isolada costas
+  printWidth        Float            @default(45.0) // Escala % frente
+  printTop          Float            @default(28.0) // Posição Top % frente
+  printLeft         Float            @default(50.0) // Posição Left % frente
+  printWidthBack    Float            @default(50.0) // Escala % costas
+  printTopBack      Float            @default(25.0) // Posição Top % costas
+  printLeftBack     Float            @default(50.0) // Posição Left % costas
+
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -377,6 +390,19 @@ model CatalogItem {
   backImageUrl      String?          // Imagem de costas principal
   category          String           @default("Adulto") // Adulto, Infantil, Oversized, Feminina, Regata
   showOnVirtualRack Boolean          @default(false)
+
+  // Blend Mode & Posicionamento Dinâmico de Estampas
+  baseShirtUrl      String?          // Mockup cinza liso frente
+  baseShirtBackUrl  String?          // Mockup cinza liso costas
+  printImageUrl     String?          // Arte/Estampa PNG isolada frente
+  printBackImageUrl String?          // Arte/Estampa PNG isolada costas
+  printWidth        Float            @default(45.0) // Escala % frente
+  printTop          Float            @default(28.0) // Posição Top % frente
+  printLeft         Float            @default(50.0) // Posição Left % frente
+  printWidthBack    Float            @default(50.0) // Escala % costas
+  printTopBack      Float            @default(25.0) // Posição Top % costas
+  printLeftBack     Float            @default(50.0) // Posição Left % costas
+
   isActive          Boolean          @default(true)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt

@@ -151,6 +151,16 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         category: p.category || "Oversized",
         collection: p.collection || "Drop Especial",
         description: p.description,
+        baseImage: p.baseShirtUrl?.trim() || "/mockups/blank-front.svg",
+        baseBackImage: p.baseShirtBackUrl?.trim() || "/mockups/blank-back.svg",
+        printImage: p.printImageUrl?.trim() || p.imageUrl || null,
+        printBackImage: p.printBackImageUrl?.trim() || p.backImageUrl || null,
+        printWidth: Number(p.printWidth) || 45.0,
+        printTop: Number(p.printTop) || 28.0,
+        printLeft: Number(p.printLeft) || 50.0,
+        printWidthBack: Number(p.printWidthBack) || 50.0,
+        printTopBack: Number(p.printTopBack) || 25.0,
+        printLeftBack: Number(p.printLeftBack) || 50.0,
         imageUrl: p.imageUrl || "",
         backImageUrl: p.backImageUrl || null,
         colors,
@@ -184,6 +194,16 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         category: c.category || "Oversized",
         collection: "Vitrine",
         description: c.description,
+        baseImage: c.baseShirtUrl?.trim() || "/mockups/blank-front.svg",
+        baseBackImage: c.baseShirtBackUrl?.trim() || "/mockups/blank-back.svg",
+        printImage: c.printImageUrl?.trim() || c.imageUrl || null,
+        printBackImage: c.printBackImageUrl?.trim() || c.backImageUrl || null,
+        printWidth: Number(c.printWidth) || 45.0,
+        printTop: Number(c.printTop) || 28.0,
+        printLeft: Number(c.printLeft) || 50.0,
+        printWidthBack: Number(c.printWidthBack) || 50.0,
+        printTopBack: Number(c.printTopBack) || 25.0,
+        printLeftBack: Number(c.printLeftBack) || 50.0,
         imageUrl: c.imageUrl,
         backImageUrl: c.backImageUrl || null,
         colors,
@@ -229,6 +249,16 @@ export async function createCatalogItem(data: {
   backImageUrl?: string;
   category?: string;
   showOnVirtualRack?: boolean;
+  baseShirtUrl?: string;
+  baseShirtBackUrl?: string;
+  printImageUrl?: string;
+  printBackImageUrl?: string;
+  printWidth?: number;
+  printTop?: number;
+  printLeft?: number;
+  printWidthBack?: number;
+  printTopBack?: number;
+  printLeftBack?: number;
   variants?: VariantInput[];
 }) {
   try {
@@ -253,6 +283,16 @@ export async function createCatalogItem(data: {
         backImageUrl: data.backImageUrl?.trim() || null,
         category: cleanCategory,
         showOnVirtualRack: Boolean(data.showOnVirtualRack),
+        baseShirtUrl: data.baseShirtUrl?.trim() || null,
+        baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
+        printImageUrl: data.printImageUrl?.trim() || null,
+        printBackImageUrl: data.printBackImageUrl?.trim() || null,
+        printWidth: data.printWidth !== undefined ? Number(data.printWidth) : 45.0,
+        printTop: data.printTop !== undefined ? Number(data.printTop) : 28.0,
+        printLeft: data.printLeft !== undefined ? Number(data.printLeft) : 50.0,
+        printWidthBack: data.printWidthBack !== undefined ? Number(data.printWidthBack) : 50.0,
+        printTopBack: data.printTopBack !== undefined ? Number(data.printTopBack) : 25.0,
+        printLeftBack: data.printLeftBack !== undefined ? Number(data.printLeftBack) : 50.0,
         isActive: true,
         variants: {
           create: validVariants.map((v) => ({
@@ -293,6 +333,16 @@ export async function updateCatalogItem(
     backImageUrl?: string;
     category?: string;
     showOnVirtualRack?: boolean;
+    baseShirtUrl?: string;
+    baseShirtBackUrl?: string;
+    printImageUrl?: string;
+    printBackImageUrl?: string;
+    printWidth?: number;
+    printTop?: number;
+    printLeft?: number;
+    printWidthBack?: number;
+    printTopBack?: number;
+    printLeftBack?: number;
     isActive?: boolean;
     variants?: VariantInput[];
   }
@@ -342,6 +392,20 @@ export async function updateCatalogItem(
           category: cleanCategory,
           showOnVirtualRack:
             data.showOnVirtualRack !== undefined ? Boolean(data.showOnVirtualRack) : undefined,
+          baseShirtUrl:
+            data.baseShirtUrl !== undefined ? (data.baseShirtUrl.trim() || null) : undefined,
+          baseShirtBackUrl:
+            data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl.trim() || null) : undefined,
+          printImageUrl:
+            data.printImageUrl !== undefined ? (data.printImageUrl.trim() || null) : undefined,
+          printBackImageUrl:
+            data.printBackImageUrl !== undefined ? (data.printBackImageUrl.trim() || null) : undefined,
+          printWidth: data.printWidth !== undefined ? Number(data.printWidth) : undefined,
+          printTop: data.printTop !== undefined ? Number(data.printTop) : undefined,
+          printLeft: data.printLeft !== undefined ? Number(data.printLeft) : undefined,
+          printWidthBack: data.printWidthBack !== undefined ? Number(data.printWidthBack) : undefined,
+          printTopBack: data.printTopBack !== undefined ? Number(data.printTopBack) : undefined,
+          printLeftBack: data.printLeftBack !== undefined ? Number(data.printLeftBack) : undefined,
           isActive: data.isActive !== undefined ? data.isActive : undefined,
         },
         include: {

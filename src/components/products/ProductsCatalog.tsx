@@ -12,18 +12,35 @@ import {
   X,
   Upload,
   Loader2,
+  Sliders,
+  RotateCw,
+  Eye,
+  Move,
+  Maximize2,
+  RefreshCw,
   Check,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import {
   createProduct,
   updateProduct,
   toggleProductVirtualRack,
   deleteProduct,
 } from "@/actions/products";
+import { uploadStorefrontFile } from "@/actions/storefront";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+
+const PREVIEW_PALETTE = [
+  { name: "Preto", hex: "#18181b" },
+  { name: "Branco", hex: "#f4f4f5" },
+  { name: "Off-White", hex: "#e7e5e4" },
+  { name: "Azul Marinho", hex: "#1e3a8a" },
+  { name: "Vinho", hex: "#7f1d1d" },
+  { name: "Verde Militar", hex: "#14532d" },
+  { name: "Mostarda", hex: "#b45309" },
+];
 
 interface ProductCatalogProps {
   products: any[];
@@ -52,6 +69,59 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
   const [description, setDescription] = useState("");
   const [showOnVirtualRack, setShowOnVirtualRack] = useState(false);
 
+  // Blend Mode & Print Positioning Fields
+  const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
+  const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [printImageUrl, setPrintImageUrl] = useState("");
+  const [printBackImageUrl, setPrintBackImageUrl] = useState("");
+  const [printWidth, setPrintWidth] = useState(45);
+  const [printTop, setPrintTop] = useState(28);
+  const [printLeft, setPrintLeft] = useState(50);
+  const [printWidthBack, setPrintWidthBack] = useState(50);
+  const [printTopBack, setPrintTopBack] = useState(25);
+  const [printLeftBack, setPrintLeftBack] = useState(50);
+
+  // Live Preview Settings
+  const [previewSide, setPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
+  const [previewColor, setPreviewColor] = useState("#18181b");
+  const [isUploadingPrint, setIsUploadingPrint] = useState(false);
+
+  const frontPrintInputRef = useRef<HTMLInputElement>(null);
+  const backPrintInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload handler for isolated prints
+  const handleUploadPrint = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isBack = false
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPrint(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "prints");
+
+    try {
+      const res = await uploadStorefrontFile(formData);
+      if (res.success && res.url) {
+        if (isBack) {
+          setPrintBackImageUrl(res.url);
+        } else {
+          setPrintImageUrl(res.url);
+        }
+        toast.success("Estampa PNG isolada enviada com sucesso!");
+      } else {
+        toast.error(res.error || "Erro no upload da estampa");
+      }
+    } catch (err: any) {
+      toast.error("Erro no upload: " + (err?.message || String(err)));
+    } finally {
+      setIsUploadingPrint(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   // Abrir Modal para Novo Produto
   const handleOpenNew = () => {
     setEditingProduct(null);
@@ -63,7 +133,19 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     setImageUrl("");
     setBackImageUrl("");
     setDescription("");
-    setShowOnVirtualRack(false);
+    setShowOnVirtualRack(true);
+    setBaseShirtUrl("/mockups/blank-front.svg");
+    setBaseShirtBackUrl("/mockups/blank-back.svg");
+    setPrintImageUrl("");
+    setPrintBackImageUrl("");
+    setPrintWidth(45);
+    setPrintTop(28);
+    setPrintLeft(50);
+    setPrintWidthBack(50);
+    setPrintTopBack(25);
+    setPrintLeftBack(50);
+    setPreviewSide("FRONT");
+    setPreviewColor("#18181b");
     setIsModalOpen(true);
   };
 
@@ -79,6 +161,18 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     setBackImageUrl(prod.backImageUrl || "");
     setDescription(prod.description || "");
     setShowOnVirtualRack(Boolean(prod.showOnVirtualRack));
+    setBaseShirtUrl(prod.baseShirtUrl || "/mockups/blank-front.svg");
+    setBaseShirtBackUrl(prod.baseShirtBackUrl || "/mockups/blank-back.svg");
+    setPrintImageUrl(prod.printImageUrl || "");
+    setPrintBackImageUrl(prod.printBackImageUrl || "");
+    setPrintWidth(prod.printWidth ?? 45);
+    setPrintTop(prod.printTop ?? 28);
+    setPrintLeft(prod.printLeft ?? 50);
+    setPrintWidthBack(prod.printWidthBack ?? 50);
+    setPrintTopBack(prod.printTopBack ?? 25);
+    setPrintLeftBack(prod.printLeftBack ?? 50);
+    setPreviewSide("FRONT");
+    setPreviewColor(prod.variants?.[0]?.colorHex || "#18181b");
     setIsModalOpen(true);
   };
 
@@ -92,18 +186,30 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
 
     startTransition(async () => {
       try {
+        const payloadData = {
+          skuBase,
+          name,
+          category,
+          collection,
+          targetMargin: Number(targetMargin) || 50,
+          imageUrl: imageUrl.trim() || undefined,
+          backImageUrl: backImageUrl.trim() || undefined,
+          description,
+          showOnVirtualRack,
+          baseShirtUrl: baseShirtUrl.trim() || undefined,
+          baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
+          printImageUrl: printImageUrl.trim() || undefined,
+          printBackImageUrl: printBackImageUrl.trim() || undefined,
+          printWidth: Number(printWidth),
+          printTop: Number(printTop),
+          printLeft: Number(printLeft),
+          printWidthBack: Number(printWidthBack),
+          printTopBack: Number(printTopBack),
+          printLeftBack: Number(printLeftBack),
+        };
+
         if (editingProduct) {
-          const res = await updateProduct(editingProduct.id, {
-            skuBase,
-            name,
-            category,
-            collection,
-            targetMargin: Number(targetMargin) || 50,
-            imageUrl: imageUrl.trim() || undefined,
-            backImageUrl: backImageUrl.trim() || undefined,
-            description,
-            showOnVirtualRack,
-          });
+          const res = await updateProduct(editingProduct.id, payloadData);
 
           if (res && !res.success) {
             toast.error(res.error || "Erro ao atualizar produto.");
@@ -113,15 +219,7 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
           toast.success(`Produto "${name}" atualizado com sucesso!`);
         } else {
           const res = await createProduct({
-            skuBase,
-            name,
-            category,
-            collection,
-            targetMargin: Number(targetMargin) || 50,
-            imageUrl: imageUrl.trim() || undefined,
-            backImageUrl: backImageUrl.trim() || undefined,
-            description,
-            showOnVirtualRack,
+            ...payloadData,
             variants: [
               {
                 sku: `${skuBase}-BLK-G`,
@@ -460,186 +558,583 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
         </div>
       )}
 
-      {/* MODAL: CRIAR / EDITAR PRODUTO NO ERP */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-3xl p-6 text-zinc-100 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <Shirt size={16} />
-                </div>
-                <h3 className="text-sm font-bold text-zinc-100">
-                  {editingProduct ? "Editar Produto ERP" : "Novo Produto no ERP"}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {/* MODAL: CRIAR / EDITAR PRODUTO NO ERP (COM PREVIEW EM TEMPO REAL) */}
+      {isModalOpen && (() => {
+        const isFront = previewSide === "FRONT";
+        const currentBase = isFront
+          ? baseShirtUrl || "/mockups/blank-front.svg"
+          : baseShirtBackUrl || "/mockups/blank-back.svg";
+        const currentPrint = isFront ? printImageUrl : printBackImageUrl;
+        const currentWidth = isFront ? printWidth : printWidthBack;
+        const currentTop = isFront ? printTop : printTopBack;
+        const currentLeft = isFront ? printLeft : printLeftBack;
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    SKU Base *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={skuBase}
-                    onChange={(e) => setSkuBase(e.target.value.toUpperCase())}
-                    placeholder="ex: OVR-STREET-01"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
+        const setCurrentWidth = (val: number) => {
+          if (isFront) setPrintWidth(val);
+          else setPrintWidthBack(val);
+        };
+        const setCurrentTop = (val: number) => {
+          if (isFront) setPrintTop(val);
+          else setPrintTopBack(val);
+        };
+        const setCurrentLeft = (val: number) => {
+          if (isFront) setPrintLeft(val);
+          else setPrintLeftBack(val);
+        };
 
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Categoria
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
-                  >
-                    <option value="Camisetas">Camisetas</option>
-                    <option value="Oversized">Oversized</option>
-                    <option value="Moletom">Moletom</option>
-                    <option value="Infantil">Infantil</option>
-                  </select>
-                </div>
-              </div>
+        const handleResetCoordinates = () => {
+          if (isFront) {
+            setPrintWidth(45);
+            setPrintTop(28);
+            setPrintLeft(50);
+          } else {
+            setPrintWidthBack(50);
+            setPrintTopBack(25);
+            setPrintLeftBack(50);
+          }
+        };
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Nome do Produto *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="ex: Camiseta Oversized Cyberpunk 260g"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Coleção / Linha
-                  </label>
-                  <input
-                    type="text"
-                    value={collection}
-                    onChange={(e) => setCollection(e.target.value)}
-                    placeholder="ex: Drop 01 - Cyber"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Margem Alvo (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={targetMargin}
-                    onChange={(e) => setTargetMargin(e.target.value)}
-                    placeholder="50"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    URL Foto Frontal (Frente)
-                  </label>
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://.../frente.png"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    URL Foto Traseira (Costas)
-                  </label>
-                  <input
-                    type="url"
-                    value={backImageUrl}
-                    onChange={(e) => setBackImageUrl(e.target.value)}
-                    placeholder="https://.../costas.png"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                  />
-                </div>
-              </div>
-
-              {/* TOGGLE: EXIBIR NA ARARA VIRTUAL */}
-              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showOnVirtualRack}
-                    onChange={(e) => setShowOnVirtualRack(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-amber-400" />
-                      Exibir na Arara Virtual 3D
-                    </span>
-                    <span className="text-[11px] text-zinc-400 block mt-0.5">
-                      Destaca esta peça no showroom interativo no topo da vitrine da loja com rotação 360° e flip frente/costas.
-                    </span>
+        return (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-5xl bg-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 text-zinc-100 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Shirt size={18} />
                   </div>
-                </label>
-              </div>
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+                      <span>{editingProduct ? "Editar Produto ERP" : "Novo Produto no ERP"}</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 text-amber-400 border border-amber-500/30">
+                        CSS Blend Mode 3D
+                      </span>
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Configure a ficha técnica, posicione a estampa dinamicamente e visualize em tempo real.
+                    </p>
+                  </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Descrição Técnica
-                </label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalhes de confecção, gramatura e acabamento..."
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition cursor-pointer"
+                  className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
                 >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  {isPending && <Loader2 size={13} className="animate-spin" />}
-                  <span>{editingProduct ? "Salvar Alterações" : "Criar Produto"}</span>
+                  <X size={18} />
                 </button>
               </div>
-            </form>
+
+              {/* Form & 2-Column Grid */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* COLUNA ESQUERDA: PREVIEW EM TEMPO REAL & CONTROLES DE POSIÇÃO */}
+                  <div className="lg:col-span-5 space-y-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
+                        <Eye size={14} className="text-amber-400" />
+                        <span>Preview em Tempo Real</span>
+                      </div>
+
+                      {/* Switch Frente / Costas */}
+                      <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewSide("FRONT")}
+                          className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                            previewSide === "FRONT"
+                              ? "bg-amber-500 text-zinc-950 font-bold shadow"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          Frente
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewSide("BACK")}
+                          className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                            previewSide === "BACK"
+                              ? "bg-amber-500 text-zinc-950 font-bold shadow"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          Costas
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Paleta de Cores para Teste de Blend */}
+                    <div>
+                      <span className="text-[10px] text-zinc-400 uppercase font-semibold tracking-wider block mb-1.5">
+                        Testar Cor do Tecido (Fundo):
+                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {PREVIEW_PALETTE.map((c) => (
+                          <button
+                            key={c.hex}
+                            type="button"
+                            onClick={() => setPreviewColor(c.hex)}
+                            title={c.name}
+                            className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer ${
+                              previewColor === c.hex
+                                ? "border-amber-400 scale-110 shadow-md ring-2 ring-amber-400/30"
+                                : "border-zinc-700 hover:scale-105"
+                            }`}
+                            style={{ backgroundColor: c.hex }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* MOCKUP INTERATIVO (SANDUÍCHE DE 3 CAMADAS) */}
+                    <div className="relative w-full aspect-[3/4] max-h-[360px] rounded-2xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-center overflow-hidden shadow-inner select-none">
+                      {/* Camada 1: Fundo com Cor Selecionada (Mascarada pelo contorno da camiseta) */}
+                      <div
+                        className="absolute inset-0 transition-colors duration-300 pointer-events-none"
+                        style={{
+                          backgroundColor: previewColor,
+                          maskImage: `url('${currentBase}')`,
+                          WebkitMaskImage: `url('${currentBase}')`,
+                          maskSize: "contain",
+                          WebkitMaskSize: "contain",
+                          maskRepeat: "no-repeat",
+                          WebkitMaskRepeat: "no-repeat",
+                          maskPosition: "center",
+                          WebkitMaskPosition: "center",
+                        }}
+                      />
+
+                      {/* Camada 2: Mockup Cinza com Textura & Sombras (mix-blend-multiply) */}
+                      <img
+                        src={currentBase}
+                        alt="Mockup Camiseta Base"
+                        className="relative z-10 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none transition-all duration-300"
+                      />
+
+                      {/* Camada 3: Arte PNG Isolada (Posicionamento Dinâmico em tempo real) */}
+                      {currentPrint ? (
+                        <div
+                          className="absolute z-20 pointer-events-none transition-all duration-75 flex items-center justify-center"
+                          style={{
+                            top: `${currentTop}%`,
+                            left: `${currentLeft}%`,
+                            width: `${currentWidth}%`,
+                            transform: "translateX(-50%)",
+                          }}
+                        >
+                          <img
+                            src={currentPrint}
+                            alt="Estampa Isolada"
+                            className="w-full h-auto object-contain drop-shadow-md select-none"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="absolute z-20 pointer-events-none border-2 border-dashed border-amber-400/60 rounded-xl p-2.5 text-center flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] transition-all"
+                          style={{
+                            top: `${currentTop}%`,
+                            left: `${currentLeft}%`,
+                            width: `${currentWidth}%`,
+                            transform: "translateX(-50%)",
+                            minHeight: "70px",
+                          }}
+                        >
+                          <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">
+                            Área da Estampa ({previewSide === "FRONT" ? "Frente" : "Costas"})
+                          </span>
+                          <span className="text-[9px] text-zinc-300 mt-0.5">
+                            Adicione o PNG da estampa ao lado
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Watermark Indicativa */}
+                      <div className="absolute bottom-2 right-2 z-30 px-2 py-0.5 rounded-md bg-zinc-900/80 border border-zinc-800 text-[9px] font-mono text-zinc-400">
+                        {previewSide === "FRONT" ? "Frente" : "Costas"} • W:{currentWidth}% Y:{currentTop}% X:{currentLeft}%
+                      </div>
+                    </div>
+
+                    {/* SLIDERS DE COORDENADAS EM TEMPO REAL */}
+                    <div className="space-y-3 pt-2 border-t border-zinc-800/80">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                          <Sliders size={13} className="text-amber-400" />
+                          <span>Ajuste Fino ({previewSide === "FRONT" ? "Frente" : "Costas"})</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleResetCoordinates}
+                          className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition"
+                          title="Restaurar valores padrão"
+                        >
+                          <RefreshCw size={10} />
+                          <span>Padrão</span>
+                        </button>
+                      </div>
+
+                      {/* Slider: Escala / Largura */}
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-zinc-400 flex items-center gap-1">
+                            <Maximize2 size={11} /> Escala da Estampa:
+                          </span>
+                          <span className="font-mono font-bold text-amber-400">{currentWidth}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min="15"
+                            max="90"
+                            step="1"
+                            value={currentWidth}
+                            onChange={(e) => setCurrentWidth(Number(e.target.value))}
+                            className="w-full accent-amber-500 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            min="15"
+                            max="90"
+                            value={currentWidth}
+                            onChange={(e) => setCurrentWidth(Number(e.target.value))}
+                            className="w-14 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider: Posição Vertical (Y / Top) */}
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-zinc-400 flex items-center gap-1">
+                            <Move size={11} /> Posição Vertical (Y):
+                          </span>
+                          <span className="font-mono font-bold text-amber-400">{currentTop}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min="5"
+                            max="85"
+                            step="1"
+                            value={currentTop}
+                            onChange={(e) => setCurrentTop(Number(e.target.value))}
+                            className="w-full accent-amber-500 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            min="5"
+                            max="85"
+                            value={currentTop}
+                            onChange={(e) => setCurrentTop(Number(e.target.value))}
+                            className="w-14 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Slider: Posição Horizontal (X / Left) */}
+                      <div>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-zinc-400 flex items-center gap-1">
+                            <Move size={11} className="rotate-90" /> Posição Horizontal (X):
+                          </span>
+                          <span className="font-mono font-bold text-amber-400">{currentLeft}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min="15"
+                            max="85"
+                            step="1"
+                            value={currentLeft}
+                            onChange={(e) => setCurrentLeft(Number(e.target.value))}
+                            className="w-full accent-amber-500 cursor-pointer"
+                          />
+                          <input
+                            type="number"
+                            min="15"
+                            max="85"
+                            value={currentLeft}
+                            onChange={(e) => setCurrentLeft(Number(e.target.value))}
+                            className="w-14 px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLUNA DIREITA: DADOS DO PRODUTO & ARQUITETURA DE ARQUIVOS */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Inputs de Upload Ocultos */}
+                    <input
+                      type="file"
+                      ref={frontPrintInputRef}
+                      accept="image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => handleUploadPrint(e, false)}
+                    />
+                    <input
+                      type="file"
+                      ref={backPrintInputRef}
+                      accept="image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => handleUploadPrint(e, true)}
+                    />
+
+                    {/* Linha 1: SKU e Categoria */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          SKU Base *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={skuBase}
+                          onChange={(e) => setSkuBase(e.target.value.toUpperCase())}
+                          placeholder="ex: OVR-STREET-01"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Categoria
+                        </label>
+                        <select
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+                        >
+                          <option value="Camisetas">Camisetas</option>
+                          <option value="Oversized">Oversized</option>
+                          <option value="Moletom">Moletom</option>
+                          <option value="Infantil">Infantil</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Nome do Produto */}
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        Nome do Produto *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="ex: Camiseta Oversized Cyberpunk 260g"
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+
+                    {/* Linha 2: Coleção e Margem Alvo */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Coleção / Drop
+                        </label>
+                        <input
+                          type="text"
+                          value={collection}
+                          onChange={(e) => setCollection(e.target.value)}
+                          placeholder="ex: Drop 01 - Streetwear"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Margem Alvo (%)
+                        </label>
+                        <input
+                          type="number"
+                          value={targetMargin}
+                          onChange={(e) => setTargetMargin(e.target.value)}
+                          placeholder="50"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* SEÇÃO: ARQUITETURA BLEND MODE & ESTAMPAS ISOLADAS */}
+                    <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                          <Layers size={14} />
+                          <span>Arquitetura de Estampas PNG (Blend Mode)</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-400">PNG transparente isolado</span>
+                      </div>
+
+                      {/* Estampa Frente */}
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Estampa Isolada Frente (PNG transparente)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={printImageUrl}
+                            onChange={(e) => setPrintImageUrl(e.target.value)}
+                            placeholder="https://.../estampa-frente.png"
+                            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                          />
+                          <button
+                            type="button"
+                            disabled={isUploadingPrint}
+                            onClick={() => frontPrintInputRef.current?.click()}
+                            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
+                          >
+                            <Upload size={13} />
+                            <span>Upload</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Estampa Costas */}
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Estampa Isolada Costas (PNG transparente)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={printBackImageUrl}
+                            onChange={(e) => setPrintBackImageUrl(e.target.value)}
+                            placeholder="https://.../estampa-costas.png"
+                            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                          />
+                          <button
+                            type="button"
+                            disabled={isUploadingPrint}
+                            onClick={() => backPrintInputRef.current?.click()}
+                            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
+                          >
+                            <Upload size={13} />
+                            <span>Upload</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Mockups de Camiseta Cinza Base (Opcionais) */}
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] text-zinc-400 mb-1">
+                            Mockup Base Frente (opcional)
+                          </label>
+                          <input
+                            type="text"
+                            value={baseShirtUrl}
+                            onChange={(e) => setBaseShirtUrl(e.target.value)}
+                            placeholder="/mockups/blank-front.svg"
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-zinc-400 mb-1">
+                            Mockup Base Costas (opcional)
+                          </label>
+                          <input
+                            type="text"
+                            value={baseShirtBackUrl}
+                            onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                            placeholder="/mockups/blank-back.svg"
+                            className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Foto Vitrine Convencional (Opcional) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Foto Vitrine Frente (Tradicional)
+                        </label>
+                        <input
+                          type="url"
+                          value={imageUrl}
+                          onChange={(e) => setImageUrl(e.target.value)}
+                          placeholder="https://.../frente.png"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Foto Vitrine Costas (Tradicional)
+                        </label>
+                        <input
+                          type="url"
+                          value={backImageUrl}
+                          onChange={(e) => setBackImageUrl(e.target.value)}
+                          placeholder="https://.../costas.png"
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* TOGGLE: EXIBIR NA ARARA VIRTUAL */}
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showOnVirtualRack}
+                          onChange={(e) => setShowOnVirtualRack(e.target.checked)}
+                          className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
+                        />
+                        <div>
+                          <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
+                            <Sparkles size={13} className="text-amber-400" />
+                            Exibir na Arara Virtual 3D
+                          </span>
+                          <span className="text-[11px] text-zinc-400 block mt-0.5">
+                            Exibe esta peça no showroom interativo no topo da vitrine com giro 3D e blend mode.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Descrição Técnica */}
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        Descrição Técnica
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Detalhes de confecção, gramatura e acabamento..."
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold transition cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPending || isUploadingPrint}
+                    className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-lg"
+                  >
+                    {(isPending || isUploadingPrint) && <Loader2 size={13} className="animate-spin" />}
+                    <span>{editingProduct ? "Salvar Alterações" : "Criar Produto"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
