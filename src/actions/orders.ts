@@ -205,131 +205,141 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
 }
 
 export async function cancelOrder(orderId: string, reason: string) {
-  if (!reason || !reason.trim()) {
-    throw new Error("O motivo do cancelamento é obrigatório para auditoria.");
-  }
+  try {
+    if (!reason || !reason.trim()) {
+      return { success: false, error: "O motivo do cancelamento é obrigatório para auditoria." };
+    }
 
-  const user = await getCurrentUser();
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: true,
-      productionJob: true,
-      financialTx: true,
-    },
-  });
+    const user = await getCurrentUser();
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        productionJob: true,
+        financialTx: true,
+      },
+    });
 
-  if (!order) throw new Error("Pedido não encontrado");
-  if (order.status === OrderStatus.CANCELLED) {
-    throw new Error("Este pedido já foi cancelado anteriormente.");
-  }
+    if (!order) {
+      return { success: false, error: "Pedido não encontrado." };
+    }
+    if (order.status === OrderStatus.CANCELLED) {
+      return { success: false, error: "Este pedido já foi cancelado anteriormente." };
+    }
 
-  // 1. Regra Estrita de Devolução de Estoque:
-  // Se os insumos já foram baixados (produção concluída), devolve cada insumo ao estoque físico
-  const hadDeductedStock = order.productionJob?.stockDeducted === true;
-  if (hadDeductedStock) {
-    for (const item of order.items) {
-      if (item.blankShirtId) {
-        await prisma.rawItem.update({
-          where: { id: item.blankShirtId },
-          data: {
-            stockQuantity: {
-              increment: item.quantity,
+    // 1. Regra Estrita de Devolução de Estoque:
+    // Se os insumos já foram baixados (produção concluída), devolve cada insumo ao estoque físico
+    const hadDeductedStock = order.productionJob?.stockDeducted === true;
+    if (hadDeductedStock) {
+      for (const item of order.items) {
+        if (item.blankShirtId) {
+          await prisma.rawItem.update({
+            where: { id: item.blankShirtId },
+            data: {
+              stockQuantity: {
+                increment: item.quantity,
+              },
             },
-          },
-        });
+          });
+        }
+
+        if (item.dtfPrintId) {
+          await prisma.rawItem.update({
+            where: { id: item.dtfPrintId },
+            data: {
+              stockQuantity: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+
+        if (item.packagingId) {
+          await prisma.rawItem.update({
+            where: { id: item.packagingId },
+            data: {
+              stockQuantity: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
       }
 
-      if (item.dtfPrintId) {
-        await prisma.rawItem.update({
-          where: { id: item.dtfPrintId },
+      if (order.productionJob) {
+        await prisma.productionJob.update({
+          where: { id: order.productionJob.id },
           data: {
-            stockQuantity: {
-              increment: item.quantity,
-            },
-          },
-        });
-      }
-
-      if (item.packagingId) {
-        await prisma.rawItem.update({
-          where: { id: item.packagingId },
-          data: {
-            stockQuantity: {
-              increment: item.quantity,
-            },
+            stockDeducted: false,
           },
         });
       }
     }
 
-    if (order.productionJob) {
-      await prisma.productionJob.update({
-        where: { id: order.productionJob.id },
+    // 2. Regra Financeira: Estorno / Lançamento de despesa para abater o lucro do mês
+    const refundAmount = order.totalProducts + order.shippingCost;
+    if (refundAmount > 0) {
+      await prisma.financialTransaction.create({
         data: {
-          stockDeducted: false,
+          type: TransactionType.EXPENSE,
+          category: TransactionCategory.SALES_ORDER,
+          amount: refundAmount,
+          description: `Estorno de Pedido Cancelado ${order.orderNumber} - Motivo: ${reason}`,
+          orderId: order.id,
         },
       });
     }
-  }
 
-  // 2. Regra Financeira: Estorno / Lançamento de despesa para abater o lucro do mês
-  const refundAmount = order.totalProducts + order.shippingCost;
-  if (refundAmount > 0) {
-    await prisma.financialTransaction.create({
+    // 3. Atualiza o status do pedido para CANCELLED com metadados
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
       data: {
-        type: TransactionType.EXPENSE,
-        category: TransactionCategory.SALES_ORDER,
-        amount: refundAmount,
-        description: `Estorno de Pedido Cancelado ${order.orderNumber} - Motivo: ${reason}`,
-        orderId: order.id,
+        status: OrderStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancelReason: reason.trim(),
+        cancelledBy: user.name || user.email,
       },
     });
+
+    // 4. Registro no AuditLog
+    await prisma.auditLog.create({
+      data: {
+        userId: getAuditUserId(user),
+        userName: user.name,
+        userEmail: user.email,
+        orderId: order.id,
+        action: "ORDER_CANCELLED",
+        entity: "Order",
+        entityId: order.id,
+        details: `Pedido cancelado por ${user.name}. Motivo: "${reason}".${
+          hadDeductedStock ? " Insumos devolvidos ao estoque físico." : ""
+        }`,
+        oldPayload: JSON.stringify({ status: order.status }),
+        newPayload: JSON.stringify({
+          status: OrderStatus.CANCELLED,
+          cancelReason: reason,
+          cancelledBy: user.name,
+          refundAmount,
+          hadDeductedStock,
+        }),
+      },
+    });
+
+    revalidatePath("/pedidos");
+    revalidatePath("/producao");
+    revalidatePath("/estoque");
+    revalidatePath("/financeiro");
+    revalidatePath("/historico");
+    revalidatePath("/");
+
+    return { success: true, ...updatedOrder, order: updatedOrder };
+  } catch (error: any) {
+    console.error("Erro ao cancelar pedido:", error);
+    return {
+      success: false,
+      error: String(error?.message || "Erro interno ao cancelar pedido"),
+    };
   }
-
-  // 3. Atualiza o status do pedido para CANCELLED com metadados
-  const updatedOrder = await prisma.order.update({
-    where: { id: orderId },
-    data: {
-      status: OrderStatus.CANCELLED,
-      cancelledAt: new Date(),
-      cancelReason: reason.trim(),
-      cancelledBy: user.name || user.email,
-    },
-  });
-
-  // 4. Registro no AuditLog
-  await prisma.auditLog.create({
-    data: {
-      userId: getAuditUserId(user),
-      userName: user.name,
-      userEmail: user.email,
-      orderId: order.id,
-      action: "ORDER_CANCELLED",
-      entity: "Order",
-      entityId: order.id,
-      details: `Pedido cancelado por ${user.name}. Motivo: "${reason}".${
-        hadDeductedStock ? " Insumos devolvidos ao estoque físico." : ""
-      }`,
-      oldPayload: JSON.stringify({ status: order.status }),
-      newPayload: JSON.stringify({
-        status: OrderStatus.CANCELLED,
-        cancelReason: reason,
-        cancelledBy: user.name,
-        refundAmount,
-        hadDeductedStock,
-      }),
-    },
-  });
-
-  revalidatePath("/pedidos");
-  revalidatePath("/producao");
-  revalidatePath("/estoque");
-  revalidatePath("/financeiro");
-  revalidatePath("/historico");
-  revalidatePath("/");
-
-  return updatedOrder;
 }
 
 export async function editOrder(data: {

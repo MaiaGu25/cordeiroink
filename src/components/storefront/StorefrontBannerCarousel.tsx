@@ -24,31 +24,7 @@ export function StorefrontBannerCarousel({ banners = [] }: StorefrontBannerCarou
   const touchStartX = useRef<number | null>(null);
 
   const activeBanners = banners.filter((b) => b.isActive);
-
-  // Se não houver banners cadastrados no banco, exibe um banner hero padrão da marca
-  const displayBanners =
-    activeBanners.length > 0
-      ? activeBanners
-      : [
-          {
-            id: "default-1",
-            title: "Vista um propósito.",
-            subtitle: "Streetwear cristão que une autenticidade, corte oversized e a mensagem da Cruz.",
-            imageUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1600&auto=format&fit=crop",
-            linkUrl: "#catalogo",
-            orderIndex: 0,
-            isActive: true,
-          },
-          {
-            id: "default-2",
-            title: "Conferências & Eventos de Jovens",
-            subtitle: "Camisetas personalizadas em malha 26.1 e estampa DTF em alta definição para a sua igreja.",
-            imageUrl: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1600&auto=format&fit=crop",
-            linkUrl: "#personalizadas",
-            orderIndex: 1,
-            isActive: true,
-          },
-        ];
+  const displayBanners = activeBanners;
 
   // Autoplay
   useEffect(() => {
@@ -84,6 +60,10 @@ export function StorefrontBannerCarousel({ banners = [] }: StorefrontBannerCarou
     }
     touchStartX.current = null;
   };
+
+  if (displayBanners.length === 0) {
+    return null;
+  }
 
   const currentBanner = displayBanners[currentIndex];
 

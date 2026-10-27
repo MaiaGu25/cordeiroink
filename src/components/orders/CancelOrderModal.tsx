@@ -59,7 +59,13 @@ export function CancelOrderModal({
 
     startTransition(async () => {
       try {
-        await cancelOrder(order.id, fullReason);
+        const res: any = await cancelOrder(order.id, fullReason);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          const message = res.error || (typeof res.error === "string" ? res.error : "Erro ao cancelar pedido");
+          toast.error(String(message));
+          return;
+        }
+
         toast.success(
           `Pedido ${order.orderNumber} cancelado com sucesso.${
             hadDeductedStock ? " Insumos devolvidos ao estoque." : ""
@@ -69,7 +75,7 @@ export function CancelOrderModal({
         handleClose();
       } catch (err: any) {
         const message = err?.message || (typeof err === "string" ? err : "Erro interno");
-        toast.error(`Erro ao cancelar pedido: ${String(message)}`);
+        toast.error(String(message));
       }
     });
   };

@@ -14,3 +14,9 @@ export interface VariantInput {
   hexCode: string;
   imageUrl: string;
 }
+
+export interface AvailableStockSize {
+  shirtColor: string | null;
+  shirtSize: string | null;
+  stockQuantity: number;
+}

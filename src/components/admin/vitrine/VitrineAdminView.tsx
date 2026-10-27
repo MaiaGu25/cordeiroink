@@ -129,9 +129,12 @@ export function VitrineAdminView({
         toast.error(res.error || "Erro no upload da imagem");
       }
     } catch (err: any) {
-      toast.error("Erro ao enviar arquivo: " + err.message);
+      toast.error("Erro ao enviar arquivo: " + (err?.message || String(err)));
     } finally {
       setIsUploading(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -203,7 +206,7 @@ export function VitrineAdminView({
 
     startTransition(async () => {
       try {
-        await createCatalogItem({
+        const res: any = await createCatalogItem({
           title,
           price: Number(price),
           category,
@@ -211,6 +214,11 @@ export function VitrineAdminView({
           imageUrl,
           variants,
         });
+
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao salvar produto"));
+          return;
+        }
 
         toast.success(`Peça "${title}" cadastrada na vitrine com variações!`);
         setIsNewModalOpen(false);
@@ -221,7 +229,7 @@ export function VitrineAdminView({
         setVariants([]);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao salvar produto: " + err.message);
+        toast.error("Erro ao salvar produto: " + (err?.message || String(err)));
       }
     });
   };
@@ -249,20 +257,26 @@ export function VitrineAdminView({
 
     startTransition(async () => {
       try {
-        await updateCatalogItem(editingItem.id, {
+        const finalImageUrl = editImageUrl?.trim() || editingItem.imageUrl;
+        const res: any = await updateCatalogItem(editingItem.id, {
           title: editTitle,
           price: Number(editPrice),
           category: editCategory,
           description: editDescription,
-          imageUrl: editImageUrl,
+          imageUrl: finalImageUrl,
           variants: editVariants,
         });
+
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao atualizar produto"));
+          return;
+        }
 
         toast.success(`Peça "${editTitle}" e variações atualizadas!`);
         setEditingItem(null);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao atualizar: " + err.message);
+        toast.error("Erro ao atualizar: " + (err?.message || String(err)));
       }
     });
   };
@@ -270,15 +284,19 @@ export function VitrineAdminView({
   const handleToggleActive = (item: CatalogItem) => {
     startTransition(async () => {
       try {
-        await updateCatalogItem(item.id, {
+        const res: any = await updateCatalogItem(item.id, {
           isActive: !item.isActive,
         });
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao alterar visibilidade"));
+          return;
+        }
         toast.success(
           `Item ${!item.isActive ? "ativado na vitrine" : "inativado e oculto da vitrine"}!`
         );
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao alterar visibilidade: " + err.message);
+        toast.error("Erro ao alterar visibilidade: " + (err?.message || String(err)));
       }
     });
   };
@@ -287,12 +305,16 @@ export function VitrineAdminView({
     if (!itemToDelete) return;
     startTransition(async () => {
       try {
-        await deleteCatalogItem(itemToDelete.id);
+        const res: any = await deleteCatalogItem(itemToDelete.id);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao excluir"));
+          return;
+        }
         toast.success("Produto removido do catálogo.");
         setItemToDelete(null);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao excluir: " + err.message);
+        toast.error("Erro ao excluir: " + (err?.message || String(err)));
       }
     });
   };

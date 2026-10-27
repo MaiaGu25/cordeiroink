@@ -87,8 +87,12 @@ export async function uploadStorefrontFile(formData: FormData) {
   }
 }
 
-import { CATALOG_CATEGORIES, type CatalogCategory, type VariantInput } from "@/lib/storefront-constants";
-export type { CatalogCategory, VariantInput };
+import {
+  CATALOG_CATEGORIES,
+  type CatalogCategory,
+  type VariantInput,
+  type AvailableStockSize,
+} from "@/lib/storefront-constants";
 
 /**
  * Busca itens do catálogo para a vitrine pública e para a área administrativa.
@@ -122,42 +126,50 @@ export async function createCatalogItem(data: {
   category?: string;
   variants?: VariantInput[];
 }) {
-  if (!data.title?.trim() || !data.imageUrl?.trim()) {
-    throw new Error("Título e Imagem principal do produto são obrigatórios.");
-  }
+  try {
+    if (!data.title?.trim() || !data.imageUrl?.trim()) {
+      return { success: false, error: "Título e Imagem principal do produto são obrigatórios." };
+    }
 
-  const cleanCategory = CATALOG_CATEGORIES.includes(data.category as any)
-    ? data.category!
-    : "Adulto";
+    const cleanCategory = CATALOG_CATEGORIES.includes(data.category as any)
+      ? data.category!
+      : "Adulto";
 
-  const validVariants = (data.variants || []).filter(
-    (v) => v.colorName?.trim() && v.imageUrl?.trim()
-  );
+    const validVariants = (data.variants || []).filter(
+      (v) => v.colorName?.trim() && v.imageUrl?.trim()
+    );
 
-  const item = await prisma.catalogItem.create({
-    data: {
-      title: data.title.trim(),
-      description: data.description?.trim() || null,
-      price: Number(data.price) || 0,
-      imageUrl: data.imageUrl.trim(),
-      category: cleanCategory,
-      isActive: true,
-      variants: {
-        create: validVariants.map((v) => ({
-          colorName: v.colorName.trim(),
-          hexCode: v.hexCode?.trim() || "#000000",
-          imageUrl: v.imageUrl.trim(),
-        })),
+    const item = await prisma.catalogItem.create({
+      data: {
+        title: data.title.trim(),
+        description: data.description?.trim() || null,
+        price: Number(data.price) || 0,
+        imageUrl: data.imageUrl.trim(),
+        category: cleanCategory,
+        isActive: true,
+        variants: {
+          create: validVariants.map((v) => ({
+            colorName: v.colorName.trim(),
+            hexCode: v.hexCode?.trim() || "#000000",
+            imageUrl: v.imageUrl.trim(),
+          })),
+        },
       },
-    },
-    include: {
-      variants: true,
-    },
-  });
+      include: {
+        variants: true,
+      },
+    });
 
-  revalidatePath("/admin/vitrine");
-  revalidatePath("/");
-  return item;
+    revalidatePath("/admin/vitrine");
+    revalidatePath("/");
+    return { success: true, item };
+  } catch (err: any) {
+    console.error("Erro ao cadastrar item do catálogo:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao cadastrar produto"),
+    };
+  }
 }
 
 /**
@@ -175,66 +187,85 @@ export async function updateCatalogItem(
     variants?: VariantInput[];
   }
 ) {
-  const cleanCategory =
-    data.category && CATALOG_CATEGORIES.includes(data.category as any)
-      ? data.category
-      : undefined;
+  try {
+    const cleanCategory =
+      data.category && CATALOG_CATEGORIES.includes(data.category as any)
+        ? data.category
+        : undefined;
 
-  const item = await prisma.$transaction(async (tx) => {
-    // Sincroniza variações se fornecidas
-    if (data.variants !== undefined) {
-      await tx.catalogVariant.deleteMany({
-        where: { catalogItemId: id },
-      });
-
-      const validVariants = data.variants.filter(
-        (v) => v.colorName?.trim() && v.imageUrl?.trim()
-      );
-
-      if (validVariants.length > 0) {
-        await tx.catalogVariant.createMany({
-          data: validVariants.map((v) => ({
-            catalogItemId: id,
-            colorName: v.colorName.trim(),
-            hexCode: v.hexCode?.trim() || "#000000",
-            imageUrl: v.imageUrl.trim(),
-          })),
+    const item = await prisma.$transaction(async (tx) => {
+      // Sincroniza variações se fornecidas
+      if (data.variants !== undefined) {
+        await tx.catalogVariant.deleteMany({
+          where: { catalogItemId: id },
         });
+
+        const validVariants = data.variants.filter(
+          (v) => v.colorName?.trim() && v.imageUrl?.trim()
+        );
+
+        if (validVariants.length > 0) {
+          await tx.catalogVariant.createMany({
+            data: validVariants.map((v) => ({
+              catalogItemId: id,
+              colorName: v.colorName.trim(),
+              hexCode: v.hexCode?.trim() || "#000000",
+              imageUrl: v.imageUrl.trim(),
+            })),
+          });
+        }
       }
-    }
 
-    return await tx.catalogItem.update({
-      where: { id },
-      data: {
-        title: data.title !== undefined ? data.title.trim() : undefined,
-        description: data.description !== undefined ? data.description.trim() : undefined,
-        price: data.price !== undefined ? Number(data.price) : undefined,
-        imageUrl: data.imageUrl !== undefined ? data.imageUrl.trim() : undefined,
-        category: cleanCategory,
-        isActive: data.isActive !== undefined ? data.isActive : undefined,
-      },
-      include: {
-        variants: true,
-      },
+      return await tx.catalogItem.update({
+        where: { id },
+        data: {
+          title: data.title !== undefined ? data.title.trim() : undefined,
+          description: data.description !== undefined ? data.description.trim() : undefined,
+          price: data.price !== undefined ? Number(data.price) : undefined,
+          imageUrl:
+            data.imageUrl !== undefined && data.imageUrl.trim() !== ""
+              ? data.imageUrl.trim()
+              : undefined,
+          category: cleanCategory,
+          isActive: data.isActive !== undefined ? data.isActive : undefined,
+        },
+        include: {
+          variants: true,
+        },
+      });
     });
-  });
 
-  revalidatePath("/admin/vitrine");
-  revalidatePath("/");
-  return item;
+    revalidatePath("/admin/vitrine");
+    revalidatePath("/");
+    return { success: true, item };
+  } catch (err: any) {
+    console.error("Erro ao atualizar item do catálogo:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao atualizar item do catálogo"),
+    };
+  }
 }
 
 /**
  * Exclusão de item de catálogo.
  */
 export async function deleteCatalogItem(id: string) {
-  await prisma.catalogItem.delete({
-    where: { id },
-  });
+  try {
+    await prisma.catalogItem.delete({
+      where: { id },
+    });
 
-  revalidatePath("/admin/vitrine");
-  revalidatePath("/");
-  return { success: true };
+    revalidatePath("/admin/vitrine");
+    revalidatePath("/");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Erro ao excluir item do catálogo:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao excluir item do catálogo"),
+    };
+  }
 }
 
 /**
@@ -296,7 +327,7 @@ export async function getLeadQuotes() {
   }
 }
 
-export interface StorefrontOrderItemInput {
+interface StorefrontOrderItemInput {
   title: string;
   colorName?: string;
   size?: string;
@@ -306,7 +337,7 @@ export interface StorefrontOrderItemInput {
   productId?: string;
 }
 
-export interface CreateStorefrontOrderInput {
+interface CreateStorefrontOrderInput {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -318,11 +349,6 @@ export interface CreateStorefrontOrderInput {
   items: StorefrontOrderItemInput[];
 }
 
-export interface AvailableStockSize {
-  shirtColor: string | null;
-  shirtSize: string | null;
-  stockQuantity: number;
-}
 
 /**
  * Consulta o estoque atual de camisetas lisas por cor e tamanho para bloqueio na vitrine.
@@ -540,21 +566,29 @@ export async function createStorefrontBanner(data: {
   linkUrl?: string;
   orderIndex?: number;
 }) {
-  const count = await prisma.storefrontBanner.count();
-  const banner = await prisma.storefrontBanner.create({
-    data: {
-      title: data.title,
-      subtitle: data.subtitle,
-      imageUrl: data.imageUrl,
-      linkUrl: data.linkUrl,
-      orderIndex: data.orderIndex !== undefined ? data.orderIndex : count,
-      isActive: true,
-    },
-  });
+  try {
+    const count = await prisma.storefrontBanner.count();
+    const banner = await prisma.storefrontBanner.create({
+      data: {
+        title: data.title,
+        subtitle: data.subtitle,
+        imageUrl: data.imageUrl,
+        linkUrl: data.linkUrl,
+        orderIndex: data.orderIndex !== undefined ? data.orderIndex : count,
+        isActive: true,
+      },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin/vitrine");
-  return banner;
+    revalidatePath("/");
+    revalidatePath("/admin/vitrine");
+    return { success: true, banner };
+  } catch (err: any) {
+    console.error("Erro ao criar banner:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao criar banner"),
+    };
+  }
 }
 
 export async function updateStorefrontBanner(
@@ -568,34 +602,58 @@ export async function updateStorefrontBanner(
     isActive?: boolean;
   }
 ) {
-  const banner = await prisma.storefrontBanner.update({
-    where: { id },
-    data,
-  });
+  try {
+    const banner = await prisma.storefrontBanner.update({
+      where: { id },
+      data,
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin/vitrine");
-  return banner;
+    revalidatePath("/");
+    revalidatePath("/admin/vitrine");
+    return { success: true, banner };
+  } catch (err: any) {
+    console.error("Erro ao atualizar banner:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao atualizar banner"),
+    };
+  }
 }
 
 export async function deleteStorefrontBanner(id: string) {
-  await prisma.storefrontBanner.delete({
-    where: { id },
-  });
+  try {
+    await prisma.storefrontBanner.delete({
+      where: { id },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin/vitrine");
-  return { success: true };
+    revalidatePath("/");
+    revalidatePath("/admin/vitrine");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Erro ao excluir banner:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao excluir banner"),
+    };
+  }
 }
 
 export async function toggleStorefrontBannerActive(id: string, isActive: boolean) {
-  const banner = await prisma.storefrontBanner.update({
-    where: { id },
-    data: { isActive },
-  });
+  try {
+    const banner = await prisma.storefrontBanner.update({
+      where: { id },
+      data: { isActive },
+    });
 
-  revalidatePath("/");
-  revalidatePath("/admin/vitrine");
-  return banner;
+    revalidatePath("/");
+    revalidatePath("/admin/vitrine");
+    return { success: true, banner };
+  } catch (err: any) {
+    console.error("Erro ao alterar visibilidade do banner:", err);
+    return {
+      success: false,
+      error: String(err?.message || "Erro ao alterar banner"),
+    };
+  }
 }
 

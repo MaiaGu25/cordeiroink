@@ -14,12 +14,14 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import { CATALOG_CATEGORIES, type CatalogCategory } from "@/lib/storefront-constants";
+import {
+  CATALOG_CATEGORIES,
+  type CatalogCategory,
+  type AvailableStockSize,
+} from "@/lib/storefront-constants";
 import { useCart } from "./CartContext";
 import { ShippingCalculator } from "@/components/shipping/ShippingCalculator";
 import type { ShippingOption } from "@/lib/shipping-constants";
-
-import type { AvailableStockSize } from "@/actions/storefront";
 
 export interface CatalogVariant {
   id: string;
@@ -690,8 +692,8 @@ function ProductDetailModal({
                 </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-2">
-                {["P", "M", "G", "GG", "XG"].map((sz) => {
+              <div className="grid grid-cols-4 gap-2">
+                {["P", "M", "G", "GG"].map((sz) => {
                   const available = isSizeAvailable(sz);
                   return (
                     <button

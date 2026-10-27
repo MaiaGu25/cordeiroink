@@ -6,8 +6,6 @@ import {
   type CalculateShippingResult,
 } from "@/lib/shipping-constants";
 
-export type { ShippingOption, CalculateShippingResult };
-
 /**
  * Server Action para cálculo de frete via API v2 do Melhor Envio (Sandbox / Produção).
  * Filtra estritamente os serviços dos Correios (PAC e SEDEX).

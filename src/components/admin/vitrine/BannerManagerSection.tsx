@@ -117,30 +117,35 @@ export function BannerManagerSection({ initialBanners = [] }: BannerManagerSecti
 
     startTransition(async () => {
       try {
+        let res: any;
         if (editingBanner) {
-          await updateStorefrontBanner(editingBanner.id, {
+          res = await updateStorefrontBanner(editingBanner.id, {
             title: title.trim(),
             subtitle: subtitle.trim() || undefined,
             imageUrl: imageUrl.trim(),
             linkUrl: linkUrl.trim() || undefined,
             orderIndex: Number(orderIndex) || 0,
           });
-          toast.success("Banner atualizado com sucesso!");
         } else {
-          await createStorefrontBanner({
+          res = await createStorefrontBanner({
             title: title.trim(),
             subtitle: subtitle.trim() || undefined,
             imageUrl: imageUrl.trim(),
             linkUrl: linkUrl.trim() || undefined,
             orderIndex: Number(orderIndex) || 0,
           });
-          toast.success("Banner criado com sucesso!");
         }
 
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao salvar banner"));
+          return;
+        }
+
+        toast.success(editingBanner ? "Banner atualizado com sucesso!" : "Banner criado com sucesso!");
         setIsModalOpen(false);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao salvar banner: " + err.message);
+        toast.error("Erro ao salvar banner: " + (err?.message || String(err)));
       }
     });
   };
@@ -148,11 +153,15 @@ export function BannerManagerSection({ initialBanners = [] }: BannerManagerSecti
   const handleToggleActive = (banner: BannerItem) => {
     startTransition(async () => {
       try {
-        await toggleStorefrontBannerActive(banner.id, !banner.isActive);
+        const res: any = await toggleStorefrontBannerActive(banner.id, !banner.isActive);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao alterar visibilidade"));
+          return;
+        }
         toast.success(`Banner ${!banner.isActive ? "ativado" : "desativado"} com sucesso!`);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao alterar visibilidade: " + err.message);
+        toast.error("Erro ao alterar visibilidade: " + (err?.message || String(err)));
       }
     });
   };
@@ -161,12 +170,16 @@ export function BannerManagerSection({ initialBanners = [] }: BannerManagerSecti
     if (!bannerToDelete) return;
     startTransition(async () => {
       try {
-        await deleteStorefrontBanner(bannerToDelete.id);
+        const res: any = await deleteStorefrontBanner(bannerToDelete.id);
+        if (res && typeof res === "object" && "success" in res && !res.success) {
+          toast.error(String(res.error || "Erro ao excluir"));
+          return;
+        }
         toast.success("Banner excluído com sucesso!");
         setBannerToDelete(null);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao excluir banner: " + err.message);
+        toast.error("Erro ao excluir banner: " + (err?.message || String(err)));
       }
     });
   };

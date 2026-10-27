@@ -194,7 +194,7 @@ export function CustomOrderSection() {
                     Escolha a Malha, Cor & Modelagem
                   </h4>
                   <p className="font-sans text-xs text-[#737373] mt-0.5 font-light">
-                    Malha heavyweight 260g/m² ou 30.1 penteada, do tamanho P ao XG, nas cores Preto ou Off-White.
+                    Malha heavyweight 260g/m² ou 30.1 penteada, do tamanho P ao GG, nas cores Preto ou Off-White.
                   </p>
                 </div>
               </div>
@@ -382,7 +382,6 @@ export function CustomOrderSection() {
                           <option value="M">M — Médio</option>
                           <option value="G">G — Street Fit</option>
                           <option value="GG">GG — Extra Grande</option>
-                          <option value="XG">XG — Big Size</option>
                         </select>
                       </div>
 
