@@ -21,6 +21,7 @@ import {
   Move,
   RefreshCw,
   Layers,
+  Shirt,
 } from "lucide-react";
 import {
   createCatalogItem,
@@ -122,7 +123,10 @@ interface PrintPositioningBlockProps {
   printLeftBack: number;
   setPrintLeftBack: (n: number) => void;
   isUploading: boolean;
-  onUploadPrint: (file: File, isBack: boolean) => Promise<void>;
+  onUploadLayer: (
+    file: File,
+    target: "PRINT_FRONT" | "PRINT_BACK" | "BASE_FRONT" | "BASE_BACK"
+  ) => Promise<void>;
 }
 
 function PrintPositioningBlock({
@@ -151,10 +155,12 @@ function PrintPositioningBlock({
   printLeftBack,
   setPrintLeftBack,
   isUploading,
-  onUploadPrint,
+  onUploadLayer,
 }: PrintPositioningBlockProps) {
-  const frontFileInputRef = useRef<HTMLInputElement>(null);
-  const backFileInputRef = useRef<HTMLInputElement>(null);
+  const frontPrintInputRef = useRef<HTMLInputElement>(null);
+  const backPrintInputRef = useRef<HTMLInputElement>(null);
+  const frontBaseInputRef = useRef<HTMLInputElement>(null);
+  const backBaseInputRef = useRef<HTMLInputElement>(null);
 
   const currentBase = isFront
     ? baseShirtUrl || "/mockups/blank-front.svg"
@@ -191,26 +197,48 @@ function PrintPositioningBlock({
 
   return (
     <div className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 space-y-4">
-      {/* Hidden file inputs */}
+      {/* 4 Hidden file inputs distintos para cada camada */}
       <input
         type="file"
-        ref={frontFileInputRef}
-        accept="image/png,image/webp,image/svg+xml"
+        ref={frontBaseInputRef}
+        accept="image/png,image/webp,image/svg+xml,image/jpeg"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onUploadPrint(f, false);
+          if (f) onUploadLayer(f, "BASE_FRONT");
           if (e.target) e.target.value = "";
         }}
       />
       <input
         type="file"
-        ref={backFileInputRef}
+        ref={backBaseInputRef}
+        accept="image/png,image/webp,image/svg+xml,image/jpeg"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUploadLayer(f, "BASE_BACK");
+          if (e.target) e.target.value = "";
+        }}
+      />
+      <input
+        type="file"
+        ref={frontPrintInputRef}
         accept="image/png,image/webp,image/svg+xml"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
-          if (f) onUploadPrint(f, true);
+          if (f) onUploadLayer(f, "PRINT_FRONT");
+          if (e.target) e.target.value = "";
+        }}
+      />
+      <input
+        type="file"
+        ref={backPrintInputRef}
+        accept="image/png,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUploadLayer(f, "PRINT_BACK");
           if (e.target) e.target.value = "";
         }}
       />
@@ -447,64 +475,135 @@ function PrintPositioningBlock({
             </div>
           </div>
 
-          {/* Input e Upload da Estampa PNG */}
-          <div className="pt-2 border-t border-zinc-800 space-y-2">
-            <div>
-              <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                {isFront ? "Estampa PNG Frente (transparente)" : "Estampa PNG Costas (transparente)"}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={isFront ? printImageUrl : printBackImageUrl}
-                  onChange={(e) => {
-                    if (isFront) setPrintImageUrl(e.target.value);
-                    else setPrintBackImageUrl(e.target.value);
-                  }}
-                  placeholder="https://.../estampa.png"
-                  className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                />
-                <button
-                  type="button"
-                  disabled={isUploading}
-                  onClick={() => {
-                    if (isFront) frontFileInputRef.current?.click();
-                    else backFileInputRef.current?.click();
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
-                >
-                  {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                  <span>Upload PNG</span>
-                </button>
+          {/* SEÇÕES DE UPLOAD SEPARADOS PARA AS 4 CAMADAS */}
+          <div className="pt-3 border-t border-zinc-800 space-y-3">
+            {/* 1. Base da Camiseta (Frente e Costas) */}
+            <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
+                  <Shirt size={12} className="text-amber-400" />
+                  <span>Base da Camiseta (Mockup Cinza com Textura & Sombra)</span>
+                </span>
+                <span className="text-[9px] text-zinc-500 font-mono">PNG / SVG / WEBP</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Base Frente */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                    Base Camiseta (Frente)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={baseShirtUrl}
+                      onChange={(e) => setBaseShirtUrl(e.target.value)}
+                      placeholder="/mockups/blank-front.svg"
+                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => frontBaseInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                      title="Upload Base Frente"
+                    >
+                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      <span>Upload</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Base Costas */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                    Base Camiseta (Costas)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={baseShirtBackUrl}
+                      onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                      placeholder="/mockups/blank-back.svg"
+                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => backBaseInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                      title="Upload Base Costas"
+                    >
+                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      <span>Upload</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Mockups de Camiseta Cinza Base (Opcionais) */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <div>
-                <label className="block text-[10px] text-zinc-400 mb-0.5">
-                  Mockup Base Frente
-                </label>
-                <input
-                  type="text"
-                  value={baseShirtUrl}
-                  onChange={(e) => setBaseShirtUrl(e.target.value)}
-                  placeholder="/mockups/blank-front.svg"
-                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                />
+            {/* 2. Arte / Estampa Isolada (Frente e Costas) */}
+            <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
+                  <Layers size={12} className="text-amber-400" />
+                  <span>Arte / Estampa Isolada (PNG Transparente)</span>
+                </span>
+                <span className="text-[9px] text-zinc-500 font-mono">PNG / WEBP Transparente</span>
               </div>
 
-              <div>
-                <label className="block text-[10px] text-zinc-400 mb-0.5">
-                  Mockup Base Costas
-                </label>
-                <input
-                  type="text"
-                  value={baseShirtBackUrl}
-                  onChange={(e) => setBaseShirtBackUrl(e.target.value)}
-                  placeholder="/mockups/blank-back.svg"
-                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Estampa Frente */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                    Arte / Estampa (Frente)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={printImageUrl}
+                      onChange={(e) => setPrintImageUrl(e.target.value)}
+                      placeholder="https://.../estampa-frente.png"
+                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => frontPrintInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[11px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer shadow"
+                      title="Upload Estampa Frente PNG"
+                    >
+                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      <span>Upload</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Estampa Costas */}
+                <div>
+                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                    Arte / Estampa (Costas)
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={printBackImageUrl}
+                      onChange={(e) => setPrintBackImageUrl(e.target.value)}
+                      placeholder="https://.../estampa-costas.png"
+                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploading}
+                      onClick={() => backPrintInputRef.current?.click()}
+                      className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[11px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer shadow"
+                      title="Upload Estampa Costas PNG"
+                    >
+                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
+                      <span>Upload</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -580,28 +679,46 @@ export function VitrineAdminView({
   const [editPreviewColor, setEditPreviewColor] = useState("#18181b");
   const [isUploadingEditPrint, setIsUploadingEditPrint] = useState(false);
 
-  // Upload handler for isolated prints
-  const handleUploadPrintFile = async (file: File, isBack: boolean, isEdit = false) => {
+  // Upload handler para as 4 camadas separadas (Base Frente/Costas e Estampa Frente/Costas)
+  const handleUploadLayerFile = async (
+    file: File,
+    target: "PRINT_FRONT" | "PRINT_BACK" | "BASE_FRONT" | "BASE_BACK",
+    isEdit = false
+  ) => {
     if (isEdit) setIsUploadingEditPrint(true);
     else setIsUploadingPrint(true);
 
+    const folder = target.startsWith("BASE") ? "mockups" : "prints";
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("folder", "prints");
+    formData.append("folder", folder);
 
     try {
       const res = await uploadStorefrontFile(formData);
       if (res.success && res.url) {
         if (isEdit) {
-          if (isBack) setEditPrintBackImageUrl(res.url);
-          else setEditPrintImageUrl(res.url);
+          if (target === "PRINT_FRONT") setEditPrintImageUrl(res.url);
+          else if (target === "PRINT_BACK") setEditPrintBackImageUrl(res.url);
+          else if (target === "BASE_FRONT") setEditBaseShirtUrl(res.url);
+          else if (target === "BASE_BACK") setEditBaseShirtBackUrl(res.url);
         } else {
-          if (isBack) setPrintBackImageUrl(res.url);
-          else setPrintImageUrl(res.url);
+          if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
+          else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
+          else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
+          else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
         }
-        toast.success("Estampa PNG isolada enviada com sucesso!");
+
+        const label =
+          target === "BASE_FRONT"
+            ? "Mockup Base Frente enviado!"
+            : target === "BASE_BACK"
+            ? "Mockup Base Costas enviado!"
+            : target === "PRINT_FRONT"
+            ? "Estampa Frente PNG enviada!"
+            : "Estampa Costas PNG enviada!";
+        toast.success(label);
       } else {
-        toast.error(res.error || "Erro no upload da estampa");
+        toast.error(res.error || "Erro no upload da imagem");
       }
     } catch (err: any) {
       toast.error("Erro no upload: " + (err?.message || String(err)));
@@ -1545,7 +1662,7 @@ export function VitrineAdminView({
                   printLeftBack={printLeftBack}
                   setPrintLeftBack={setPrintLeftBack}
                   isUploading={isUploadingPrint}
-                  onUploadPrint={(file, isBack) => handleUploadPrintFile(file, isBack, false)}
+                  onUploadLayer={(file, target) => handleUploadLayerFile(file, target, false)}
                 />
               )}
 
@@ -1897,7 +2014,7 @@ export function VitrineAdminView({
                   printLeftBack={editPrintLeftBack}
                   setPrintLeftBack={setEditPrintLeftBack}
                   isUploading={isUploadingEditPrint}
-                  onUploadPrint={(file, isBack) => handleUploadPrintFile(file, isBack, true)}
+                  onUploadLayer={(file, target) => handleUploadLayerFile(file, target, true)}
                 />
               )}
 

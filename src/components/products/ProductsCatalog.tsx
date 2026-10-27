@@ -88,31 +88,42 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
 
   const frontPrintInputRef = useRef<HTMLInputElement>(null);
   const backPrintInputRef = useRef<HTMLInputElement>(null);
+  const frontBaseInputRef = useRef<HTMLInputElement>(null);
+  const backBaseInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload handler for isolated prints
-  const handleUploadPrint = async (
+  // Upload handler para as 4 camadas (Base Frente/Costas e Estampa Frente/Costas)
+  const handleUploadLayer = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    isBack = false
+    target: "PRINT_FRONT" | "PRINT_BACK" | "BASE_FRONT" | "BASE_BACK"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploadingPrint(true);
+    const folder = target.startsWith("BASE") ? "mockups" : "prints";
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("folder", "prints");
+    formData.append("folder", folder);
 
     try {
       const res = await uploadStorefrontFile(formData);
       if (res.success && res.url) {
-        if (isBack) {
-          setPrintBackImageUrl(res.url);
-        } else {
-          setPrintImageUrl(res.url);
-        }
-        toast.success("Estampa PNG isolada enviada com sucesso!");
+        if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
+        else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
+        else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
+        else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
+
+        const msg =
+          target === "BASE_FRONT"
+            ? "Mockup Base Frente enviado!"
+            : target === "BASE_BACK"
+            ? "Mockup Base Costas enviado!"
+            : target === "PRINT_FRONT"
+            ? "Estampa Frente PNG enviada!"
+            : "Estampa Costas PNG enviada!";
+        toast.success(msg);
       } else {
-        toast.error(res.error || "Erro no upload da estampa");
+        toast.error(res.error || "Erro no upload da imagem");
       }
     } catch (err: any) {
       toast.error("Erro no upload: " + (err?.message || String(err)));
@@ -863,20 +874,34 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
 
                   {/* COLUNA DIREITA: DADOS DO PRODUTO & ARQUITETURA DE ARQUIVOS */}
                   <div className="lg:col-span-7 space-y-4">
-                    {/* Inputs de Upload Ocultos */}
+                    {/* 4 Inputs de Upload Ocultos para cada camada */}
+                    <input
+                      type="file"
+                      ref={frontBaseInputRef}
+                      accept="image/png,image/webp,image/svg+xml,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => handleUploadLayer(e, "BASE_FRONT")}
+                    />
+                    <input
+                      type="file"
+                      ref={backBaseInputRef}
+                      accept="image/png,image/webp,image/svg+xml,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => handleUploadLayer(e, "BASE_BACK")}
+                    />
                     <input
                       type="file"
                       ref={frontPrintInputRef}
                       accept="image/png,image/webp,image/svg+xml"
                       className="hidden"
-                      onChange={(e) => handleUploadPrint(e, false)}
+                      onChange={(e) => handleUploadLayer(e, "PRINT_FRONT")}
                     />
                     <input
                       type="file"
                       ref={backPrintInputRef}
                       accept="image/png,image/webp,image/svg+xml"
                       className="hidden"
-                      onChange={(e) => handleUploadPrint(e, true)}
+                      onChange={(e) => handleUploadLayer(e, "PRINT_BACK")}
                     />
 
                     {/* Linha 1: SKU e Categoria */}
@@ -1016,32 +1041,54 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
                         </div>
                       </div>
 
-                      {/* Mockups de Camiseta Cinza Base (Opcionais) */}
+                      {/* Mockups de Camiseta Cinza Base (Frente e Costas com Upload) */}
                       <div className="grid grid-cols-2 gap-3 pt-1">
                         <div>
                           <label className="block text-[11px] text-zinc-400 mb-1">
-                            Mockup Base Frente (opcional)
+                            Mockup Base Frente
                           </label>
-                          <input
-                            type="text"
-                            value={baseShirtUrl}
-                            onChange={(e) => setBaseShirtUrl(e.target.value)}
-                            placeholder="/mockups/blank-front.svg"
-                            className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                          />
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={baseShirtUrl}
+                              onChange={(e) => setBaseShirtUrl(e.target.value)}
+                              placeholder="/mockups/blank-front.svg"
+                              className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                            />
+                            <button
+                              type="button"
+                              disabled={isUploadingPrint}
+                              onClick={() => frontBaseInputRef.current?.click()}
+                              className="px-2 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                              title="Upload Mockup Base Frente"
+                            >
+                              <Upload size={12} />
+                            </button>
+                          </div>
                         </div>
 
                         <div>
                           <label className="block text-[11px] text-zinc-400 mb-1">
-                            Mockup Base Costas (opcional)
+                            Mockup Base Costas
                           </label>
-                          <input
-                            type="text"
-                            value={baseShirtBackUrl}
-                            onChange={(e) => setBaseShirtBackUrl(e.target.value)}
-                            placeholder="/mockups/blank-back.svg"
-                            className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                          />
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={baseShirtBackUrl}
+                              onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                              placeholder="/mockups/blank-back.svg"
+                              className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
+                            />
+                            <button
+                              type="button"
+                              disabled={isUploadingPrint}
+                              onClick={() => backBaseInputRef.current?.click()}
+                              className="px-2 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                              title="Upload Mockup Base Costas"
+                            >
+                              <Upload size={12} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
