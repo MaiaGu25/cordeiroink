@@ -27,13 +27,76 @@ interface VirtualRackProps {
 }
 
 /**
- * Cabide de madeira esculpida agrupado diretamente no topo da peça.
- * Move-se solidariamente com a camiseta durante o arraste e física da arara.
+ * Ícone SVG da logo oficial da "Cordeiro Ink" utilizado como seletor dinâmico de cores.
+ * É preenchido dinamicamente com a cor da variação (fill={color.hex}).
+ */
+function CordeiroInkLogoIcon({
+  fill,
+  size = 28,
+  className = "",
+}: {
+  fill: string;
+  size?: number;
+  className?: string;
+}) {
+  const isLight =
+    fill.toLowerCase() === "#ffffff" ||
+    fill.toLowerCase() === "#fff" ||
+    fill.toLowerCase() === "#fdfdfd" ||
+    fill.toLowerCase() === "#fafafa" ||
+    fill.toLowerCase() === "#f9f9f9" ||
+    fill.toLowerCase() === "#efece6" ||
+    fill.toLowerCase() === "#f5f5f0";
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 36 36"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Silhueta minimalista streetwear do Cordeiro */}
+      <path
+        d="M18 3C13.5 3 10.5 6 10.5 10C10.5 12 11.5 13.8 13 15V20.5L8.5 25.5V33H12.5L15.5 28.5H20.5L23.5 33H27.5V25.5L23 20.5V15C24.5 13.8 25.5 12 25.5 10C25.5 6 22.5 3 18 3Z"
+        fill={fill}
+        stroke="#0A0A0A"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      {/* Detalhe dos chifres curvos */}
+      <path
+        d="M13 7.5C11.5 6.5 9 7 9 9C9 10.5 11 11 12 10.5"
+        stroke="#0A0A0A"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M23 7.5C24.5 6.5 27 7 27 9C27 10.5 25 11 24 10.5"
+        stroke="#0A0A0A"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      {/* Cruz Sagrada minimalista */}
+      <path
+        d="M18 8.5V18M14.5 12H21.5"
+        stroke={isLight ? "#0A0A0A" : "#FFFFFF"}
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Cabide de madeira esculpida agrupado com position: absolute na gola da camiseta.
+ * Move-se solidariamente com a peça durante o arraste e física da arara.
  */
 function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
   if (isMini) {
     return (
-      <div className="flex flex-col items-center select-none pointer-events-none -mb-1 z-30">
+      <div className="flex flex-col items-center select-none pointer-events-none z-30">
         <svg
           width="18"
           height="18"
@@ -68,7 +131,7 @@ function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
   }
 
   return (
-    <div className="flex flex-col items-center select-none pointer-events-none -mb-3 z-30">
+    <div className="flex flex-col items-center select-none pointer-events-none z-30">
       {/* Gancho Metálico Prateado - alinhado com o trilho da arara */}
       <svg
         width="28"
@@ -126,10 +189,26 @@ function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
 }
 
 /**
- * Renderizador de 3 Camadas Dinâmicas com CSS Blend Modes:
- * 1. Fundo (cor selecionada mascarada pela silhueta exata da peça)
- * 2. Textura cinza neutro com volume e sombras em mix-blend-multiply (SEM filter drop-shadow para evitar quadrados brancos)
- * 3. Arte (estampa PNG isolada com coordenadas dinâmicas e fundo 100% transparente)
+ * Função auxiliar para detectar cores brancas ou quase brancas.
+ */
+function isWhiteColor(hex: string): boolean {
+  if (!hex) return false;
+  const h = hex.trim().toLowerCase();
+  return (
+    h === "#ffffff" ||
+    h === "#fff" ||
+    h === "#fdfdfd" ||
+    h === "#fafafa" ||
+    h === "#f9f9f9" ||
+    h === "#f5f5f5"
+  );
+}
+
+/**
+ * Renderizador de 3 Camadas Dinâmicas com CSS Blend Modes e Tratamento Especial para Branco:
+ * 1. Fundo (cor selecionada mascarada pela silhueta exata da peça, desativada para branco)
+ * 2. Textura: para branco usa filter: brightness(1.8) contrast(1.1) sem multiply; para cores usa mix-blend-multiply
+ * 3. Arte: estampa PNG isolada com coordenadas dinâmicas e fundo 100% transparente
  */
 interface ShirtLayeredRenderProps {
   baseImage: string;
@@ -151,30 +230,40 @@ export function ShirtLayeredRender({
   alt,
 }: ShirtLayeredRenderProps) {
   const effectiveBase = baseImage || "/mockups/blank-front.svg";
+  const isWhite = isWhiteColor(colorHex);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-visible select-none bg-transparent">
-      {/* Camada 1: Fundo com a cor selecionada (mascarada com o contorno da camiseta) */}
-      <div
-        className="absolute inset-0 pointer-events-none transition-colors duration-300 bg-transparent"
-        style={{
-          backgroundColor: colorHex,
-          maskImage: `url('${effectiveBase}')`,
-          WebkitMaskImage: `url('${effectiveBase}')`,
-          maskSize: "contain",
-          WebkitMaskSize: "contain",
-          maskRepeat: "no-repeat",
-          WebkitMaskRepeat: "no-repeat",
-          maskPosition: "center",
-          WebkitMaskPosition: "center",
-        }}
-      />
+      {/* Camada 1: Fundo com a cor selecionada (mascarada com o contorno da camiseta). Desativada se for cor branca */}
+      {!isWhite && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-colors duration-300 bg-transparent"
+          style={{
+            backgroundColor: colorHex,
+            maskImage: `url('${effectiveBase}')`,
+            WebkitMaskImage: `url('${effectiveBase}')`,
+            maskSize: "contain",
+            WebkitMaskSize: "contain",
+            maskRepeat: "no-repeat",
+            WebkitMaskRepeat: "no-repeat",
+            maskPosition: "center",
+            WebkitMaskPosition: "center",
+          }}
+        />
+      )}
 
-      {/* Camada 2: Mockup cinza em mix-blend-multiply (SEM filter drop-shadow para não quebrar a transparência) */}
+      {/* Camada 2: Mockup cinza. Se for branco: filter: brightness(1.8) contrast(1.1) sem multiply. Se colorido: mix-blend-multiply */}
       <img
         src={effectiveBase}
         alt={alt}
-        className="absolute inset-0 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none bg-transparent"
+        className={`absolute inset-0 w-full h-full object-contain pointer-events-none select-none bg-transparent ${
+          isWhite ? "" : "mix-blend-multiply"
+        }`}
+        style={
+          isWhite
+            ? { filter: "brightness(1.8) contrast(1.1)" }
+            : undefined
+        }
         loading="eager"
       />
 
@@ -202,7 +291,7 @@ export function ShirtLayeredRender({
 }
 
 /**
- * Coleção de demonstração fiel ao vídeo de referência do usuário.
+ * Coleção de demonstração fiel ao estilo streetwear da marca.
  */
 const DEFAULT_STREETWEAR_ITEMS: VirtualRackProduct[] = [
   {
@@ -228,7 +317,7 @@ const DEFAULT_STREETWEAR_ITEMS: VirtualRackProduct[] = [
     colors: [
       {
         name: "Branco Neve",
-        hex: "#F9F9F9",
+        hex: "#FFFFFF",
         imageUrl: "/mockups/blank-front.svg",
         backImageUrl: "/mockups/blank-back.svg",
       },
@@ -462,7 +551,9 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
   const [viewMode, setViewMode] = useState<"FOCUS" | "OVERVIEW">("FOCUS");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [viewSide, setViewSide] = useState<"FRONT" | "BACK">("FRONT");
+
+  // COSTAS COMO VISÃO PADRÃO AO CARREGAR A PÁGINA (BACK)
+  const [viewSide, setViewSide] = useState<"FRONT" | "BACK">("BACK");
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -501,19 +592,19 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
   const handleNext = () => {
     setSelectedIndex((prev) => (prev + 1) % total);
-    setViewSide("FRONT");
+    setViewSide("BACK");
     setSelectedColorIndex(0);
   };
 
   const handlePrev = () => {
     setSelectedIndex((prev) => (prev - 1 + total) % total);
-    setViewSide("FRONT");
+    setViewSide("BACK");
     setSelectedColorIndex(0);
   };
 
   const handleSelectProduct = (index: number) => {
     setSelectedIndex(index);
-    setViewSide("FRONT");
+    setViewSide("BACK");
     setSelectedColorIndex(0);
     setViewMode("FOCUS");
   };
@@ -555,7 +646,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
   const waLink = `https://wa.me/${brandPhone}?text=${waMsg}`;
 
   return (
-    <section className="relative w-full bg-[#F7F4EE] text-[#0A0A0A] pt-6 sm:pt-10 md:pt-12 pb-0 overflow-hidden select-none border-b border-neutral-300">
+    <section className="relative w-full bg-[#F7F4EE] text-[#0A0A0A] pt-6 sm:pt-10 md:pt-12 pb-6 sm:pb-10 overflow-hidden select-none border-b border-neutral-300">
       <div className="max-w-6xl mx-auto px-4 relative">
         {/* BARRA SUPERIOR: ALTERNADOR DISCRETO [ ⊞ ARARA COMPLETA | ◫ FOCAR PEÇA ] */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -623,24 +714,26 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     whileHover={{ y: -6, scale: 1.03 }}
                     className="flex flex-col items-center cursor-pointer group shrink-0 transition-all bg-transparent"
                   >
-                    {/* Cabide agrupado dentro do container da peça */}
-                    <WoodenHanger isMini />
-
-                    {/* Miniatura com 3 camadas estritamente transparentes */}
+                    {/* Container da Peça com Cabide em position: absolute posicionado na gola */}
                     <div
-                      className={`w-28 h-36 sm:w-36 sm:h-48 md:w-40 md:h-52 relative bg-transparent transition-all duration-300 ${
+                      className={`relative w-28 h-36 sm:w-36 sm:h-48 md:w-40 md:h-52 bg-transparent transition-all duration-300 ${
                         isCurrent
                           ? "scale-105 filter drop-shadow-[0_12px_20px_rgba(0,0,0,0.22)]"
                           : "opacity-85 group-hover:opacity-100 filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.12)]"
                       }`}
                     >
+                      {/* Cabide posicionado com position: absolute na gola da peça */}
+                      <div className="absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                        <WoodenHanger isMini />
+                      </div>
+
                       <ShirtLayeredRender
-                        baseImage={prod.baseImage || "/mockups/blank-front.svg"}
-                        printImage={prod.printImage || prod.imageUrl}
+                        baseImage={prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg"}
+                        printImage={prod.printBackImage || prod.printImage || prod.imageUrl}
                         colorHex={prodColor}
-                        printTop={prod.printTop ?? 28}
-                        printLeft={prod.printLeft ?? 50}
-                        printWidth={prod.printWidth ?? 45}
+                        printTop={prod.printTopBack ?? 25}
+                        printLeft={prod.printLeftBack ?? 50}
+                        printWidth={prod.printWidthBack ?? 50}
                         alt={prod.name}
                       />
                     </div>
@@ -668,7 +761,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
         {/* ============================================================== */}
         {/* MODO 2: VISÃO DE FOCO COM CARROSSEL NATIVO DE ARRASTE (DRAG)    */}
-        {/* Sem setas genéricas. Cabide agrupado e física suave via Motion  */}
+        {/* Cabide com position: absolute na gola, logo SVG e costas padrão */}
         {/* ============================================================== */}
         {viewMode === "FOCUS" && (
           <div className="relative flex items-center justify-center min-h-[460px] sm:min-h-[520px] md:min-h-[560px] overflow-visible">
@@ -691,38 +784,38 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
                 const isCenter = diff === 0;
                 const prodBase = isCenter
-                  ? viewSide === "FRONT"
-                    ? currentBase
-                    : currentBaseBack
-                  : prod.baseImage || "/mockups/blank-front.svg";
+                  ? viewSide === "BACK"
+                    ? currentBaseBack
+                    : currentBase
+                  : prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg";
 
                 const prodPrint = isCenter
-                  ? viewSide === "FRONT"
-                    ? currentPrint
-                    : currentPrintBack
-                  : prod.printImage || prod.imageUrl;
+                  ? viewSide === "BACK"
+                    ? currentPrintBack
+                    : currentPrint
+                  : prod.printBackImage || prod.printImage || prod.imageUrl;
 
                 const prodColor = isCenter
                   ? currentColor.hex
                   : prod.colors?.[0]?.hex || "#18181b";
 
                 const pTop = isCenter
-                  ? viewSide === "FRONT"
-                    ? printTop
-                    : printTopBack
-                  : prod.printTop ?? 28;
+                  ? viewSide === "BACK"
+                    ? printTopBack
+                    : printTop
+                  : prod.printTopBack ?? 25;
 
                 const pLeft = isCenter
-                  ? viewSide === "FRONT"
-                    ? printLeft
-                    : printLeftBack
-                  : prod.printLeft ?? 50;
+                  ? viewSide === "BACK"
+                    ? printLeftBack
+                    : printLeft
+                  : prod.printLeftBack ?? 50;
 
                 const pWidth = isCenter
-                  ? viewSide === "FRONT"
-                    ? printWidth
-                    : printWidthBack
-                  : prod.printWidth ?? 45;
+                  ? viewSide === "BACK"
+                    ? printWidthBack
+                    : printWidth
+                  : prod.printWidthBack ?? 50;
 
                 return (
                   <motion.div
@@ -747,15 +840,14 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                       isCenter ? "cursor-default" : "cursor-pointer pointer-events-auto"
                     }`}
                   >
-                    {/* CABIDE AGRUPADO DENTRO DO CONTAINER DA CAMISETA */}
-                    {/* Move-se solidariamente com a peça durante o arraste */}
-                    <WoodenHanger />
-
-                    {/* CONTAINER DO PRODUTO (3D FLIP & HANGTAGS) */}
+                    {/* CONTAINER DA CAMISETA (COM O CABIDE AGRUPADO DENTRO EM POSITION: ABSOLUTE NA GOLA) */}
                     <div className="relative bg-transparent">
-                      {/* HANGTAGS DE CORES SUSPENSAS NO OMBRO DIREITO (APENAS NA PEÇA ATIVA) */}
+                      {/* SELEÇÃO DE CORES VIA LOGO DA CORDEIRO INK (SUBSTITUI AS TAGS RETANGULARES) */}
                       {isCenter && currentProduct.colors && currentProduct.colors.length > 1 && (
-                        <div className="absolute -right-4 sm:-right-8 top-8 sm:top-10 z-40 flex items-start gap-1.5 sm:gap-2">
+                        <div className="absolute -right-5 sm:-right-9 top-6 sm:top-8 z-40 flex flex-col items-center gap-2">
+                          <span className="text-[8px] font-mono font-bold tracking-widest text-neutral-400 uppercase -rotate-90 origin-center mb-1">
+                            CORES
+                          </span>
                           {currentProduct.colors.map((color, cIdx) => {
                             const isSelected = selectedColorIndex === cIdx;
                             return (
@@ -766,42 +858,21 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                                   e.stopPropagation();
                                   setSelectedColorIndex(cIdx);
                                 }}
-                                title={`Selecionar cor: ${color.name}`}
-                                className="group flex flex-col items-center cursor-pointer transition-transform duration-200 hover:-translate-y-1"
+                                title={`Cor: ${color.name}`}
+                                className={`group flex items-center justify-center p-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                                  isSelected
+                                    ? "scale-125 filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] ring-2 ring-black/80 bg-white/80"
+                                    : "opacity-75 hover:opacity-100 hover:scale-110"
+                                }`}
                               >
-                                <div
-                                  className={`w-[1px] transition-colors ${
-                                    isSelected
-                                      ? "h-6 sm:h-8 bg-neutral-800"
-                                      : "h-4 sm:h-6 bg-neutral-400 group-hover:bg-neutral-600"
-                                  }`}
-                                />
-                                <div
-                                  className={`w-4 h-7 sm:w-5 sm:h-9 rounded-[2px] border transition-all shadow-md relative overflow-hidden ${
-                                    isSelected
-                                      ? "border-black ring-2 ring-black/50 scale-110 shadow-lg"
-                                      : "border-neutral-400 hover:border-neutral-700 opacity-90 hover:opacity-100"
-                                  }`}
-                                  style={{ backgroundColor: color.hex }}
-                                >
-                                  <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/80 border border-black/30" />
-                                </div>
-                                <span
-                                  className={`text-[8px] font-mono mt-1 uppercase transition-opacity ${
-                                    isSelected
-                                      ? "font-bold text-neutral-900 opacity-100"
-                                      : "text-neutral-500 opacity-0 group-hover:opacity-100"
-                                  }`}
-                                >
-                                  {color.name.slice(0, 5)}
-                                </span>
+                                <CordeiroInkLogoIcon fill={color.hex} size={28} />
                               </button>
                             );
                           })}
                         </div>
                       )}
 
-                      {/* CONTAINER DA CAMISETA (100% TRANSPARENTE E SEM FUNDO BRANCO) */}
+                      {/* CONTAINER DA CAMISETA COM CABIDE DENTRO NA GOLA */}
                       <div
                         className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent"
                         style={{ perspective: "1400px" }}
@@ -812,16 +883,23 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                           }
                         }}
                       >
+                        {/* CABIDE AGRUPADO DENTRO DO CONTAINER: position: absolute na gola da camiseta */}
+                        <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                          <WoodenHanger />
+                        </div>
+
+                        {/* CARTÃO 3D COM GIRO DAS COSTAS E FRENTE */}
                         <div
                           className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent"
                           style={{
                             transformStyle: "preserve-3d",
                             transform:
-                              isCenter && viewSide === "BACK"
+                              isCenter && viewSide === "FRONT"
                                 ? "rotateY(180deg)"
                                 : "rotateY(0deg)",
                           }}
                         >
+                          {/* Face Traseira (Visão padrão ao carregar) */}
                           <div
                             className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
                             style={{
@@ -836,11 +914,11 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                               printTop={pTop}
                               printLeft={pLeft}
                               printWidth={pWidth}
-                              alt={prod.name}
+                              alt={`${prod.name} - Costas`}
                             />
                           </div>
 
-                          {/* Face Traseira se for a peça central */}
+                          {/* Face Frontal (Aparece ao alternar para FRONT com flip de 180deg) */}
                           {isCenter && (
                             <div
                               className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
@@ -851,13 +929,13 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                               }}
                             >
                               <ShirtLayeredRender
-                                baseImage={currentBaseBack}
-                                printImage={currentPrintBack}
+                                baseImage={currentBase}
+                                printImage={currentPrint}
                                 colorHex={currentColor.hex}
-                                printTop={printTopBack}
-                                printLeft={printLeftBack}
-                                printWidth={printWidthBack}
-                                alt={`${currentProduct.name} - Costas`}
+                                printTop={printTop}
+                                printLeft={printLeft}
+                                printWidth={printWidth}
+                                alt={`${currentProduct.name} - Frente`}
                               />
                             </div>
                           )}
@@ -873,24 +951,13 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
         {/* CONTROLES INFERIORES NO MODO FOCO (TÍTULO, TOGGLE FRONT/BACK, SEE AVAILABILITY) */}
         {viewMode === "FOCUS" && (
-          <div className="flex flex-col items-center text-center mt-2 sm:mt-4 space-y-2.5 pb-8">
+          <div className="flex flex-col items-center text-center mt-2 sm:mt-4 space-y-2.5 pb-4">
             <h3 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-[#0A0A0A] max-w-md mx-auto">
               {currentProduct.name}
             </h3>
 
-            {/* Alternador Cápsula Minimalista: FRONT | BACK */}
+            {/* Alternador Cápsula Minimalista: FRONT | BACK (com BACK ativo por padrão) */}
             <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-200/90 border border-neutral-300 shadow-inner">
-              <button
-                type="button"
-                onClick={() => setViewSide("FRONT")}
-                className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                  viewSide === "FRONT"
-                    ? "bg-[#0A0A0A] text-white shadow-sm"
-                    : "text-neutral-600 hover:text-neutral-900"
-                }`}
-              >
-                FRONT
-              </button>
               <button
                 type="button"
                 onClick={() => setViewSide("BACK")}
@@ -901,6 +968,17 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 }`}
               >
                 BACK
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewSide("FRONT")}
+                className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                  viewSide === "FRONT"
+                    ? "bg-[#0A0A0A] text-white shadow-sm"
+                    : "text-neutral-600 hover:text-neutral-900"
+                }`}
+              >
+                FRONT
               </button>
             </div>
 
@@ -918,23 +996,6 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
             </button>
           </div>
         )}
-      </div>
-
-      {/* ============================================================== */}
-      {/* FAIXA MARQUEE STREETWEAR VERDE NEON                             */}
-      {/* ============================================================== */}
-      <div className="w-full bg-[#10E63D] text-black py-2.5 overflow-hidden select-none border-y border-black font-mono font-black text-xs tracking-widest uppercase">
-        <div className="animate-marquee flex whitespace-nowrap">
-          <span className="mx-4 flex items-center gap-3">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
-          </span>
-          <span className="mx-4 flex items-center gap-3" aria-hidden="true">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
-          </span>
-          <span className="mx-4 flex items-center gap-3" aria-hidden="true">
-            <span>✦</span> CORDEIRO INK <span>✦</span> NOVO DROP <span>✦</span> IT'S US NEVER THEM <span>✦</span> STREETWEAR AUTORAL <span>✦</span> LIMITED EDITION <span>✦</span> MALHA HEAVYWEIGHT <span>✦</span> ARRASTE PARA NAVEGAR
-          </span>
-        </div>
       </div>
 
       {/* ============================================================== */}
@@ -961,33 +1022,24 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 <X size={18} />
               </button>
 
-              {/* LADO ESQUERDO: PREVIEW DA PEÇA EM CABIDE */}
+              {/* LADO ESQUERDO: PREVIEW DA PEÇA COM CABIDE NA GOLA */}
               <div className="w-full md:w-1/2 bg-[#F2ECE1] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E6DED2] relative">
-                <WoodenHanger />
-                <div className="w-56 h-72 sm:w-64 sm:h-80 relative my-2 bg-transparent">
+                <div className="relative w-56 h-72 sm:w-64 sm:h-80 my-2 bg-transparent">
+                  <div className="absolute -top-5 sm:-top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                    <WoodenHanger />
+                  </div>
                   <ShirtLayeredRender
-                    baseImage={viewSide === "FRONT" ? currentBase : currentBaseBack}
-                    printImage={viewSide === "FRONT" ? currentPrint : currentPrintBack}
+                    baseImage={viewSide === "BACK" ? currentBaseBack : currentBase}
+                    printImage={viewSide === "BACK" ? currentPrintBack : currentPrint}
                     colorHex={currentColor.hex}
-                    printTop={viewSide === "FRONT" ? printTop : printTopBack}
-                    printLeft={viewSide === "FRONT" ? printLeft : printLeftBack}
-                    printWidth={viewSide === "FRONT" ? printWidth : printWidthBack}
+                    printTop={viewSide === "BACK" ? printTopBack : printTop}
+                    printLeft={viewSide === "BACK" ? printLeftBack : printLeft}
+                    printWidth={viewSide === "BACK" ? printWidthBack : printWidth}
                     alt={currentProduct.name}
                   />
                 </div>
 
                 <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-300/80 border border-neutral-400 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setViewSide("FRONT")}
-                    className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                      viewSide === "FRONT"
-                        ? "bg-[#0A0A0A] text-white shadow-sm"
-                        : "text-neutral-700 hover:text-neutral-900"
-                    }`}
-                  >
-                    FRENTE
-                  </button>
                   <button
                     type="button"
                     onClick={() => setViewSide("BACK")}
@@ -998,6 +1050,17 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     }`}
                   >
                     COSTAS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewSide("FRONT")}
+                    className={`px-3 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                      viewSide === "FRONT"
+                        ? "bg-[#0A0A0A] text-white shadow-sm"
+                        : "text-neutral-700 hover:text-neutral-900"
+                    }`}
+                  >
+                    FRENTE
                   </button>
                 </div>
               </div>
@@ -1044,10 +1107,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                                   : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-600"
                               }`}
                             >
-                              <span
-                                className="w-3 h-3 rounded-full border border-white/40 shrink-0"
-                                style={{ backgroundColor: c.hex }}
-                              />
+                              <CordeiroInkLogoIcon fill={c.hex} size={16} />
                               <span>{c.name}</span>
                             </button>
                           );
