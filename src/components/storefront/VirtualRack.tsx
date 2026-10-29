@@ -21,73 +21,16 @@ import { formatCurrency } from "@/lib/utils";
 import type { VirtualRackProduct } from "@/lib/storefront-constants";
 import { useCart } from "./CartContext";
 import { toast } from "sonner";
+import { CordeiroInkLogo } from "@/components/ui/CordeiroInkLogo";
 
 interface VirtualRackProps {
   products: VirtualRackProduct[];
 }
 
 /**
- * Ícone SVG da logo oficial da "Cordeiro Ink" utilizado como seletor dinâmico de cores.
- * É preenchido dinamicamente com a cor da variação (fill={color.hex}).
+ * Re-exporta o componente oficial da Logo para compatibilidade interna.
  */
-function CordeiroInkLogoIcon({
-  fill,
-  size = 28,
-  className = "",
-}: {
-  fill: string;
-  size?: number;
-  className?: string;
-}) {
-  const isLight =
-    fill.toLowerCase() === "#ffffff" ||
-    fill.toLowerCase() === "#fff" ||
-    fill.toLowerCase() === "#fdfdfd" ||
-    fill.toLowerCase() === "#fafafa" ||
-    fill.toLowerCase() === "#f9f9f9" ||
-    fill.toLowerCase() === "#efece6" ||
-    fill.toLowerCase() === "#f5f5f0";
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      {/* Silhueta minimalista streetwear do Cordeiro */}
-      <path
-        d="M18 3C13.5 3 10.5 6 10.5 10C10.5 12 11.5 13.8 13 15V20.5L8.5 25.5V33H12.5L15.5 28.5H20.5L23.5 33H27.5V25.5L23 20.5V15C24.5 13.8 25.5 12 25.5 10C25.5 6 22.5 3 18 3Z"
-        fill={fill}
-        stroke="#0A0A0A"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      {/* Detalhe dos chifres curvos */}
-      <path
-        d="M13 7.5C11.5 6.5 9 7 9 9C9 10.5 11 11 12 10.5"
-        stroke="#0A0A0A"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M23 7.5C24.5 6.5 27 7 27 9C27 10.5 25 11 24 10.5"
-        stroke="#0A0A0A"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      {/* Cruz Sagrada minimalista */}
-      <path
-        d="M18 8.5V18M14.5 12H21.5"
-        stroke={isLight ? "#0A0A0A" : "#FFFFFF"}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+export const CordeiroInkLogoIcon = CordeiroInkLogo;
 
 /**
  * Cabide de madeira esculpida agrupado com position: absolute na gola da camiseta.
@@ -1016,13 +959,13 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                             setSelectedColorIndex(cIdx);
                           }}
                           title={`Cor: ${color.name}`}
-                          className={`group flex items-center justify-center p-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                          className={`group relative flex items-center justify-center p-1.5 rounded-xl transition-all duration-200 cursor-pointer ${
                             isSelected
-                              ? "scale-125 filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] ring-2 ring-white bg-white/20"
-                              : "opacity-75 hover:opacity-100 hover:scale-110"
+                              ? "scale-125 filter drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] ring-2 ring-white/90 bg-white/20"
+                              : "opacity-75 hover:opacity-100 hover:scale-110 hover:bg-white/10"
                           }`}
                         >
-                          <CordeiroInkLogoIcon fill={color.hex} size={28} />
+                          <CordeiroInkLogo fill={color.hex} size={30} />
                         </button>
                       );
                     })}
@@ -1258,7 +1201,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                                   : "border-neutral-300 bg-white text-neutral-800 hover:border-neutral-600"
                               }`}
                             >
-                              <CordeiroInkLogoIcon fill={c.hex} size={16} />
+                              <CordeiroInkLogo fill={c.hex} size={18} />
                               <span>{c.name}</span>
                             </button>
                           );

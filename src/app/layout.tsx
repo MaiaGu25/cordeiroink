@@ -33,6 +33,13 @@ export const metadata: Metadata = {
   title: "Cordeiro Ink | Streetwear Autêntico & Estamparia Sob Demanda",
   description:
     "Marca de streetwear premium, camisetas oversized 100% algodão heavyweight e estamparia personalizada sob demanda.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const dynamic = "force-dynamic";
