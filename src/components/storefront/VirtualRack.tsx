@@ -32,104 +32,7 @@ interface VirtualRackProps {
  */
 export const CordeiroInkLogoIcon = CordeiroInkLogo;
 
-/**
- * Cabide de madeira esculpida agrupado com position: absolute na gola da camiseta.
- * Move-se solidariamente com a peça durante o arraste e física da arara.
- */
-function WoodenHanger({ isMini = false }: { isMini?: boolean }) {
-  if (isMini) {
-    return (
-      <div className="flex flex-col items-center select-none pointer-events-none z-30">
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 26 26"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="text-neutral-500"
-        >
-          <path
-            d="M13 2C15.5 2 17.5 4 17.5 6.5C17.5 8.5 16 10 14.5 10.8L13 11.8V16"
-            stroke="currentColor"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-          />
-          <circle cx="13" cy="2" r="1.5" fill="currentColor" />
-        </svg>
-        <svg
-          width="70"
-          height="14"
-          viewBox="0 0 110 22"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="-mt-1.5"
-        >
-          <path
-            d="M55 2C42 7 18 13 4 19C15 20 40 16 55 16C70 16 95 20 106 19C92 13 68 7 55 2Z"
-            fill="#8B5A2B"
-          />
-        </svg>
-      </div>
-    );
-  }
 
-  return (
-    <div className="flex flex-col items-center select-none pointer-events-none z-30">
-      {/* Gancho Metálico Prateado - alinhado com o trilho da arara */}
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 28 28"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="text-neutral-500 drop-shadow-[0_2px_3px_rgba(0,0,0,0.25)]"
-      >
-        <path
-          d="M14 2C16.8 2 19 4.2 19 7C19 9.2 17.2 11 15.5 11.9L14 12.9V18"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-        />
-        <circle cx="14" cy="2" r="1.5" fill="currentColor" />
-      </svg>
-
-      {/* Corpo de Madeira Esculpida com Chanfros Realistas */}
-      <svg
-        width="116"
-        height="24"
-        viewBox="0 0 110 22"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="-mt-2.5 drop-shadow-[0_4px_6px_rgba(0,0,0,0.2)]"
-      >
-        <path
-          d="M55 2C42 7 18 13 4 19C15 20 40 16 55 16C70 16 95 20 106 19C92 13 68 7 55 2Z"
-          fill="url(#hangerWoodGrad)"
-        />
-        <path
-          d="M55 2L4 19C15 20 40 16 55 16C70 16 95 20 106 19L55 2Z"
-          stroke="#4A2E18"
-          strokeWidth="1.2"
-          strokeLinejoin="round"
-        />
-        <defs>
-          <linearGradient
-            id="hangerWoodGrad"
-            x1="4"
-            y1="2"
-            x2="106"
-            y2="20"
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop stopColor="#9C6B43" />
-            <stop offset="0.5" stopColor="#B38054" />
-            <stop offset="1" stopColor="#7D4F28" />
-          </linearGradient>
-        </defs>
-      </svg>
-    </div>
-  );
-}
 
 /**
  * Função auxiliar para detectar cores brancas ou quase brancas.
@@ -559,8 +462,8 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
     _: any,
     info: { offset: { x: number; y: number }; velocity: { x: number; y: number } }
   ) => {
-    const swipeThreshold = 50;
-    const velocityThreshold = 250;
+    const swipeThreshold = 40;
+    const velocityThreshold = 180;
 
     if (info.offset.x < -swipeThreshold || info.velocity.x < -velocityThreshold) {
       handleNext();
@@ -659,7 +562,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     whileHover={{ y: -6, scale: 1.03 }}
                     className="flex flex-col items-center cursor-pointer group shrink-0 transition-all bg-transparent"
                   >
-                    {/* Container da Peça com Cabide em position: absolute posicionado na gola */}
+                    {/* Container da Peça (Mockup com cabide integrado na imagem base) */}
                     <div
                       className={`relative w-28 h-36 sm:w-36 sm:h-48 md:w-40 md:h-52 bg-transparent transition-all duration-300 ${
                         isCurrent
@@ -667,11 +570,6 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                           : "opacity-85 group-hover:opacity-100 filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.12)]"
                       }`}
                     >
-                      {/* Cabide posicionado com position: absolute na gola da peça */}
-                      <div className="absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                        <WoodenHanger isMini />
-                      </div>
-
                       <ShirtLayeredRender
                         baseImage={prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg"}
                         printImage={prod.printBackImage || prod.printImage || prod.imageUrl}
@@ -699,7 +597,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               onClick={() => setIsModalOpen(true)}
               className="mt-4 px-6 py-2 rounded-md border border-neutral-800 hover:bg-[#0A0A0A] hover:text-[#F7F4EE] text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
             >
-              SEE AVAILABILITY
+              VER DISPONIBILIDADE
             </button>
           </div>
         )}
@@ -710,11 +608,12 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
         {/* ============================================================== */}
         {viewMode === "FOCUS" && (
           <div className="relative flex items-center justify-center min-h-[460px] sm:min-h-[520px] md:min-h-[560px] overflow-visible">
-            {/* Área de Arraste Touch & Mouse fluida (Framer Motion) */}
+            {/* Área de Arraste Touch & Mouse fluida (Framer Motion Otimizado) */}
             <motion.div
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.65}
+              dragElastic={0.2}
+              dragTransition={{ bounceStiffness: 500, bounceDamping: 35, power: 0.15 }}
               onDragEnd={handleDragEnd}
               style={{ x: dragX, rotate: rackRotation }}
               className="relative w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing bg-transparent select-none touch-pan-y"
@@ -724,8 +623,9 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 let diff = (idx - selectedIndex + total) % total;
                 if (diff > total / 2) diff -= total;
 
-                // Renderiza a peça ativa e até 2 vizinhas de cada lado
-                if (Math.abs(diff) > 2) return null;
+                // Virtualização/Culling: renderiza APENAS a peça ativa e os vizinhos imediatos visíveis (-1, 0, 1)
+                // Peças além disso estão totalmente fora da viewport e são descartadas para economizar CPU/GPU
+                if (Math.abs(diff) > 1) return null;
 
                 const isCenter = diff === 0;
                 const prodBase = isCenter
@@ -770,24 +670,23 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     }}
                     animate={{
                       x: diff * (typeof window !== "undefined" && window.innerWidth < 640 ? 210 : 280),
-                      scale: isCenter ? 1 : 0.76,
-                      opacity: isCenter ? 1 : Math.abs(diff) === 1 ? 0.32 : 0,
-                      filter: isCenter ? "blur(0px)" : "blur(2.2px)",
-                      zIndex: isCenter ? 30 : 10 - Math.abs(diff),
+                      scale: isCenter ? 1 : 0.78,
+                      opacity: isCenter ? 1 : 0.38,
+                      zIndex: isCenter ? 30 : 10,
                     }}
                     transition={{
                       type: "spring",
-                      stiffness: 280,
-                      damping: 28,
-                      mass: 0.8,
+                      stiffness: 340,
+                      damping: 30,
+                      mass: 0.6,
                     }}
+                    style={{ willChange: "transform, opacity" }}
                     className={`absolute flex flex-col items-center bg-transparent ${
                       isCenter ? "cursor-default" : "cursor-pointer pointer-events-auto"
                     }`}
                   >
-                    {/* CONTAINER DA CAMISETA (COM O CABIDE AGRUPADO DENTRO EM POSITION: ABSOLUTE NA GOLA) */}
+                    {/* CONTAINER DA CAMISETA (Mockup com cabide integrado na imagem base) */}
                     <div className="relative bg-transparent">
-                      {/* CONTAINER DA CAMISETA COM CABIDE DENTRO NA GOLA */}
                       <div
                         className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent cursor-pointer group"
                         style={{ perspective: "1400px" }}
@@ -798,11 +697,6 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                           }
                         }}
                       >
-                        {/* CABIDE AGRUPADO DENTRO DO CONTAINER: position: absolute na gola da camiseta */}
-                        <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-transform group-hover:scale-105">
-                          <WoodenHanger />
-                        </div>
-
                         {/* CARTÃO 3D COM GIRO DAS COSTAS E FRENTE */}
                         <div
                           className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent group-hover:scale-[1.02]"
@@ -935,9 +829,9 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
               className="relative z-50 flex flex-col items-center max-w-lg w-full py-4 text-center"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Container da Peça com Cabide e Seleção de Cores */}
+              {/* Container da Peça com Seleção de Cores */}
               <div className="relative flex items-center justify-center">
-                {/* SELEÇÃO DE CORES VIA LOGO DA CORDEIRO INK (Visíveis de forma elegante no modo foco) */}
+                {/* SELEÇÃO DE CORES VIA LOGO DA CORDEIRO INK (Apenas os logos alinhados de forma limpa) */}
                 {currentProduct.colors && currentProduct.colors.length > 1 && (
                   <motion.div
                     initial={{ opacity: 0, x: -10 }}
@@ -945,9 +839,6 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     transition={{ delay: 0.15 }}
                     className="absolute -right-6 sm:-right-10 md:-right-12 top-8 sm:top-12 z-40 flex flex-col items-center gap-2.5 bg-neutral-900/80 backdrop-blur-sm p-1.5 sm:p-2 rounded-2xl border border-neutral-700/80 shadow-2xl"
                   >
-                    <span className="text-[8px] font-mono font-bold tracking-widest text-neutral-300 uppercase -rotate-90 origin-center my-1">
-                      CORES
-                    </span>
                     {currentProduct.colors.map((color, cIdx) => {
                       const isSelected = selectedColorIndex === cIdx;
                       return (
@@ -972,16 +863,11 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                   </motion.div>
                 )}
 
-                {/* Garment com Cabide na gola e Flip 3D */}
+                {/* Garment com Flip 3D (Cabide desenhado diretamente na imagem base) */}
                 <div
                   className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center"
                   style={{ perspective: "1400px" }}
                 >
-                  {/* Cabide esculpido na gola */}
-                  <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                    <WoodenHanger />
-                  </div>
-
                   {/* Cartão com Giro 3D */}
                   <div
                     className="w-full h-full relative transition-transform duration-700 ease-out"
@@ -1032,7 +918,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 </div>
               </div>
 
-              {/* CONTROLES LIMPOS: Alternador Cápsula [ BACK | FRONT ] */}
+              {/* CONTROLES LIMPOS: Alternador Cápsula [ COSTAS | FRENTE ] */}
               <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-900/90 border border-neutral-700 shadow-xl mt-3">
                 <button
                   type="button"
@@ -1043,7 +929,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                       : "text-neutral-300 hover:text-white"
                   }`}
                 >
-                  BACK
+                  COSTAS
                 </button>
                 <button
                   type="button"
@@ -1054,7 +940,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                       : "text-neutral-300 hover:text-white"
                   }`}
                 >
-                  FRONT
+                  FRENTE
                 </button>
               </div>
 
@@ -1073,7 +959,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 )}
               </div>
 
-              {/* Botão SEE AVAILABILITY */}
+              {/* Botão VER DISPONIBILIDADE */}
               <div className="mt-4 flex items-center justify-center gap-3">
                 <button
                   type="button"
@@ -1084,7 +970,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                   className="px-6 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
                 >
                   <ShoppingBag size={14} />
-                  <span>SEE AVAILABILITY</span>
+                  <span>VER DISPONIBILIDADE</span>
                 </button>
               </div>
             </motion.div>
@@ -1093,7 +979,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
       </AnimatePresence>
 
       {/* ============================================================== */}
-      {/* MODAL DE DISPONIBILIDADE & COMPRA (SEE AVAILABILITY)           */}
+      {/* MODAL DE DISPONIBILIDADE & COMPRA (VER DISPONIBILIDADE)         */}
       {/* ============================================================== */}
       <AnimatePresence>
         {isModalOpen && (
@@ -1116,12 +1002,9 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 <X size={18} />
               </button>
 
-              {/* LADO ESQUERDO: PREVIEW DA PEÇA COM CABIDE NA GOLA */}
+              {/* LADO ESQUERDO: PREVIEW DA PEÇA */}
               <div className="w-full md:w-1/2 bg-[#F2ECE1] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[#E6DED2] relative">
                 <div className="relative w-56 h-72 sm:w-64 sm:h-80 my-2 bg-transparent">
-                  <div className="absolute -top-5 sm:-top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                    <WoodenHanger />
-                  </div>
                   <ShirtLayeredRender
                     baseImage={viewSide === "BACK" ? currentBaseBack : currentBase}
                     printImage={viewSide === "BACK" ? currentPrintBack : currentPrint}
