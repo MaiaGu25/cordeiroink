@@ -43,6 +43,10 @@ export async function createProduct(data: {
   baseShirtBackUrl?: string;
   printImageUrl?: string;
   printBackImageUrl?: string;
+  printLightFront?: string;
+  printDarkFront?: string;
+  printLightBack?: string;
+  printDarkBack?: string;
   printWidth?: number;
   printTop?: number;
   printLeft?: number;
@@ -58,6 +62,7 @@ export async function createProduct(data: {
     imageUrl?: string;
     backImageUrl?: string;
     basePrice: number;
+    printTheme?: "LIGHT" | "DARK";
     rawItemIds?: string[]; // Itens de BOM vinculados
   }[];
 }) {
@@ -78,6 +83,10 @@ export async function createProduct(data: {
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
         printBackImageUrl: data.printBackImageUrl?.trim() || null,
+        printLightFront: data.printLightFront?.trim() || null,
+        printDarkFront: data.printDarkFront?.trim() || null,
+        printLightBack: data.printLightBack?.trim() || null,
+        printDarkBack: data.printDarkBack?.trim() || null,
         printWidth: data.printWidth !== undefined ? Number(data.printWidth) : 45.0,
         printTop: data.printTop !== undefined ? Number(data.printTop) : 28.0,
         printLeft: data.printLeft !== undefined ? Number(data.printLeft) : 50.0,
@@ -94,6 +103,7 @@ export async function createProduct(data: {
             imageUrl: v.imageUrl?.trim() || null,
             backImageUrl: v.backImageUrl?.trim() || null,
             basePrice: Number(v.basePrice) || 0,
+            printTheme: v.printTheme === "DARK" ? "DARK" : "LIGHT",
             bom: {
               create: (v.rawItemIds || []).map((rawId) => ({
                 rawItemId: rawId,
@@ -137,6 +147,10 @@ export async function updateProduct(
     baseShirtBackUrl?: string;
     printImageUrl?: string;
     printBackImageUrl?: string;
+    printLightFront?: string;
+    printDarkFront?: string;
+    printLightBack?: string;
+    printDarkBack?: string;
     printWidth?: number;
     printTop?: number;
     printLeft?: number;
@@ -150,6 +164,7 @@ export async function updateProduct(
       size: string;
       color: string;
       colorHex?: string;
+      printTheme?: "LIGHT" | "DARK";
       imageUrl?: string;
       backImageUrl?: string;
       basePrice: number;
@@ -174,6 +189,7 @@ export async function updateProduct(
                 size: v.size.trim(),
                 color: v.color.trim(),
                 colorHex: v.colorHex?.trim() || "#000000",
+                printTheme: v.printTheme === "DARK" ? "DARK" : "LIGHT",
                 imageUrl: v.imageUrl?.trim() || null,
                 backImageUrl: v.backImageUrl?.trim() || null,
                 basePrice: Number(v.basePrice) || 0,
@@ -206,6 +222,10 @@ export async function updateProduct(
           baseShirtBackUrl: data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl?.trim() || null) : undefined,
           printImageUrl: data.printImageUrl !== undefined ? (data.printImageUrl?.trim() || null) : undefined,
           printBackImageUrl: data.printBackImageUrl !== undefined ? (data.printBackImageUrl?.trim() || null) : undefined,
+          printLightFront: data.printLightFront !== undefined ? (data.printLightFront?.trim() || null) : undefined,
+          printDarkFront: data.printDarkFront !== undefined ? (data.printDarkFront?.trim() || null) : undefined,
+          printLightBack: data.printLightBack !== undefined ? (data.printLightBack?.trim() || null) : undefined,
+          printDarkBack: data.printDarkBack !== undefined ? (data.printDarkBack?.trim() || null) : undefined,
           printWidth: data.printWidth !== undefined ? Number(data.printWidth) : undefined,
           printTop: data.printTop !== undefined ? Number(data.printTop) : undefined,
           printLeft: data.printLeft !== undefined ? Number(data.printLeft) : undefined,

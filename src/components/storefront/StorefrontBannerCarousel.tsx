@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, ArrowUpRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SafeImage } from "@/components/ui/SafeImage";
 
 export interface BannerItem {
@@ -75,10 +75,20 @@ export function StorefrontBannerCarousel({ banners = [] }: StorefrontBannerCarou
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Banner Slide View */}
-      <div className="relative w-full h-[320px] sm:h-[420px] md:h-[500px]">
+      {/* Banner Slide View: Exclusivamente imagem pura full width/cover sem textos ou botões */}
+      <div className="relative w-full h-[260px] sm:h-[380px] md:h-[480px] lg:h-[580px]">
         {displayBanners.map((banner, idx) => {
           const isCurrent = idx === currentIndex;
+
+          const imageContent = (
+            <SafeImage
+              src={banner.imageUrl}
+              alt={banner.title || "Banner Cordeiro Ink"}
+              className="w-full h-full object-cover object-center"
+              containerClassName="w-full h-full bg-zinc-950 flex items-center justify-center text-zinc-600"
+              iconSize={32}
+            />
+          );
 
           return (
             <div
@@ -87,49 +97,17 @@ export function StorefrontBannerCarousel({ banners = [] }: StorefrontBannerCarou
                 isCurrent ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              {/* Background Image with Dark Vignette */}
-              <div className="absolute inset-0 bg-black/45 z-10" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 z-10" />
-
-              <SafeImage
-                src={banner.imageUrl}
-                alt={banner.title}
-                className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-7000 ease-out"
-                containerClassName="w-full h-full bg-zinc-950 flex items-center justify-center text-zinc-600"
-                iconSize={32}
-              />
-
-              {/* Text Overlay */}
-              <div className="absolute inset-0 z-20 flex flex-col justify-end p-6 sm:p-12 md:p-16 max-w-5xl mx-auto">
-                <div className="space-y-3 sm:space-y-4 max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[#FAF9F6] text-[10px] sm:text-xs font-mono uppercase tracking-widest border border-white/15">
-                    <Sparkles size={11} className="text-amber-400" />
-                    <span>Cordeiro Ink • Ateliê Streetwear</span>
-                  </span>
-
-                  <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-white leading-[1.1]">
-                    {banner.title}
-                  </h2>
-
-                  {banner.subtitle && (
-                    <p className="font-sans text-xs sm:text-sm md:text-base text-zinc-200 line-clamp-2 max-w-xl font-light leading-relaxed">
-                      {banner.subtitle}
-                    </p>
-                  )}
-
-                  {banner.linkUrl && (
-                    <div className="pt-2">
-                      <a
-                        href={banner.linkUrl}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FAF9F6] text-[#0A0A0A] hover:bg-white text-xs font-bold uppercase tracking-wider transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] cursor-pointer"
-                      >
-                        <span>Conferir Destaque</span>
-                        <ArrowUpRight size={14} />
-                      </a>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {banner.linkUrl ? (
+                <a
+                  href={banner.linkUrl}
+                  className="block w-full h-full cursor-pointer"
+                  title={banner.title}
+                >
+                  {imageContent}
+                </a>
+              ) : (
+                imageContent
+              )}
             </div>
           );
         })}

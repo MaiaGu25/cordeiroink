@@ -19,6 +19,8 @@ import {
   Maximize2,
   RefreshCw,
   Check,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useState, useTransition, useRef } from "react";
@@ -77,6 +79,10 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
   const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
   const [printImageUrl, setPrintImageUrl] = useState("");
   const [printBackImageUrl, setPrintBackImageUrl] = useState("");
+  const [printLightFront, setPrintLightFront] = useState("");
+  const [printDarkFront, setPrintDarkFront] = useState("");
+  const [printLightBack, setPrintLightBack] = useState("");
+  const [printDarkBack, setPrintDarkBack] = useState("");
   const [printWidth, setPrintWidth] = useState(45);
   const [printTop, setPrintTop] = useState(28);
   const [printLeft, setPrintLeft] = useState(50);
@@ -87,17 +93,28 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
   // Live Preview Settings
   const [previewSide, setPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
   const [previewColor, setPreviewColor] = useState("#18181b");
+  const [previewPrintTheme, setPreviewPrintTheme] = useState<"LIGHT" | "DARK">("LIGHT");
   const [isUploadingPrint, setIsUploadingPrint] = useState(false);
 
-  const frontPrintInputRef = useRef<HTMLInputElement>(null);
-  const backPrintInputRef = useRef<HTMLInputElement>(null);
+  const frontPrintLightInputRef = useRef<HTMLInputElement>(null);
+  const frontPrintDarkInputRef = useRef<HTMLInputElement>(null);
+  const backPrintLightInputRef = useRef<HTMLInputElement>(null);
+  const backPrintDarkInputRef = useRef<HTMLInputElement>(null);
   const frontBaseInputRef = useRef<HTMLInputElement>(null);
   const backBaseInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload handler para as 4 camadas (Base Frente/Costas e Estampa Frente/Costas)
+  // Upload handler para as camadas e versões de estampa
   const handleUploadLayer = async (
     e: React.ChangeEvent<HTMLInputElement>,
-    target: "PRINT_FRONT" | "PRINT_BACK" | "BASE_FRONT" | "BASE_BACK"
+    target:
+      | "PRINT_LIGHT_FRONT"
+      | "PRINT_DARK_FRONT"
+      | "PRINT_LIGHT_BACK"
+      | "PRINT_DARK_BACK"
+      | "BASE_FRONT"
+      | "BASE_BACK"
+      | "PRINT_FRONT"
+      | "PRINT_BACK"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -111,19 +128,42 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     const res = await uploadFileViaApi(formData);
 
     if (res.success && res.url) {
-      if (target === "PRINT_FRONT") setPrintImageUrl(res.url);
-      else if (target === "PRINT_BACK") setPrintBackImageUrl(res.url);
-      else if (target === "BASE_FRONT") setBaseShirtUrl(res.url);
-      else if (target === "BASE_BACK") setBaseShirtBackUrl(res.url);
+      if (target === "PRINT_LIGHT_FRONT") {
+        setPrintLightFront(res.url);
+        setPrintImageUrl(res.url);
+      } else if (target === "PRINT_DARK_FRONT") {
+        setPrintDarkFront(res.url);
+      } else if (target === "PRINT_LIGHT_BACK") {
+        setPrintLightBack(res.url);
+        setPrintBackImageUrl(res.url);
+      } else if (target === "PRINT_DARK_BACK") {
+        setPrintDarkBack(res.url);
+      } else if (target === "PRINT_FRONT") {
+        setPrintLightFront(res.url);
+        setPrintImageUrl(res.url);
+      } else if (target === "PRINT_BACK") {
+        setPrintLightBack(res.url);
+        setPrintBackImageUrl(res.url);
+      } else if (target === "BASE_FRONT") {
+        setBaseShirtUrl(res.url);
+      } else if (target === "BASE_BACK") {
+        setBaseShirtBackUrl(res.url);
+      }
 
       const msg =
         target === "BASE_FRONT"
           ? "Mockup Base Frente enviado!"
           : target === "BASE_BACK"
           ? "Mockup Base Costas enviado!"
-          : target === "PRINT_FRONT"
-          ? "Estampa Frente PNG enviada!"
-          : "Estampa Costas PNG enviada!";
+          : target === "PRINT_LIGHT_FRONT"
+          ? "Estampa Clara (Frente) enviada!"
+          : target === "PRINT_DARK_FRONT"
+          ? "Estampa Escura (Frente) enviada!"
+          : target === "PRINT_LIGHT_BACK"
+          ? "Estampa Clara (Costas) enviada!"
+          : target === "PRINT_DARK_BACK"
+          ? "Estampa Escura (Costas) enviada!"
+          : "Estampa enviada com sucesso!";
       toast.success(msg);
     } else {
       toast.error(res.error || "Erro no upload da imagem");
@@ -149,6 +189,10 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     setBaseShirtBackUrl("/mockups/blank-back.svg");
     setPrintImageUrl("");
     setPrintBackImageUrl("");
+    setPrintLightFront("");
+    setPrintDarkFront("");
+    setPrintLightBack("");
+    setPrintDarkBack("");
     setPrintWidth(45);
     setPrintTop(28);
     setPrintLeft(50);
@@ -157,6 +201,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     setPrintLeftBack(50);
     setPreviewSide("FRONT");
     setPreviewColor("#18181b");
+    setPreviewPrintTheme("LIGHT");
     setIsModalOpen(true);
   };
 
@@ -181,6 +226,10 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     );
     setPrintImageUrl(prod.printImageUrl || "");
     setPrintBackImageUrl(prod.printBackImageUrl || "");
+    setPrintLightFront(prod.printLightFront || prod.printImageUrl || "");
+    setPrintDarkFront(prod.printDarkFront || "");
+    setPrintLightBack(prod.printLightBack || prod.printBackImageUrl || "");
+    setPrintDarkBack(prod.printDarkBack || "");
     setPrintWidth(prod.printWidth ?? 45);
     setPrintTop(prod.printTop ?? 28);
     setPrintLeft(prod.printLeft ?? 50);
@@ -189,6 +238,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     setPrintLeftBack(prod.printLeftBack ?? 50);
     setPreviewSide("FRONT");
     setPreviewColor(prod.variants?.[0]?.colorHex || "#18181b");
+    setPreviewPrintTheme("LIGHT");
     setIsModalOpen(true);
   };
 
@@ -215,8 +265,12 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
           templateId: selectedTemplateId || undefined,
           baseShirtUrl: baseShirtUrl.trim() || undefined,
           baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
-          printImageUrl: printImageUrl.trim() || undefined,
-          printBackImageUrl: printBackImageUrl.trim() || undefined,
+          printImageUrl: printLightFront.trim() || printImageUrl.trim() || undefined,
+          printBackImageUrl: printLightBack.trim() || printBackImageUrl.trim() || undefined,
+          printLightFront: printLightFront.trim() || undefined,
+          printDarkFront: printDarkFront.trim() || undefined,
+          printLightBack: printLightBack.trim() || undefined,
+          printDarkBack: printDarkBack.trim() || undefined,
           printWidth: Number(printWidth),
           printTop: Number(printTop),
           printLeft: Number(printLeft),
@@ -244,6 +298,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                 size: "G",
                 color: "Preto",
                 colorHex: "#111111",
+                printTheme: "LIGHT",
                 basePrice: 89.9,
               },
             ],
@@ -581,7 +636,13 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
         const currentBase = isFront
           ? baseShirtUrl || "/mockups/blank-front.svg"
           : baseShirtBackUrl || "/mockups/blank-back.svg";
-        const currentPrint = isFront ? printImageUrl : printBackImageUrl;
+        const currentPrint = isFront
+          ? previewPrintTheme === "LIGHT"
+            ? (printLightFront || printImageUrl)
+            : (printDarkFront || printImageUrl)
+          : previewPrintTheme === "LIGHT"
+            ? (printLightBack || printBackImageUrl)
+            : (printDarkBack || printBackImageUrl);
         const currentWidth = isFront ? printWidth : printWidthBack;
         const currentTop = isFront ? printTop : printTopBack;
         const currentLeft = isFront ? printLeft : printLeftBack;
@@ -647,10 +708,46 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                   {/* COLUNA ESQUERDA: PREVIEW EM TEMPO REAL & CONTROLES DE POSIÇÃO */}
                   <div className="lg:col-span-5 space-y-4 bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-zinc-200">
                         <Eye size={14} className="text-amber-400" />
-                        <span>Preview em Tempo Real</span>
+                        <span>Preview</span>
+                      </div>
+
+                      {/* Switch Tema de Estampa Clara vs Escura */}
+                      <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] font-mono font-bold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewPrintTheme("LIGHT");
+                            setPreviewColor("#18181b");
+                          }}
+                          className={`px-1.5 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
+                            previewPrintTheme === "LIGHT"
+                              ? "bg-amber-500 text-zinc-950 font-bold"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                          title="Estampa clara para tecidos escuros"
+                        >
+                          <Sun size={10} />
+                          <span>Clara</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewPrintTheme("DARK");
+                            setPreviewColor("#f4f4f5");
+                          }}
+                          className={`px-1.5 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
+                            previewPrintTheme === "DARK"
+                              ? "bg-amber-500 text-zinc-950 font-bold"
+                              : "text-zinc-400 hover:text-zinc-200"
+                          }`}
+                          title="Estampa escura para tecidos claros/brancos"
+                        >
+                          <Moon size={10} />
+                          <span>Escura</span>
+                        </button>
                       </div>
 
                       {/* Switch Frente / Costas */}
@@ -658,7 +755,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                         <button
                           type="button"
                           onClick={() => setPreviewSide("FRONT")}
-                          className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                          className={`px-2.5 py-0.5 rounded-lg transition cursor-pointer ${
                             previewSide === "FRONT"
                               ? "bg-amber-500 text-zinc-950 font-bold shadow"
                               : "text-zinc-400 hover:text-zinc-200"
@@ -669,7 +766,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                         <button
                           type="button"
                           onClick={() => setPreviewSide("BACK")}
-                          className={`px-3 py-1 rounded-lg transition cursor-pointer ${
+                          className={`px-2.5 py-0.5 rounded-lg transition cursor-pointer ${
                             previewSide === "BACK"
                               ? "bg-amber-500 text-zinc-950 font-bold shadow"
                               : "text-zinc-400 hover:text-zinc-200"
@@ -880,7 +977,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
 
                   {/* COLUNA DIREITA: DADOS DO PRODUTO & ARQUITETURA DE ARQUIVOS */}
                   <div className="lg:col-span-7 space-y-4">
-                    {/* 4 Inputs de Upload Ocultos para cada camada */}
+                    {/* 6 Inputs de Upload Ocultos para cada camada e versão */}
                     <input
                       type="file"
                       ref={frontBaseInputRef}
@@ -897,17 +994,31 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                     />
                     <input
                       type="file"
-                      ref={frontPrintInputRef}
+                      ref={frontPrintLightInputRef}
                       accept="image/png,image/webp,image/svg+xml"
                       className="hidden"
-                      onChange={(e) => handleUploadLayer(e, "PRINT_FRONT")}
+                      onChange={(e) => handleUploadLayer(e, "PRINT_LIGHT_FRONT")}
                     />
                     <input
                       type="file"
-                      ref={backPrintInputRef}
+                      ref={frontPrintDarkInputRef}
                       accept="image/png,image/webp,image/svg+xml"
                       className="hidden"
-                      onChange={(e) => handleUploadLayer(e, "PRINT_BACK")}
+                      onChange={(e) => handleUploadLayer(e, "PRINT_DARK_FRONT")}
+                    />
+                    <input
+                      type="file"
+                      ref={backPrintLightInputRef}
+                      accept="image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => handleUploadLayer(e, "PRINT_LIGHT_BACK")}
+                    />
+                    <input
+                      type="file"
+                      ref={backPrintDarkInputRef}
+                      accept="image/png,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => handleUploadLayer(e, "PRINT_DARK_BACK")}
                     />
 
                     {/* Linha 1: SKU e Categoria */}
@@ -987,63 +1098,145 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                       </div>
                     </div>
 
-                    {/* SEÇÃO: ARQUITETURA BLEND MODE & ESTAMPAS ISOLADAS */}
+                    {/* SEÇÃO: ARQUITETURA BLEND MODE & CONTRASTE DINÂMICO DE ESTAMPAS */}
                     <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                           <Layers size={14} />
-                          <span>Arquitetura de Estampas PNG (Blend Mode)</span>
+                          <span>Contraste Dinâmico de Estampas (Blend Mode)</span>
                         </span>
                         <span className="text-[10px] text-zinc-400">PNG transparente isolado</span>
                       </div>
 
-                      {/* Estampa Frente */}
-                      <div>
-                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                          Estampa Isolada Frente (PNG transparente)
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={printImageUrl}
-                            onChange={(e) => setPrintImageUrl(e.target.value)}
-                            placeholder="https://.../estampa-frente.png"
-                            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                          />
-                          <button
-                            type="button"
-                            disabled={isUploadingPrint}
-                            onClick={() => frontPrintInputRef.current?.click()}
-                            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
-                          >
-                            <Upload size={13} />
-                            <span>Upload</span>
-                          </button>
+                      {/* Versão Clara (para tecidos escuros) */}
+                      <div className="p-3 rounded-xl bg-zinc-950/70 border border-amber-500/20 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                            <Sun size={12} />
+                            <span>Estampa Clara (para tecidos escuros: Preto, Marinho, Grafite...)</span>
+                          </span>
+                          <span className="text-[9px] font-mono text-zinc-400">Tema: LIGHT</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                              Frente (Clara)
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={printLightFront}
+                                onChange={(e) => {
+                                  setPrintLightFront(e.target.value);
+                                  setPrintImageUrl(e.target.value);
+                                }}
+                                placeholder="https://.../estampa-clara-frente.png"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                disabled={isUploadingPrint}
+                                onClick={() => frontPrintLightInputRef.current?.click()}
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shrink-0 transition cursor-pointer shadow"
+                                title="Upload Estampa Clara Frente"
+                              >
+                                {isUploadingPrint ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                <span>Upload</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                              Costas (Clara)
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={printLightBack}
+                                onChange={(e) => {
+                                  setPrintLightBack(e.target.value);
+                                  setPrintBackImageUrl(e.target.value);
+                                }}
+                                placeholder="https://.../estampa-clara-costas.png"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                disabled={isUploadingPrint}
+                                onClick={() => backPrintLightInputRef.current?.click()}
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1 shrink-0 transition cursor-pointer shadow"
+                                title="Upload Estampa Clara Costas"
+                              >
+                                {isUploadingPrint ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                <span>Upload</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Estampa Costas */}
-                      <div>
-                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                          Estampa Isolada Costas (PNG transparente)
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={printBackImageUrl}
-                            onChange={(e) => setPrintBackImageUrl(e.target.value)}
-                            placeholder="https://.../estampa-costas.png"
-                            className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                          />
-                          <button
-                            type="button"
-                            disabled={isUploadingPrint}
-                            onClick={() => backPrintInputRef.current?.click()}
-                            className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition cursor-pointer"
-                          >
-                            <Upload size={13} />
-                            <span>Upload</span>
-                          </button>
+                      {/* Versão Escura (para tecidos claros) */}
+                      <div className="p-3 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
+                            <Moon size={12} className="text-zinc-400" />
+                            <span>Estampa Escura (para tecidos claros: Branco, Off-White, Bege...)</span>
+                          </span>
+                          <span className="text-[9px] font-mono text-zinc-400">Tema: DARK</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                              Frente (Escura)
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={printDarkFront}
+                                onChange={(e) => setPrintDarkFront(e.target.value)}
+                                placeholder="https://.../estampa-escura-frente.png"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                disabled={isUploadingPrint}
+                                onClick={() => frontPrintDarkInputRef.current?.click()}
+                                className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                                title="Upload Estampa Escura Frente"
+                              >
+                                {isUploadingPrint ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                <span>Upload</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
+                              Costas (Escura)
+                            </label>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={printDarkBack}
+                                onChange={(e) => setPrintDarkBack(e.target.value)}
+                                placeholder="https://.../estampa-escura-costas.png"
+                                className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                              />
+                              <button
+                                type="button"
+                                disabled={isUploadingPrint}
+                                onClick={() => backPrintDarkInputRef.current?.click()}
+                                className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                                title="Upload Estampa Escura Costas"
+                              >
+                                {isUploadingPrint ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                <span>Upload</span>
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
 

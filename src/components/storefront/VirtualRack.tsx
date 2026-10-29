@@ -51,6 +51,40 @@ function isWhiteColor(hex: string): boolean {
 }
 
 /**
+ * Resolução dinâmica da estampa (Clara vs Escura) com base no printTheme da cor ou tecido branco:
+ * - Se a variante tiver printTheme === "DARK" (ou se a cor for branca/quase branca), seleciona printDarkFront / printDarkBack.
+ * - Caso contrário (printTheme === "LIGHT" ou padrão em fundos escuros), seleciona printLightFront / printLightBack.
+ * - Mantém fallback transparente para as estampas legadas printImage / printBackImage.
+ */
+export function getEffectivePrint(
+  prod: VirtualRackProduct,
+  side: "FRONT" | "BACK",
+  theme?: "LIGHT" | "DARK",
+  hex?: string
+): string | null {
+  const isDarkPrint = theme === "DARK" || (theme !== "LIGHT" && hex ? isWhiteColor(hex) : false);
+
+  if (side === "BACK") {
+    return (
+      (isDarkPrint ? prod.printDarkBack : prod.printLightBack) ||
+      prod.printBackImage ||
+      (isDarkPrint ? prod.printDarkFront : prod.printLightFront) ||
+      prod.printImage ||
+      prod.backImageUrl ||
+      prod.imageUrl ||
+      null
+    );
+  }
+
+  return (
+    (isDarkPrint ? prod.printDarkFront : prod.printLightFront) ||
+    prod.printImage ||
+    prod.imageUrl ||
+    null
+  );
+}
+
+/**
  * Renderizador de 3 Camadas Dinâmicas com CSS Blend Modes e Tratamento Especial para Branco:
  * 1. Fundo (cor selecionada mascarada pela silhueta exata da peça, desativada para branco)
  * 2. Textura: para branco usa filter: brightness(1.8) contrast(1.1) sem multiply; para cores usa mix-blend-multiply
@@ -425,9 +459,21 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
   const currentBase = currentProduct.baseImage || "/mockups/blank-front.svg";
   const currentBaseBack = currentProduct.baseBackImage || "/mockups/blank-back.svg";
-  const currentPrint = currentProduct.printImage || currentProduct.imageUrl;
-  const currentPrintBack =
-    currentProduct.printBackImage || currentProduct.backImageUrl || currentPrint;
+
+  // Resolução dinâmica de estampa (Clara vs Escura) baseada no tema da cor ou fundo branco
+  const currentPrint = getEffectivePrint(
+    currentProduct,
+    "FRONT",
+    currentColor.printTheme,
+    currentColor.hex
+  );
+
+  const currentPrintBack = getEffectivePrint(
+    currentProduct,
+    "BACK",
+    currentColor.printTheme,
+    currentColor.hex
+  );
 
   const printTop = currentProduct.printTop ?? 28.0;
   const printLeft = currentProduct.printLeft ?? 50.0;
@@ -572,7 +618,12 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     >
                       <ShirtLayeredRender
                         baseImage={prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg"}
-                        printImage={prod.printBackImage || prod.printImage || prod.imageUrl}
+                        printImage={getEffectivePrint(
+                          prod,
+                          "BACK",
+                          prod.colors?.[0]?.printTheme,
+                          prodColor
+                        )}
                         colorHex={prodColor}
                         printTop={prod.printTopBack ?? 25}
                         printLeft={prod.printLeftBack ?? 50}
@@ -628,39 +679,26 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 if (Math.abs(diff) > 1) return null;
 
                 const isCenter = diff === 0;
-                const prodBase = isCenter
-                  ? viewSide === "BACK"
-                    ? currentBaseBack
-                    : currentBase
+                const prodBaseBack = isCenter
+                  ? currentBaseBack
                   : prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg";
-
-                const prodPrint = isCenter
-                  ? viewSide === "BACK"
-                    ? currentPrintBack
-                    : currentPrint
-                  : prod.printBackImage || prod.printImage || prod.imageUrl;
 
                 const prodColor = isCenter
                   ? currentColor.hex
                   : prod.colors?.[0]?.hex || "#18181b";
 
-                const pTop = isCenter
-                  ? viewSide === "BACK"
-                    ? printTopBack
-                    : printTop
-                  : prod.printTopBack ?? 25;
+                const prodPrintBack = isCenter
+                  ? currentPrintBack
+                  : getEffectivePrint(
+                      prod,
+                      "BACK",
+                      prod.colors?.[0]?.printTheme,
+                      prodColor
+                    );
 
-                const pLeft = isCenter
-                  ? viewSide === "BACK"
-                    ? printLeftBack
-                    : printLeft
-                  : prod.printLeftBack ?? 50;
-
-                const pWidth = isCenter
-                  ? viewSide === "BACK"
-                    ? printWidthBack
-                    : printWidth
-                  : prod.printWidthBack ?? 50;
+                const pTopBack = isCenter ? printTopBack : (prod.printTopBack ?? 25);
+                const pLeftBack = isCenter ? printLeftBack : (prod.printLeftBack ?? 50);
+                const pWidthBack = isCenter ? printWidthBack : (prod.printWidthBack ?? 50);
 
                 return (
                   <motion.div
@@ -717,12 +755,12 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                             }}
                           >
                             <ShirtLayeredRender
-                              baseImage={prodBase}
-                              printImage={prodPrint}
+                              baseImage={prodBaseBack}
+                              printImage={prodPrintBack}
                               colorHex={prodColor}
-                              printTop={pTop}
-                              printLeft={pLeft}
-                              printWidth={pWidth}
+                              printTop={pTopBack}
+                              printLeft={pLeftBack}
+                              printWidth={pWidthBack}
                               alt={`${prod.name} - Costas`}
                             />
                           </div>

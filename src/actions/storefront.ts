@@ -122,7 +122,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
     const result: VirtualRackProduct[] = [];
 
     erpProducts.forEach((p) => {
-      const colorMap = new Map<string, { name: string; hex: string; imageUrl: string; backImageUrl?: string | null }>();
+      const colorMap = new Map<string, { name: string; hex: string; imageUrl: string; backImageUrl?: string | null; printTheme?: "LIGHT" | "DARK" }>();
       p.variants.forEach((v) => {
         if (!colorMap.has(v.color)) {
           colorMap.set(v.color, {
@@ -130,6 +130,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
             hex: v.colorHex || (v.color.toLowerCase().includes("off") ? "#F5F2EB" : "#111111"),
             imageUrl: v.imageUrl || p.imageUrl || "",
             backImageUrl: v.backImageUrl || p.backImageUrl || null,
+            printTheme: (v.printTheme as "LIGHT" | "DARK") || "LIGHT",
           });
         }
       });
@@ -143,6 +144,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
                 hex: "#111111",
                 imageUrl: p.imageUrl || "",
                 backImageUrl: p.backImageUrl || null,
+                printTheme: "LIGHT" as const,
               },
             ];
 
@@ -166,6 +168,10 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         baseBackImage: resolvedBaseBack,
         printImage: p.printImageUrl?.trim() || p.imageUrl || null,
         printBackImage: p.printBackImageUrl?.trim() || p.backImageUrl || null,
+        printLightFront: p.printLightFront?.trim() || null,
+        printDarkFront: p.printDarkFront?.trim() || null,
+        printLightBack: p.printLightBack?.trim() || null,
+        printDarkBack: p.printDarkBack?.trim() || null,
         printWidth: Number(p.printWidth) || 45.0,
         printTop: Number(p.printTop) || 28.0,
         printLeft: Number(p.printLeft) || 50.0,
@@ -188,6 +194,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
               hex: v.hexCode || (v.colorName.toLowerCase().includes("off") ? "#F5F2EB" : "#111111"),
               imageUrl: v.imageUrl || c.imageUrl,
               backImageUrl: v.backImageUrl || c.backImageUrl || null,
+              printTheme: (v.printTheme as "LIGHT" | "DARK") || "LIGHT",
             }))
           : [
               {
@@ -195,6 +202,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
                 hex: "#111111",
                 imageUrl: c.imageUrl,
                 backImageUrl: c.backImageUrl || null,
+                printTheme: "LIGHT" as const,
               },
             ];
 
@@ -218,6 +226,10 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         baseBackImage: resolvedBaseBack,
         printImage: c.printImageUrl?.trim() || c.imageUrl || null,
         printBackImage: c.printBackImageUrl?.trim() || c.backImageUrl || null,
+        printLightFront: c.printLightFront?.trim() || null,
+        printDarkFront: c.printDarkFront?.trim() || null,
+        printLightBack: c.printLightBack?.trim() || null,
+        printDarkBack: c.printDarkBack?.trim() || null,
         printWidth: Number(c.printWidth) || 45.0,
         printTop: Number(c.printTop) || 28.0,
         printLeft: Number(c.printLeft) || 50.0,
@@ -275,6 +287,10 @@ export async function createCatalogItem(data: {
   baseShirtBackUrl?: string;
   printImageUrl?: string;
   printBackImageUrl?: string;
+  printLightFront?: string;
+  printDarkFront?: string;
+  printLightBack?: string;
+  printDarkBack?: string;
   printWidth?: number;
   printTop?: number;
   printLeft?: number;
@@ -310,6 +326,10 @@ export async function createCatalogItem(data: {
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
         printBackImageUrl: data.printBackImageUrl?.trim() || null,
+        printLightFront: data.printLightFront?.trim() || null,
+        printDarkFront: data.printDarkFront?.trim() || null,
+        printLightBack: data.printLightBack?.trim() || null,
+        printDarkBack: data.printDarkBack?.trim() || null,
         printWidth: data.printWidth !== undefined ? Number(data.printWidth) : 45.0,
         printTop: data.printTop !== undefined ? Number(data.printTop) : 28.0,
         printLeft: data.printLeft !== undefined ? Number(data.printLeft) : 50.0,
@@ -321,6 +341,7 @@ export async function createCatalogItem(data: {
           create: validVariants.map((v) => ({
             colorName: v.colorName.trim(),
             hexCode: v.hexCode?.trim() || "#000000",
+            printTheme: v.printTheme === "DARK" ? "DARK" : "LIGHT",
             imageUrl: v.imageUrl.trim(),
             backImageUrl: v.backImageUrl?.trim() || null,
           })),
@@ -362,6 +383,10 @@ export async function updateCatalogItem(
     baseShirtBackUrl?: string;
     printImageUrl?: string;
     printBackImageUrl?: string;
+    printLightFront?: string;
+    printDarkFront?: string;
+    printLightBack?: string;
+    printDarkBack?: string;
     printWidth?: number;
     printTop?: number;
     printLeft?: number;
@@ -395,6 +420,7 @@ export async function updateCatalogItem(
               catalogItemId: id,
               colorName: v.colorName.trim(),
               hexCode: v.hexCode?.trim() || "#000000",
+              printTheme: v.printTheme === "DARK" ? "DARK" : "LIGHT",
               imageUrl: v.imageUrl.trim(),
               backImageUrl: v.backImageUrl?.trim() || null,
             })),
@@ -427,6 +453,14 @@ export async function updateCatalogItem(
             data.printImageUrl !== undefined ? (data.printImageUrl.trim() || null) : undefined,
           printBackImageUrl:
             data.printBackImageUrl !== undefined ? (data.printBackImageUrl.trim() || null) : undefined,
+          printLightFront:
+            data.printLightFront !== undefined ? (data.printLightFront.trim() || null) : undefined,
+          printDarkFront:
+            data.printDarkFront !== undefined ? (data.printDarkFront.trim() || null) : undefined,
+          printLightBack:
+            data.printLightBack !== undefined ? (data.printLightBack.trim() || null) : undefined,
+          printDarkBack:
+            data.printDarkBack !== undefined ? (data.printDarkBack.trim() || null) : undefined,
           printWidth: data.printWidth !== undefined ? Number(data.printWidth) : undefined,
           printTop: data.printTop !== undefined ? Number(data.printTop) : undefined,
           printLeft: data.printLeft !== undefined ? Number(data.printLeft) : undefined,

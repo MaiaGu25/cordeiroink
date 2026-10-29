@@ -14,6 +14,7 @@ export interface VariantInput {
   hexCode: string;
   imageUrl: string;
   backImageUrl?: string;
+  printTheme?: "LIGHT" | "DARK";
 }
 
 export interface AvailableStockSize {
@@ -27,6 +28,7 @@ export interface VirtualRackColor {
   hex: string;
   imageUrl: string;
   backImageUrl?: string | null;
+  printTheme?: "LIGHT" | "DARK";
 }
 
 export interface VirtualRackProduct {
@@ -42,6 +44,12 @@ export interface VirtualRackProduct {
   baseBackImage: string;
   printImage?: string | null;
   printBackImage?: string | null;
+
+  // Versões de Estampa Clara e Escura (Contraste Dinâmico)
+  printLightFront?: string | null;
+  printDarkFront?: string | null;
+  printLightBack?: string | null;
+  printDarkBack?: string | null;
 
   // Coordenadas dinâmicas da estampa frontal
   printWidth: number;
