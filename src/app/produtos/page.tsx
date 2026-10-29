@@ -1,23 +1,28 @@
 import { prisma } from "@/lib/prisma";
+import { getProductTemplates } from "@/actions/templates";
 import { ProductsView } from "@/components/products/ProductsView";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProdutosPage() {
-  const products = await prisma.product.findMany({
-    include: {
-      variants: {
-        include: {
-          bom: {
-            include: {
-              rawItem: true,
+  const [products, templates] = await Promise.all([
+    prisma.product.findMany({
+      include: {
+        template: true,
+        variants: {
+          include: {
+            bom: {
+              include: {
+                rawItem: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    getProductTemplates(),
+  ]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -35,7 +40,7 @@ export default async function ProdutosPage() {
         </p>
       </div>
 
-      <ProductsView products={products} />
+      <ProductsView products={products} templates={templates} />
     </div>
   );
 }

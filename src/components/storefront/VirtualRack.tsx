@@ -551,6 +551,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
   const [viewMode, setViewMode] = useState<"FOCUS" | "OVERVIEW">("FOCUS");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
 
   // COSTAS COMO VISÃO PADRÃO AO CARREGAR A PÁGINA (BACK)
   const [viewSide, setViewSide] = useState<"FRONT" | "BACK">("BACK");
@@ -607,6 +608,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
     setViewSide("BACK");
     setSelectedColorIndex(0);
     setViewMode("FOCUS");
+    setIsFocused(true);
   };
 
   // Arraste fluido via Framer Motion sem necessidade de setas genéricas
@@ -842,55 +844,25 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                   >
                     {/* CONTAINER DA CAMISETA (COM O CABIDE AGRUPADO DENTRO EM POSITION: ABSOLUTE NA GOLA) */}
                     <div className="relative bg-transparent">
-                      {/* SELEÇÃO DE CORES VIA LOGO DA CORDEIRO INK (SUBSTITUI AS TAGS RETANGULARES) */}
-                      {isCenter && currentProduct.colors && currentProduct.colors.length > 1 && (
-                        <div className="absolute -right-5 sm:-right-9 top-6 sm:top-8 z-40 flex flex-col items-center gap-2">
-                          <span className="text-[8px] font-mono font-bold tracking-widest text-neutral-400 uppercase -rotate-90 origin-center mb-1">
-                            CORES
-                          </span>
-                          {currentProduct.colors.map((color, cIdx) => {
-                            const isSelected = selectedColorIndex === cIdx;
-                            return (
-                              <button
-                                key={color.hex + cIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedColorIndex(cIdx);
-                                }}
-                                title={`Cor: ${color.name}`}
-                                className={`group flex items-center justify-center p-1 rounded-xl transition-all duration-200 cursor-pointer ${
-                                  isSelected
-                                    ? "scale-125 filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] ring-2 ring-black/80 bg-white/80"
-                                    : "opacity-75 hover:opacity-100 hover:scale-110"
-                                }`}
-                              >
-                                <CordeiroInkLogoIcon fill={color.hex} size={28} />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-
                       {/* CONTAINER DA CAMISETA COM CABIDE DENTRO NA GOLA */}
                       <div
-                        className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent"
+                        className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent cursor-pointer group"
                         style={{ perspective: "1400px" }}
                         onClick={(e) => {
                           if (isCenter) {
                             e.stopPropagation();
-                            setIsModalOpen(true);
+                            setIsFocused(true);
                           }
                         }}
                       >
                         {/* CABIDE AGRUPADO DENTRO DO CONTAINER: position: absolute na gola da camiseta */}
-                        <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                        <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-transform group-hover:scale-105">
                           <WoodenHanger />
                         </div>
 
                         {/* CARTÃO 3D COM GIRO DAS COSTAS E FRENTE */}
                         <div
-                          className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent"
+                          className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent group-hover:scale-[1.02]"
                           style={{
                             transformStyle: "preserve-3d",
                             transform:
@@ -940,6 +912,14 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                             </div>
                           )}
                         </div>
+
+                        {/* Indicador sutil de clique para focar */}
+                        {isCenter && (
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono text-white flex items-center gap-1.5 shadow-lg pointer-events-none">
+                            <Maximize2 size={11} />
+                            <span>Clique para focar</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -949,54 +929,225 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
           </div>
         )}
 
-        {/* CONTROLES INFERIORES NO MODO FOCO (TÍTULO, TOGGLE FRONT/BACK, SEE AVAILABILITY) */}
+        {/* CONTROLES INFERIORES NO MODO ARARA (TÍTULO, PREÇO E BOTÃO DE FOCO) */}
         {viewMode === "FOCUS" && (
-          <div className="flex flex-col items-center text-center mt-2 sm:mt-4 space-y-2.5 pb-4">
+          <div className="flex flex-col items-center text-center mt-2 sm:mt-4 space-y-2 pb-4">
             <h3 className="text-sm sm:text-base md:text-lg font-black uppercase tracking-wider text-[#0A0A0A] max-w-md mx-auto">
               {currentProduct.name}
             </h3>
-
-            {/* Alternador Cápsula Minimalista: FRONT | BACK (com BACK ativo por padrão) */}
-            <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-200/90 border border-neutral-300 shadow-inner">
-              <button
-                type="button"
-                onClick={() => setViewSide("BACK")}
-                className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                  viewSide === "BACK"
-                    ? "bg-[#0A0A0A] text-white shadow-sm"
-                    : "text-neutral-600 hover:text-neutral-900"
-                }`}
-              >
-                BACK
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewSide("FRONT")}
-                className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
-                  viewSide === "FRONT"
-                    ? "bg-[#0A0A0A] text-white shadow-sm"
-                    : "text-neutral-600 hover:text-neutral-900"
-                }`}
-              >
-                FRONT
-              </button>
-            </div>
 
             <div className="text-[11px] font-mono font-bold text-neutral-500 uppercase tracking-widest">
               {formatCurrency(currentProduct.price)}
             </div>
 
-            {/* BOTÃO SEE AVAILABILITY */}
+            {/* BOTÃO PARA ATIVAR O MODO FOCO IMERSIVO */}
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="mt-1 px-6 py-2 rounded-md border border-neutral-800 hover:bg-[#0A0A0A] hover:text-[#F7F4EE] text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+              onClick={() => setIsFocused(true)}
+              className="mt-1 px-5 py-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] hover:bg-neutral-800 text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95 flex items-center gap-2"
             >
-              SEE AVAILABILITY
+              <Maximize2 size={13} />
+              <span>FOCAR PEÇA & CORES</span>
             </button>
           </div>
         )}
       </div>
+
+      {/* ============================================================== */}
+      {/* MODO DE FOCO IMERSIVO COM BACKDROP-BLUR-MD                     */}
+      {/* Destaque suave com zoom, controles limpos e dismiss ao clicar fora */}
+      {/* ============================================================== */}
+      <AnimatePresence>
+        {isFocused && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 select-none overflow-y-auto">
+            {/* Overlay com Fundo Borrado (backdrop-blur-md) escurecendo levemente o restante do site */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={() => setIsFocused(false)}
+              className="fixed inset-0 bg-black/65 backdrop-blur-md cursor-pointer"
+            />
+
+            {/* Botão discreto de fechar no topo direito */}
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => setIsFocused(false)}
+              className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 rounded-full bg-neutral-900/90 hover:bg-black text-white border border-neutral-700 shadow-2xl cursor-pointer transition-transform hover:scale-110 active:scale-95"
+              title="Fechar foco"
+            >
+              <X size={18} />
+            </motion.button>
+
+            {/* Card Central da Peça em Destaque (Zoom Suave e Projeção Frontal) */}
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              className="relative z-50 flex flex-col items-center max-w-lg w-full py-4 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Container da Peça com Cabide e Seleção de Cores */}
+              <div className="relative flex items-center justify-center">
+                {/* SELEÇÃO DE CORES VIA LOGO DA CORDEIRO INK (Visíveis de forma elegante no modo foco) */}
+                {currentProduct.colors && currentProduct.colors.length > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="absolute -right-6 sm:-right-10 md:-right-12 top-8 sm:top-12 z-40 flex flex-col items-center gap-2.5 bg-neutral-900/80 backdrop-blur-sm p-1.5 sm:p-2 rounded-2xl border border-neutral-700/80 shadow-2xl"
+                  >
+                    <span className="text-[8px] font-mono font-bold tracking-widest text-neutral-300 uppercase -rotate-90 origin-center my-1">
+                      CORES
+                    </span>
+                    {currentProduct.colors.map((color, cIdx) => {
+                      const isSelected = selectedColorIndex === cIdx;
+                      return (
+                        <button
+                          key={color.hex + cIdx}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedColorIndex(cIdx);
+                          }}
+                          title={`Cor: ${color.name}`}
+                          className={`group flex items-center justify-center p-1 rounded-xl transition-all duration-200 cursor-pointer ${
+                            isSelected
+                              ? "scale-125 filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] ring-2 ring-white bg-white/20"
+                              : "opacity-75 hover:opacity-100 hover:scale-110"
+                          }`}
+                        >
+                          <CordeiroInkLogoIcon fill={color.hex} size={28} />
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+
+                {/* Garment com Cabide na gola e Flip 3D */}
+                <div
+                  className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center"
+                  style={{ perspective: "1400px" }}
+                >
+                  {/* Cabide esculpido na gola */}
+                  <div className="absolute -top-6 sm:-top-7 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                    <WoodenHanger />
+                  </div>
+
+                  {/* Cartão com Giro 3D */}
+                  <div
+                    className="w-full h-full relative transition-transform duration-700 ease-out"
+                    style={{
+                      transformStyle: "preserve-3d",
+                      transform: viewSide === "FRONT" ? "rotateY(180deg)" : "rotateY(0deg)",
+                    }}
+                  >
+                    {/* Face Traseira (Costas como padrão) */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        backfaceVisibility: "hidden",
+                        WebkitBackfaceVisibility: "hidden",
+                      }}
+                    >
+                      <ShirtLayeredRender
+                        baseImage={currentBaseBack}
+                        printImage={currentPrintBack}
+                        colorHex={currentColor.hex}
+                        printTop={printTopBack}
+                        printLeft={printLeftBack}
+                        printWidth={printWidthBack}
+                        alt={`${currentProduct.name} - Costas`}
+                      />
+                    </div>
+
+                    {/* Face Frontal (Flip 180deg) */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        backfaceVisibility: "hidden",
+                        WebkitBackfaceVisibility: "hidden",
+                        transform: "rotateY(180deg)",
+                      }}
+                    >
+                      <ShirtLayeredRender
+                        baseImage={currentBase}
+                        printImage={currentPrint}
+                        colorHex={currentColor.hex}
+                        printTop={printTop}
+                        printLeft={printLeft}
+                        printWidth={printWidth}
+                        alt={`${currentProduct.name} - Frente`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONTROLES LIMPOS: Alternador Cápsula [ BACK | FRONT ] */}
+              <div className="inline-flex items-center p-0.5 rounded-full bg-neutral-900/90 border border-neutral-700 shadow-xl mt-3">
+                <button
+                  type="button"
+                  onClick={() => setViewSide("BACK")}
+                  className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                    viewSide === "BACK"
+                      ? "bg-white text-neutral-950 shadow-sm"
+                      : "text-neutral-300 hover:text-white"
+                  }`}
+                >
+                  BACK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewSide("FRONT")}
+                  className={`px-4 py-1 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all cursor-pointer ${
+                    viewSide === "FRONT"
+                      ? "bg-white text-neutral-950 shadow-sm"
+                      : "text-neutral-300 hover:text-white"
+                  }`}
+                >
+                  FRONT
+                </button>
+              </div>
+
+              {/* Informações da Peça */}
+              <div className="mt-3 space-y-1">
+                <h3 className="text-base sm:text-lg font-black uppercase tracking-wider text-white">
+                  {currentProduct.name}
+                </h3>
+                <p className="text-xs font-mono font-bold text-neutral-300">
+                  {formatCurrency(currentProduct.price)} • {currentColor.name}
+                </p>
+                {currentProduct.description && (
+                  <p className="text-[11px] text-neutral-400 max-w-sm mx-auto line-clamp-2 px-2">
+                    {currentProduct.description}
+                  </p>
+                )}
+              </div>
+
+              {/* Botão SEE AVAILABILITY */}
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsFocused(false);
+                    setIsModalOpen(true);
+                  }}
+                  className="px-6 py-2.5 rounded-full bg-white hover:bg-neutral-200 text-neutral-950 text-xs font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                >
+                  <ShoppingBag size={14} />
+                  <span>SEE AVAILABILITY</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ============================================================== */}
       {/* MODAL DE DISPONIBILIDADE & COMPRA (SEE AVAILABILITY)           */}

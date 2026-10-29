@@ -7,6 +7,7 @@ export async function getProductsWithDetails() {
   const [products, rawItems] = await Promise.all([
     prisma.product.findMany({
       include: {
+        template: true,
         variants: {
           include: {
             bom: {
@@ -37,6 +38,7 @@ export async function createProduct(data: {
   backImageUrl?: string;
   description?: string;
   showOnVirtualRack?: boolean;
+  templateId?: string;
   baseShirtUrl?: string;
   baseShirtBackUrl?: string;
   printImageUrl?: string;
@@ -71,6 +73,7 @@ export async function createProduct(data: {
         backImageUrl: data.backImageUrl?.trim() || null,
         description: data.description?.trim() || null,
         showOnVirtualRack: Boolean(data.showOnVirtualRack),
+        templateId: data.templateId?.trim() || null,
         baseShirtUrl: data.baseShirtUrl?.trim() || null,
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
@@ -129,6 +132,7 @@ export async function updateProduct(
     backImageUrl?: string;
     description?: string;
     showOnVirtualRack?: boolean;
+    templateId?: string;
     baseShirtUrl?: string;
     baseShirtBackUrl?: string;
     printImageUrl?: string;
@@ -197,6 +201,7 @@ export async function updateProduct(
           backImageUrl: data.backImageUrl !== undefined ? (data.backImageUrl?.trim() || null) : undefined,
           description: data.description !== undefined ? (data.description?.trim() || null) : undefined,
           showOnVirtualRack: data.showOnVirtualRack !== undefined ? Boolean(data.showOnVirtualRack) : undefined,
+          templateId: data.templateId !== undefined ? (data.templateId?.trim() || null) : undefined,
           baseShirtUrl: data.baseShirtUrl !== undefined ? (data.baseShirtUrl?.trim() || null) : undefined,
           baseShirtBackUrl: data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl?.trim() || null) : undefined,
           printImageUrl: data.printImageUrl !== undefined ? (data.printImageUrl?.trim() || null) : undefined,
@@ -210,6 +215,7 @@ export async function updateProduct(
           isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
         },
         include: {
+          template: true,
           variants: true,
         },
       });

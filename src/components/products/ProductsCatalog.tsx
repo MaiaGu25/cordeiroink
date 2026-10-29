@@ -45,9 +45,10 @@ const PREVIEW_PALETTE = [
 
 interface ProductCatalogProps {
   products: any[];
+  templates?: any[];
 }
 
-export function ProductsCatalog({ products }: ProductCatalogProps) {
+export function ProductsCatalog({ products, templates = [] }: ProductCatalogProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -69,6 +70,7 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
   const [backImageUrl, setBackImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [showOnVirtualRack, setShowOnVirtualRack] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
 
   // Blend Mode & Print Positioning Fields
   const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
@@ -142,6 +144,7 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     setBackImageUrl("");
     setDescription("");
     setShowOnVirtualRack(true);
+    setSelectedTemplateId("");
     setBaseShirtUrl("/mockups/blank-front.svg");
     setBaseShirtBackUrl("/mockups/blank-back.svg");
     setPrintImageUrl("");
@@ -169,8 +172,13 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
     setBackImageUrl(prod.backImageUrl || "");
     setDescription(prod.description || "");
     setShowOnVirtualRack(Boolean(prod.showOnVirtualRack));
-    setBaseShirtUrl(prod.baseShirtUrl || "/mockups/blank-front.svg");
-    setBaseShirtBackUrl(prod.baseShirtBackUrl || "/mockups/blank-back.svg");
+    setSelectedTemplateId(prod.templateId || "");
+    setBaseShirtUrl(
+      prod.baseShirtUrl || prod.template?.baseImageFront || "/mockups/blank-front.svg"
+    );
+    setBaseShirtBackUrl(
+      prod.baseShirtBackUrl || prod.template?.baseImageBack || "/mockups/blank-back.svg"
+    );
     setPrintImageUrl(prod.printImageUrl || "");
     setPrintBackImageUrl(prod.printBackImageUrl || "");
     setPrintWidth(prod.printWidth ?? 45);
@@ -204,6 +212,7 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
           backImageUrl: backImageUrl.trim() || undefined,
           description,
           showOnVirtualRack,
+          templateId: selectedTemplateId || undefined,
           baseShirtUrl: baseShirtUrl.trim() || undefined,
           baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
           printImageUrl: printImageUrl.trim() || undefined,
@@ -1038,55 +1047,89 @@ export function ProductsCatalog({ products }: ProductCatalogProps) {
                         </div>
                       </div>
 
-                      {/* Mockups de Camiseta Cinza Base (Frente e Costas com Upload) */}
-                      <div className="grid grid-cols-2 gap-3 pt-1">
-                        <div>
-                          <label className="block text-[11px] text-zinc-400 mb-1">
-                            Mockup Base Frente
-                          </label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={baseShirtUrl}
-                              onChange={(e) => setBaseShirtUrl(e.target.value)}
-                              placeholder="/mockups/blank-front.svg"
-                              className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                            />
-                            <button
-                              type="button"
-                              disabled={isUploadingPrint}
-                              onClick={() => frontBaseInputRef.current?.click()}
-                              className="px-2 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                              title="Upload Mockup Base Frente"
-                            >
-                              <Upload size={12} />
-                            </button>
-                          </div>
-                        </div>
+                      {/* Seleção de Molde / Modelagem Padrão */}
+                      <div className="pt-2 border-t border-zinc-800">
+                        <label className="block text-[11px] font-bold text-amber-400 mb-1 flex items-center gap-1.5">
+                          <Shirt size={12} />
+                          <span>Molde / Modelagem Padrão (Mockup Base Cinza)</span>
+                        </label>
+                        <select
+                          value={selectedTemplateId}
+                          onChange={(e) => {
+                            const tId = e.target.value;
+                            setSelectedTemplateId(tId);
+                            const tpl = (templates || []).find((t) => t.id === tId);
+                            if (tpl) {
+                              setBaseShirtUrl(tpl.baseImageFront);
+                              setBaseShirtBackUrl(tpl.baseImageBack);
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+                        >
+                          <option value="">Selecione um molde de modelagem...</option>
+                          {(templates || []).map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name} ({t.category || "Camisetas"})
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-zinc-400 block mt-1">
+                          As bases cinzas da frente e das costas são herdadas automaticamente do molde selecionado.
+                        </span>
 
-                        <div>
-                          <label className="block text-[11px] text-zinc-400 mb-1">
-                            Mockup Base Costas
-                          </label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="text"
-                              value={baseShirtBackUrl}
-                              onChange={(e) => setBaseShirtBackUrl(e.target.value)}
-                              placeholder="/mockups/blank-back.svg"
-                              className="w-full px-2.5 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 focus:outline-none focus:border-amber-500"
-                            />
-                            <button
-                              type="button"
-                              disabled={isUploadingPrint}
-                              onClick={() => backBaseInputRef.current?.click()}
-                              className="px-2 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                              title="Upload Mockup Base Costas"
-                            >
-                              <Upload size={12} />
-                            </button>
+                        {/* Detalhes expansíveis para customização manual opcional */}
+                        <details className="text-[10px] text-zinc-400 pt-1.5">
+                          <summary className="cursor-pointer hover:text-zinc-200 font-medium transition select-none">
+                            ⚙️ Personalizar mockups base manualmente (opcional)
+                          </summary>
+                          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-800">
+                            <div>
+                              <label className="block text-[9px] text-zinc-400 mb-0.5">
+                                Base Frente
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={baseShirtUrl}
+                                  onChange={(e) => setBaseShirtUrl(e.target.value)}
+                                  placeholder="/mockups/blank-front.svg"
+                                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={isUploadingPrint}
+                                  onClick={() => frontBaseInputRef.current?.click()}
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                >
+                                  <Upload size={10} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] text-zinc-400 mb-0.5">
+                                Base Costas
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={baseShirtBackUrl}
+                                  onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                                  placeholder="/mockups/blank-back.svg"
+                                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={isUploadingPrint}
+                                  onClick={() => backBaseInputRef.current?.click()}
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                >
+                                  <Upload size={10} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        </details>
                       </div>
                     </div>
 

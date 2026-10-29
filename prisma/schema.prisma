@@ -91,9 +91,13 @@ model Product {
   description       String?
   showOnVirtualRack Boolean          @default(false)
 
+  // Molde / Modelagem Padrão
+  templateId        String?
+  template          ProductTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
   // Blend Mode & Posicionamento Dinâmico de Estampas
-  baseShirtUrl      String?          // Mockup cinza liso frente
-  baseShirtBackUrl  String?          // Mockup cinza liso costas
+  baseShirtUrl      String?          // Mockup cinza liso frente (opcional se herdar do template)
+  baseShirtBackUrl  String?          // Mockup cinza liso costas (opcional se herdar do template)
   printImageUrl     String?          // Arte/Estampa PNG isolada frente
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas
   printWidth        Float?
@@ -108,6 +112,22 @@ model Product {
   updatedAt         DateTime         @updatedAt
 
   variants    ProductVariant[]
+}
+
+// 3.5 MOLDES E MODELAGENS (MOCKUPS BASE PARA ARARA E PRODUTOS)
+model ProductTemplate {
+  id             String        @id @default(uuid())
+  name           String        // Ex: "Oversized Streetwear", "Regular Fit", "Moletom Canguru"
+  category       String        @default("Camisetas")
+  baseImageFront String        // Mockup cinza liso frente
+  baseImageBack  String        // Mockup cinza liso costas
+  baseImageSide  String?       // Mockup cinza liso lateral (opcional)
+  description    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  products       Product[]
+  catalogItems   CatalogItem[]
 }
 
 model ProductVariant {
@@ -391,9 +411,13 @@ model CatalogItem {
   category          String           @default("Adulto") // Adulto, Infantil, Oversized, Feminina, Regata
   showOnVirtualRack Boolean          @default(false)
 
+  // Molde / Modelagem Padrão
+  templateId        String?
+  template          ProductTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
   // Blend Mode & Posicionamento Dinâmico de Estampas
-  baseShirtUrl      String?          // Mockup cinza liso frente
-  baseShirtBackUrl  String?          // Mockup cinza liso costas
+  baseShirtUrl      String?          // Mockup cinza liso frente (opcional se herdar do template)
+  baseShirtBackUrl  String?          // Mockup cinza liso costas (opcional se herdar do template)
   printImageUrl     String?          // Arte/Estampa PNG isolada frente
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas
   printWidth        Float?

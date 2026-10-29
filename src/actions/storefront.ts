@@ -104,6 +104,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
       prisma.product.findMany({
         where: { showOnVirtualRack: true, isActive: true },
         include: {
+          template: true,
           variants: true,
         },
         orderBy: { createdAt: "desc" },
@@ -111,6 +112,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
       prisma.catalogItem.findMany({
         where: { showOnVirtualRack: true, isActive: true },
         include: {
+          template: true,
           variants: true,
         },
         orderBy: { createdAt: "desc" },
@@ -144,6 +146,15 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
               },
             ];
 
+      const resolvedBaseFront =
+        p.baseShirtUrl?.trim() ||
+        p.template?.baseImageFront?.trim() ||
+        "/mockups/blank-front.svg";
+      const resolvedBaseBack =
+        p.baseShirtBackUrl?.trim() ||
+        p.template?.baseImageBack?.trim() ||
+        "/mockups/blank-back.svg";
+
       result.push({
         id: p.id,
         name: p.name,
@@ -151,8 +162,8 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         category: p.category || "Oversized",
         collection: p.collection || "Drop Especial",
         description: p.description,
-        baseImage: p.baseShirtUrl?.trim() || "/mockups/blank-front.svg",
-        baseBackImage: p.baseShirtBackUrl?.trim() || "/mockups/blank-back.svg",
+        baseImage: resolvedBaseFront,
+        baseBackImage: resolvedBaseBack,
         printImage: p.printImageUrl?.trim() || p.imageUrl || null,
         printBackImage: p.printBackImageUrl?.trim() || p.backImageUrl || null,
         printWidth: Number(p.printWidth) || 45.0,
@@ -187,6 +198,15 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
               },
             ];
 
+      const resolvedBaseFront =
+        c.baseShirtUrl?.trim() ||
+        c.template?.baseImageFront?.trim() ||
+        "/mockups/blank-front.svg";
+      const resolvedBaseBack =
+        c.baseShirtBackUrl?.trim() ||
+        c.template?.baseImageBack?.trim() ||
+        "/mockups/blank-back.svg";
+
       result.push({
         id: c.id,
         name: c.title,
@@ -194,8 +214,8 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         category: c.category || "Oversized",
         collection: "Vitrine",
         description: c.description,
-        baseImage: c.baseShirtUrl?.trim() || "/mockups/blank-front.svg",
-        baseBackImage: c.baseShirtBackUrl?.trim() || "/mockups/blank-back.svg",
+        baseImage: resolvedBaseFront,
+        baseBackImage: resolvedBaseBack,
         printImage: c.printImageUrl?.trim() || c.imageUrl || null,
         printBackImage: c.printBackImageUrl?.trim() || c.backImageUrl || null,
         printWidth: Number(c.printWidth) || 45.0,
@@ -225,6 +245,7 @@ export async function getCatalogItems(includeInactive = false) {
     const items = await prisma.catalogItem.findMany({
       where: includeInactive ? undefined : { isActive: true },
       include: {
+        template: true,
         variants: {
           orderBy: { createdAt: "asc" },
         },
@@ -249,6 +270,7 @@ export async function createCatalogItem(data: {
   backImageUrl?: string;
   category?: string;
   showOnVirtualRack?: boolean;
+  templateId?: string;
   baseShirtUrl?: string;
   baseShirtBackUrl?: string;
   printImageUrl?: string;
@@ -283,6 +305,7 @@ export async function createCatalogItem(data: {
         backImageUrl: data.backImageUrl?.trim() || null,
         category: cleanCategory,
         showOnVirtualRack: Boolean(data.showOnVirtualRack),
+        templateId: data.templateId?.trim() || null,
         baseShirtUrl: data.baseShirtUrl?.trim() || null,
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
@@ -304,6 +327,7 @@ export async function createCatalogItem(data: {
         },
       },
       include: {
+        template: true,
         variants: true,
       },
     });
@@ -333,6 +357,7 @@ export async function updateCatalogItem(
     backImageUrl?: string;
     category?: string;
     showOnVirtualRack?: boolean;
+    templateId?: string;
     baseShirtUrl?: string;
     baseShirtBackUrl?: string;
     printImageUrl?: string;
@@ -392,6 +417,8 @@ export async function updateCatalogItem(
           category: cleanCategory,
           showOnVirtualRack:
             data.showOnVirtualRack !== undefined ? Boolean(data.showOnVirtualRack) : undefined,
+          templateId:
+            data.templateId !== undefined ? (data.templateId.trim() || null) : undefined,
           baseShirtUrl:
             data.baseShirtUrl !== undefined ? (data.baseShirtUrl.trim() || null) : undefined,
           baseShirtBackUrl:
@@ -409,6 +436,7 @@ export async function updateCatalogItem(
           isActive: data.isActive !== undefined ? data.isActive : undefined,
         },
         include: {
+          template: true,
           variants: true,
         },
       });

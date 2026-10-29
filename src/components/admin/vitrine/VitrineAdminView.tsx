@@ -29,6 +29,12 @@ import {
   deleteCatalogItem,
   uploadStorefrontFile,
 } from "@/actions/storefront";
+import {
+  getProductTemplates,
+  createProductTemplate,
+  updateProductTemplate,
+  deleteProductTemplate,
+} from "@/actions/templates";
 import { uploadFileViaApi } from "@/lib/api-upload";
 import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constants";
 import { formatCurrency } from "@/lib/utils";
@@ -65,6 +71,8 @@ interface CatalogItem {
   backImageUrl?: string | null;
   category: string;
   showOnVirtualRack?: boolean;
+  templateId?: string | null;
+  template?: any | null;
   baseShirtUrl?: string | null;
   baseShirtBackUrl?: string | null;
   printImageUrl?: string | null;
@@ -96,6 +104,7 @@ interface VitrineAdminViewProps {
   initialItems: CatalogItem[];
   initialLeads: LeadQuote[];
   initialBanners?: BannerItem[];
+  initialTemplates?: any[];
 }
 
 interface PrintPositioningBlockProps {
@@ -128,6 +137,9 @@ interface PrintPositioningBlockProps {
     file: File,
     target: "PRINT_FRONT" | "PRINT_BACK" | "BASE_FRONT" | "BASE_BACK"
   ) => Promise<void>;
+  templates?: any[];
+  selectedTemplateId?: string;
+  onSelectTemplate?: (id: string) => void;
 }
 
 function PrintPositioningBlock({
@@ -157,6 +169,9 @@ function PrintPositioningBlock({
   setPrintLeftBack,
   isUploading,
   onUploadLayer,
+  templates = [],
+  selectedTemplateId,
+  onSelectTemplate,
 }: PrintPositioningBlockProps) {
   const frontPrintInputRef = useRef<HTMLInputElement>(null);
   const backPrintInputRef = useRef<HTMLInputElement>(null);
@@ -476,71 +491,91 @@ function PrintPositioningBlock({
             </div>
           </div>
 
-          {/* SEÇÕES DE UPLOAD SEPARADOS PARA AS 4 CAMADAS */}
+          {/* SELEÇÃO DO MOLDE & UPLOAD DAS ESTAMPAS */}
           <div className="pt-3 border-t border-zinc-800 space-y-3">
-            {/* 1. Base da Camiseta (Frente e Costas) */}
-            <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-2">
+            {/* 1. Molde / Modelagem Padrão (Select de Mockup Base) */}
+            <div className="p-3.5 rounded-xl bg-zinc-950/90 border border-amber-500/40 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
-                  <Shirt size={12} className="text-amber-400" />
-                  <span>Base da Camiseta (Mockup Cinza com Textura & Sombra)</span>
+                  <Shirt size={13} className="text-amber-400" />
+                  <span>Molde / Modelagem Padrão (Mockup Base Cinza)</span>
                 </span>
-                <span className="text-[9px] text-zinc-500 font-mono">PNG / SVG / WEBP</span>
+                <span className="text-[9px] text-amber-400 font-mono">Bases Reutilizáveis</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* Base Frente */}
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
-                    Base Camiseta (Frente)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={baseShirtUrl}
-                      onChange={(e) => setBaseShirtUrl(e.target.value)}
-                      placeholder="/mockups/blank-front.svg"
-                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploading}
-                      onClick={() => frontBaseInputRef.current?.click()}
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                      title="Upload Base Frente"
-                    >
-                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                      <span>Upload</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Base Costas */}
-                <div>
-                  <label className="block text-[10px] font-semibold text-zinc-300 mb-1">
-                    Base Camiseta (Costas)
-                  </label>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={baseShirtBackUrl}
-                      onChange={(e) => setBaseShirtBackUrl(e.target.value)}
-                      placeholder="/mockups/blank-back.svg"
-                      className="w-full px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-200 focus:outline-none focus:border-amber-500 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploading}
-                      onClick={() => backBaseInputRef.current?.click()}
-                      className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-semibold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                      title="Upload Base Costas"
-                    >
-                      {isUploading ? <Loader2 size={11} className="animate-spin" /> : <Upload size={11} />}
-                      <span>Upload</span>
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <select
+                  value={selectedTemplateId || ""}
+                  onChange={(e) => onSelectTemplate?.(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-semibold text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="">Selecione um molde de modelagem...</option>
+                  {(templates || []).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.category || "Camisetas"})
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[10px] text-zinc-400 block mt-1">
+                  As bases cinzas da frente e das costas são vinculadas automaticamente do molde cadastrado.
+                </span>
               </div>
+
+              {/* Detalhes expansíveis para personalização manual de mockup desta peça */}
+              <details className="text-[10px] text-zinc-400 pt-1">
+                <summary className="cursor-pointer hover:text-zinc-200 font-medium transition select-none">
+                  ⚙️ Personalizar bases manualmente para este produto (opcional)
+                </summary>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2 pt-2 border-t border-zinc-800">
+                  <div>
+                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
+                      Base Frente Customizada
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={baseShirtUrl}
+                        onChange={(e) => setBaseShirtUrl(e.target.value)}
+                        placeholder="/mockups/blank-front.svg"
+                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => frontBaseInputRef.current?.click()}
+                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+                        title="Upload Base Frente"
+                      >
+                        <Upload size={10} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
+                      Base Costas Customizada
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={baseShirtBackUrl}
+                        onChange={(e) => setBaseShirtBackUrl(e.target.value)}
+                        placeholder="/mockups/blank-back.svg"
+                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => backBaseInputRef.current?.click()}
+                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+                        title="Upload Base Costas"
+                      >
+                        <Upload size={10} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </details>
             </div>
 
             {/* 2. Arte / Estampa Isolada (Frente e Costas) */}
@@ -618,9 +653,27 @@ export function VitrineAdminView({
   initialItems,
   initialLeads,
   initialBanners = [],
+  initialTemplates = [],
 }: VitrineAdminViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS" | "BANNERS">("CATALOG");
+  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS" | "BANNERS" | "TEMPLATES">("CATALOG");
+  const [templatesList, setTemplatesList] = useState<any[]>(initialTemplates);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [editSelectedTemplateId, setEditSelectedTemplateId] = useState<string>("");
+
+  // Estados do Modal de Cadastro/Edição de Moldes (Templates)
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
+  const [tplName, setTplName] = useState("");
+  const [tplCategory, setTplCategory] = useState("Camisetas");
+  const [tplBaseFront, setTplBaseFront] = useState("/mockups/blank-front.svg");
+  const [tplBaseBack, setTplBaseBack] = useState("/mockups/blank-back.svg");
+  const [tplBaseSide, setTplBaseSide] = useState("");
+  const [tplDesc, setTplDesc] = useState("");
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [isUploadingTemplateBase, setIsUploadingTemplateBase] = useState(false);
+  const tplFrontInputRef = useRef<HTMLInputElement>(null);
+  const tplBackInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de Criação
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -813,6 +866,119 @@ export function VitrineAdminView({
     }
   };
 
+  // Ações de Gestão de Moldes / Modelagens
+  const handleOpenTemplateModal = (template?: any) => {
+    if (template) {
+      setEditingTemplate(template);
+      setTplName(template.name);
+      setTplCategory(template.category || "Camisetas");
+      setTplBaseFront(template.baseImageFront || "/mockups/blank-front.svg");
+      setTplBaseBack(template.baseImageBack || "/mockups/blank-back.svg");
+      setTplBaseSide(template.baseImageSide || "");
+      setTplDesc(template.description || "");
+    } else {
+      setEditingTemplate(null);
+      setTplName("");
+      setTplCategory("Camisetas");
+      setTplBaseFront("/mockups/blank-front.svg");
+      setTplBaseBack("/mockups/blank-back.svg");
+      setTplBaseSide("");
+      setTplDesc("");
+    }
+    setIsTemplateModalOpen(true);
+  };
+
+  const handleUploadTemplateBase = async (file: File, side: "FRONT" | "BACK") => {
+    try {
+      setIsUploadingTemplateBase(true);
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "templates");
+      const res = await uploadFileViaApi(fd);
+      if (res.success && res.url) {
+        if (side === "FRONT") setTplBaseFront(res.url);
+        else setTplBaseBack(res.url);
+        toast.success(`Mockup ${side === "FRONT" ? "Frente" : "Costas"} carregado!`);
+      } else {
+        toast.error("Erro no upload do mockup: " + (res.error || "Desconhecido"));
+      }
+    } catch (e: any) {
+      toast.error("Erro no upload: " + e.message);
+    } finally {
+      setIsUploadingTemplateBase(false);
+    }
+  };
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tplName.trim()) {
+      toast.error("Informe o nome da modelagem/molde.");
+      return;
+    }
+    try {
+      setIsSavingTemplate(true);
+      if (editingTemplate) {
+        const res = await updateProductTemplate(editingTemplate.id, {
+          name: tplName,
+          category: tplCategory,
+          baseImageFront: tplBaseFront,
+          baseImageBack: tplBaseBack,
+          baseImageSide: tplBaseSide || undefined,
+          description: tplDesc || undefined,
+        });
+        if (res.success && res.template) {
+          toast.success(`Molde "${tplName}" atualizado com sucesso!`);
+          setTemplatesList((prev) =>
+            prev.map((t) => (t.id === editingTemplate.id ? { ...t, ...res.template } : t))
+          );
+          setIsTemplateModalOpen(false);
+          router.refresh();
+        } else {
+          toast.error(res.error || "Erro ao atualizar molde");
+        }
+      } else {
+        const res = await createProductTemplate({
+          name: tplName,
+          category: tplCategory,
+          baseImageFront: tplBaseFront,
+          baseImageBack: tplBaseBack,
+          baseImageSide: tplBaseSide || undefined,
+          description: tplDesc || undefined,
+        });
+        if (res.success && res.template) {
+          toast.success(`Molde "${tplName}" cadastrado com sucesso!`);
+          setTemplatesList((prev) => [res.template, ...prev]);
+          setIsTemplateModalOpen(false);
+          router.refresh();
+        } else {
+          toast.error(res.error || "Erro ao cadastrar molde");
+        }
+      }
+    } catch (e: any) {
+      toast.error("Erro: " + e.message);
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (id: string, name: string) => {
+    if (!confirm(`Deseja realmente excluir o molde "${name}"? Os produtos vinculados manterão suas imagens atuais.`)) {
+      return;
+    }
+    try {
+      const res = await deleteProductTemplate(id);
+      if (res.success) {
+        toast.success(`Molde "${name}" removido.`);
+        setTemplatesList((prev) => prev.filter((t) => t.id !== id));
+        router.refresh();
+      } else {
+        toast.error(res.error || "Erro ao remover molde");
+      }
+    } catch (e: any) {
+      toast.error("Erro ao excluir: " + e.message);
+    }
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !imageUrl || price === "") {
@@ -830,6 +996,7 @@ export function VitrineAdminView({
           imageUrl,
           backImageUrl: backImageUrl.trim() || undefined,
           showOnVirtualRack,
+          templateId: selectedTemplateId || undefined,
           baseShirtUrl: baseShirtUrl.trim() || undefined,
           baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
           printImageUrl: printImageUrl.trim() || undefined,
@@ -856,6 +1023,7 @@ export function VitrineAdminView({
         setImageUrl("");
         setBackImageUrl("");
         setShowOnVirtualRack(false);
+        setSelectedTemplateId("");
         setBaseShirtUrl("/mockups/blank-front.svg");
         setBaseShirtBackUrl("/mockups/blank-back.svg");
         setPrintImageUrl("");
@@ -883,8 +1051,13 @@ export function VitrineAdminView({
     setEditImageUrl(item.imageUrl);
     setEditBackImageUrl(item.backImageUrl || "");
     setEditShowOnVirtualRack(Boolean(item.showOnVirtualRack));
-    setEditBaseShirtUrl(item.baseShirtUrl || "/mockups/blank-front.svg");
-    setEditBaseShirtBackUrl(item.baseShirtBackUrl || "/mockups/blank-back.svg");
+    setEditSelectedTemplateId(item.templateId || "");
+    setEditBaseShirtUrl(
+      item.baseShirtUrl || item.template?.baseImageFront || "/mockups/blank-front.svg"
+    );
+    setEditBaseShirtBackUrl(
+      item.baseShirtBackUrl || item.template?.baseImageBack || "/mockups/blank-back.svg"
+    );
     setEditPrintImageUrl(item.printImageUrl || "");
     setEditPrintBackImageUrl(item.printBackImageUrl || "");
     setEditPrintWidth(item.printWidth ?? 45);
@@ -920,6 +1093,7 @@ export function VitrineAdminView({
           imageUrl: finalImageUrl,
           backImageUrl: editBackImageUrl?.trim() || undefined,
           showOnVirtualRack: editShowOnVirtualRack,
+          templateId: editSelectedTemplateId || undefined,
           baseShirtUrl: editBaseShirtUrl.trim() || undefined,
           baseShirtBackUrl: editBaseShirtBackUrl.trim() || undefined,
           printImageUrl: editPrintImageUrl.trim() || undefined,
@@ -1069,6 +1243,18 @@ export function VitrineAdminView({
         >
           <ImageIcon size={14} />
           <span>Banners da Home ({initialBanners.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("TEMPLATES")}
+          className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
+            activeTab === "TEMPLATES"
+              ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
+              : "text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          <Shirt size={14} />
+          <span>Moldes / Modelagens ({templatesList.length})</span>
         </button>
       </div>
 
@@ -1308,6 +1494,331 @@ export function VitrineAdminView({
       {/* Content: Banners da Home */}
       {activeTab === "BANNERS" && (
         <BannerManagerSection initialBanners={initialBanners} />
+      )}
+
+      {/* Content: Moldes e Modelagens */}
+      {activeTab === "TEMPLATES" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <Shirt size={18} className="text-amber-400" />
+                <h3 className="text-sm font-bold text-zinc-100">
+                  Moldes & Modelagens Padrão (Mockups Base)
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  Arquitetura Arara 3D
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
+                Cadastre as bases cinzas neutras com texturas e sombras (frente e costas) de cada modelagem (ex: Oversized Streetwear, Regular Heavyweight, Moletom). Ao cadastrar novas peças, basta escolher a modelagem e subir apenas o PNG da estampa transparente.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleOpenTemplateModal()}
+              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-2 transition shadow cursor-pointer shrink-0"
+            >
+              <Plus size={15} />
+              <span>+ Novo Molde</span>
+            </button>
+          </div>
+
+          {templatesList.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 flex flex-col items-center justify-center gap-3">
+              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+                <Shirt size={28} />
+              </div>
+              <h3 className="text-sm font-semibold text-zinc-200">
+                Nenhum molde cadastrado ainda
+              </h3>
+              <p className="text-xs text-zinc-500 max-w-sm">
+                Cadastre uma modelagem padrão para reutilizar os mockups neutros cinzas da frente e costas sem precisar subir as fotos repetidamente.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleOpenTemplateModal()}
+                className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer"
+              >
+                Cadastrar Primeiro Molde
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {templatesList.map((tpl) => {
+                const totalLinked =
+                  (tpl._count?.products || 0) + (tpl._count?.catalogItems || 0);
+
+                return (
+                  <div
+                    key={tpl.id}
+                    className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex flex-col justify-between gap-4 hover:border-zinc-700 transition"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div>
+                          <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
+                            <Shirt size={14} className="text-amber-400" />
+                            <span>{tpl.name}</span>
+                          </h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 inline-block mt-1">
+                            {tpl.category}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono font-semibold text-zinc-400 px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 shrink-0">
+                          {totalLinked} {totalLinked === 1 ? "peça" : "peças"}
+                        </span>
+                      </div>
+
+                      {tpl.description && (
+                        <p className="text-xs text-zinc-400 mb-3 line-clamp-2">
+                          {tpl.description}
+                        </p>
+                      )}
+
+                      {/* Mockups Frente e Costas */}
+                      <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
+                            Frente
+                          </span>
+                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
+                            <img
+                              src={tpl.baseImageFront}
+                              alt={`${tpl.name} Frente`}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
+                            Costas
+                          </span>
+                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
+                            <img
+                              src={tpl.baseImageBack}
+                              alt={`${tpl.name} Costas`}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800/80">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenTemplateModal(tpl)}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Edit2 size={12} />
+                        <span>Editar</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTemplate(tpl.id, tpl.name)}
+                        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition cursor-pointer"
+                        title="Excluir Molde"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Cadastrar ou Editar Molde */}
+      {isTemplateModalOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => !isSavingTemplate && setIsTemplateModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Hidden file inputs para os mockups do molde */}
+            <input
+              type="file"
+              ref={tplFrontInputRef}
+              accept="image/png,image/webp,image/svg+xml,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUploadTemplateBase(f, "FRONT");
+                if (e.target) e.target.value = "";
+              }}
+            />
+            <input
+              type="file"
+              ref={tplBackInputRef}
+              accept="image/png,image/webp,image/svg+xml,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUploadTemplateBase(f, "BACK");
+                if (e.target) e.target.value = "";
+              }}
+            />
+
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Shirt size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-zinc-100">
+                  {editingTemplate ? "Editar Molde / Modelagem" : "Cadastrar Novo Molde"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTemplate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Nome da Modelagem / Molde *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={tplName}
+                  onChange={(e) => setTplName(e.target.value)}
+                  placeholder="Ex: Oversized Streetwear Boxy, Regular Heavyweight, Moletom"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Categoria da Modelagem
+                </label>
+                <select
+                  value={tplCategory}
+                  onChange={(e) => setTplCategory(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                >
+                  <option value="Camisetas">Camisetas</option>
+                  <option value="Oversized">Oversized</option>
+                  <option value="Adulto">Adulto / Regular</option>
+                  <option value="Regatas">Regatas</option>
+                  <option value="Feminina">Feminina</option>
+                  <option value="Infantil">Infantil</option>
+                  <option value="Moletom">Moletom</option>
+                </select>
+              </div>
+
+              {/* Uploads das bases cinzas Frente e Costas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Frente */}
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                  <span className="text-[11px] font-bold text-zinc-200 block">
+                    Mockup Base Cinza (Frente) *
+                  </span>
+                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={tplBaseFront}
+                      alt="Base Frente"
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={tplBaseFront}
+                      onChange={(e) => setTplBaseFront(e.target.value)}
+                      placeholder="/mockups/blank-front.svg"
+                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingTemplateBase}
+                      onClick={() => tplFrontInputRef.current?.click()}
+                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                    >
+                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
+                      <span>Subir</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Costas */}
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                  <span className="text-[11px] font-bold text-zinc-200 block">
+                    Mockup Base Cinza (Costas) *
+                  </span>
+                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={tplBaseBack}
+                      alt="Base Costas"
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={tplBaseBack}
+                      onChange={(e) => setTplBaseBack(e.target.value)}
+                      placeholder="/mockups/blank-back.svg"
+                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingTemplateBase}
+                      onClick={() => tplBackInputRef.current?.click()}
+                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                    >
+                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
+                      <span>Subir</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Descrição Técnica da Modelagem (Opcional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={tplDesc}
+                  onChange={(e) => setTplDesc(e.target.value)}
+                  placeholder="Ex: Gola canelada de 3cm, caimento solto boxy, ombros caídos..."
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setIsTemplateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingTemplate || isUploadingTemplateBase}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSavingTemplate && <Loader2 size={12} className="animate-spin" />}
+                  <span>{editingTemplate ? "Salvar Alterações" : "Cadastrar Molde"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Modal: Adicionar Novo Produto */}
@@ -1651,6 +2162,16 @@ export function VitrineAdminView({
                   setPrintLeftBack={setPrintLeftBack}
                   isUploading={isUploadingPrint}
                   onUploadLayer={(file, target) => handleUploadLayerFile(file, target, false)}
+                  templates={templatesList}
+                  selectedTemplateId={selectedTemplateId}
+                  onSelectTemplate={(tplId) => {
+                    setSelectedTemplateId(tplId);
+                    const found = templatesList.find((t) => t.id === tplId);
+                    if (found) {
+                      setBaseShirtUrl(found.baseImageFront);
+                      setBaseShirtBackUrl(found.baseImageBack);
+                    }
+                  }}
                 />
               )}
 
@@ -2003,6 +2524,16 @@ export function VitrineAdminView({
                   setPrintLeftBack={setEditPrintLeftBack}
                   isUploading={isUploadingEditPrint}
                   onUploadLayer={(file, target) => handleUploadLayerFile(file, target, true)}
+                  templates={templatesList}
+                  selectedTemplateId={editSelectedTemplateId}
+                  onSelectTemplate={(tplId) => {
+                    setEditSelectedTemplateId(tplId);
+                    const found = templatesList.find((t) => t.id === tplId);
+                    if (found) {
+                      setEditBaseShirtUrl(found.baseImageFront);
+                      setEditBaseShirtBackUrl(found.baseImageBack);
+                    }
+                  }}
                 />
               )}
 

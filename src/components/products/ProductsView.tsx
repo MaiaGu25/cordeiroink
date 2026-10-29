@@ -7,9 +7,10 @@ import { PricingCalculator } from "../pricing/PricingCalculator";
 
 interface ProductsViewProps {
   products: any[];
+  templates?: any[];
 }
 
-export function ProductsView({ products }: ProductsViewProps) {
+export function ProductsView({ products, templates = [] }: ProductsViewProps) {
   const [activeTab, setActiveTab] = useState<"CATALOG" | "CALCULATOR">("CALCULATOR");
 
   return (
@@ -44,7 +45,7 @@ export function ProductsView({ products }: ProductsViewProps) {
       {activeTab === "CALCULATOR" ? (
         <PricingCalculator />
       ) : (
-        <ProductsCatalog products={products} />
+        <ProductsCatalog products={products} templates={templates} />
       )}
     </div>
   );
