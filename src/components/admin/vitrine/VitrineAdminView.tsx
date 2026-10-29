@@ -78,6 +78,7 @@ interface CatalogItem {
   template?: any | null;
   baseShirtUrl?: string | null;
   baseShirtBackUrl?: string | null;
+  baseShirtSideUrl?: string | null;
   printImageUrl?: string | null;
   printBackImageUrl?: string | null;
   printLightFront?: string | null;
@@ -123,6 +124,8 @@ interface PrintPositioningBlockProps {
   setBaseShirtUrl: (s: string) => void;
   baseShirtBackUrl: string;
   setBaseShirtBackUrl: (s: string) => void;
+  baseShirtSideUrl?: string;
+  setBaseShirtSideUrl?: (s: string) => void;
   printImageUrl?: string;
   setPrintImageUrl?: (s: string) => void;
   printBackImageUrl?: string;
@@ -157,6 +160,7 @@ interface PrintPositioningBlockProps {
       | "PRINT_DARK_BACK"
       | "BASE_FRONT"
       | "BASE_BACK"
+      | "BASE_SIDE"
       | "PRINT_FRONT"
       | "PRINT_BACK"
   ) => Promise<void>;
@@ -174,6 +178,8 @@ function PrintPositioningBlock({
   setBaseShirtUrl,
   baseShirtBackUrl,
   setBaseShirtBackUrl,
+  baseShirtSideUrl,
+  setBaseShirtSideUrl,
   printImageUrl,
   setPrintImageUrl,
   printBackImageUrl,
@@ -208,6 +214,7 @@ function PrintPositioningBlock({
 
   const frontBaseInputRef = useRef<HTMLInputElement>(null);
   const backBaseInputRef = useRef<HTMLInputElement>(null);
+  const sideBaseInputRef = useRef<HTMLInputElement>(null);
   const frontPrintLightInputRef = useRef<HTMLInputElement>(null);
   const frontPrintDarkInputRef = useRef<HTMLInputElement>(null);
   const backPrintLightInputRef = useRef<HTMLInputElement>(null);
@@ -277,6 +284,17 @@ function PrintPositioningBlock({
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onUploadLayer(f, "BASE_BACK");
+          if (e.target) e.target.value = "";
+        }}
+      />
+      <input
+        type="file"
+        ref={sideBaseInputRef}
+        accept="image/png,image/webp,image/svg+xml,image/jpeg"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUploadLayer(f, "BASE_SIDE");
           if (e.target) e.target.value = "";
         }}
       />
@@ -630,7 +648,7 @@ function PrintPositioningBlock({
                 <summary className="cursor-pointer hover:text-zinc-200 font-medium transition select-none">
                   ⚙️ Personalizar bases manualmente para este produto (opcional)
                 </summary>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2 pt-2 border-t border-zinc-800">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2 pt-2 border-t border-zinc-800">
                   <div>
                     <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
                       Base Frente Customizada
@@ -673,6 +691,30 @@ function PrintPositioningBlock({
                         onClick={() => backBaseInputRef.current?.click()}
                         className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
                         title="Upload Base Costas"
+                      >
+                        <Upload size={10} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
+                      Base Lateral (Arara Pendurada)
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={baseShirtSideUrl || ""}
+                        onChange={(e) => setBaseShirtSideUrl?.(e.target.value)}
+                        placeholder="/mockups/blank-side.svg"
+                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploading}
+                        onClick={() => sideBaseInputRef.current?.click()}
+                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+                        title="Upload Base Lateral"
                       >
                         <Upload size={10} />
                       </button>
@@ -856,6 +898,7 @@ export function VitrineAdminView({
   const [isUploadingTemplateBase, setIsUploadingTemplateBase] = useState(false);
   const tplFrontInputRef = useRef<HTMLInputElement>(null);
   const tplBackInputRef = useRef<HTMLInputElement>(null);
+  const tplSideInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de Criação
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -876,6 +919,7 @@ export function VitrineAdminView({
   // Estados de Criação de Estampa & Mockup
   const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
   const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [baseShirtSideUrl, setBaseShirtSideUrl] = useState("/mockups/blank-side.svg");
   const [printImageUrl, setPrintImageUrl] = useState("");
   const [printBackImageUrl, setPrintBackImageUrl] = useState("");
   const [printLightFront, setPrintLightFront] = useState("");
@@ -907,6 +951,7 @@ export function VitrineAdminView({
   // Estados de Edição de Estampa & Mockup
   const [editBaseShirtUrl, setEditBaseShirtUrl] = useState("/mockups/blank-front.svg");
   const [editBaseShirtBackUrl, setEditBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [editBaseShirtSideUrl, setEditBaseShirtSideUrl] = useState("/mockups/blank-side.svg");
   const [editPrintImageUrl, setEditPrintImageUrl] = useState("");
   const [editPrintBackImageUrl, setEditPrintBackImageUrl] = useState("");
   const [editPrintLightFront, setEditPrintLightFront] = useState("");
@@ -933,6 +978,7 @@ export function VitrineAdminView({
       | "PRINT_DARK_BACK"
       | "BASE_FRONT"
       | "BASE_BACK"
+      | "BASE_SIDE"
       | "PRINT_FRONT"
       | "PRINT_BACK",
     isEdit = false
@@ -969,6 +1015,8 @@ export function VitrineAdminView({
           setEditBaseShirtUrl(res.url);
         } else if (target === "BASE_BACK") {
           setEditBaseShirtBackUrl(res.url);
+        } else if (target === "BASE_SIDE") {
+          setEditBaseShirtSideUrl(res.url);
         }
       } else {
         if (target === "PRINT_LIGHT_FRONT") {
@@ -991,6 +1039,8 @@ export function VitrineAdminView({
           setBaseShirtUrl(res.url);
         } else if (target === "BASE_BACK") {
           setBaseShirtBackUrl(res.url);
+        } else if (target === "BASE_SIDE") {
+          setBaseShirtSideUrl(res.url);
         }
       }
 
@@ -999,6 +1049,8 @@ export function VitrineAdminView({
           ? "Mockup Base Frente enviado!"
           : target === "BASE_BACK"
           ? "Mockup Base Costas enviado!"
+          : target === "BASE_SIDE"
+          ? "Mockup Base Lateral enviado!"
           : target === "PRINT_LIGHT_FRONT"
           ? "Estampa Clara (Frente) enviada!"
           : target === "PRINT_DARK_FRONT"
@@ -1113,7 +1165,7 @@ export function VitrineAdminView({
       setTplCategory(template.category || "Camisetas");
       setTplBaseFront(template.baseImageFront || "/mockups/blank-front.svg");
       setTplBaseBack(template.baseImageBack || "/mockups/blank-back.svg");
-      setTplBaseSide(template.baseImageSide || "");
+      setTplBaseSide(template.baseImageSide || "/mockups/blank-side.svg");
       setTplDesc(template.description || "");
     } else {
       setEditingTemplate(null);
@@ -1121,13 +1173,13 @@ export function VitrineAdminView({
       setTplCategory("Camisetas");
       setTplBaseFront("/mockups/blank-front.svg");
       setTplBaseBack("/mockups/blank-back.svg");
-      setTplBaseSide("");
+      setTplBaseSide("/mockups/blank-side.svg");
       setTplDesc("");
     }
     setIsTemplateModalOpen(true);
   };
 
-  const handleUploadTemplateBase = async (file: File, side: "FRONT" | "BACK") => {
+  const handleUploadTemplateBase = async (file: File, side: "FRONT" | "BACK" | "SIDE") => {
     try {
       setIsUploadingTemplateBase(true);
       const fd = new FormData();
@@ -1136,8 +1188,9 @@ export function VitrineAdminView({
       const res = await uploadFileViaApi(fd);
       if (res.success && res.url) {
         if (side === "FRONT") setTplBaseFront(res.url);
-        else setTplBaseBack(res.url);
-        toast.success(`Mockup ${side === "FRONT" ? "Frente" : "Costas"} carregado!`);
+        else if (side === "BACK") setTplBaseBack(res.url);
+        else setTplBaseSide(res.url);
+        toast.success(`Mockup ${side === "FRONT" ? "Frente" : side === "BACK" ? "Costas" : "Lateral"} carregado!`);
       } else {
         toast.error("Erro no upload do mockup: " + (res.error || "Desconhecido"));
       }
@@ -1238,6 +1291,7 @@ export function VitrineAdminView({
           templateId: selectedTemplateId || undefined,
           baseShirtUrl: baseShirtUrl.trim() || undefined,
           baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
+          baseShirtSideUrl: baseShirtSideUrl.trim() || undefined,
           printImageUrl: printLightFront.trim() || printImageUrl.trim() || undefined,
           printBackImageUrl: printLightBack.trim() || printBackImageUrl.trim() || undefined,
           printLightFront: printLightFront.trim() || undefined,
@@ -1269,6 +1323,7 @@ export function VitrineAdminView({
         setSelectedTemplateId("");
         setBaseShirtUrl("/mockups/blank-front.svg");
         setBaseShirtBackUrl("/mockups/blank-back.svg");
+        setBaseShirtSideUrl("/mockups/blank-side.svg");
         setPrintImageUrl("");
         setPrintBackImageUrl("");
         setPrintLightFront("");
@@ -1304,6 +1359,9 @@ export function VitrineAdminView({
     );
     setEditBaseShirtBackUrl(
       item.baseShirtBackUrl || item.template?.baseImageBack || "/mockups/blank-back.svg"
+    );
+    setEditBaseShirtSideUrl(
+      item.baseShirtSideUrl || item.template?.baseImageSide || "/mockups/blank-side.svg"
     );
     setEditPrintImageUrl(item.printImageUrl || "");
     setEditPrintBackImageUrl(item.printBackImageUrl || "");
@@ -1348,6 +1406,7 @@ export function VitrineAdminView({
           templateId: editSelectedTemplateId || undefined,
           baseShirtUrl: editBaseShirtUrl.trim() || undefined,
           baseShirtBackUrl: editBaseShirtBackUrl.trim() || undefined,
+          baseShirtSideUrl: editBaseShirtSideUrl.trim() || undefined,
           printImageUrl: editPrintLightFront.trim() || editPrintImageUrl.trim() || undefined,
           printBackImageUrl: editPrintLightBack.trim() || editPrintBackImageUrl.trim() || undefined,
           printLightFront: editPrintLightFront.trim() || undefined,
@@ -1833,8 +1892,8 @@ export function VitrineAdminView({
                         </p>
                       )}
 
-                      {/* Mockups Frente e Costas */}
-                      <div className="grid grid-cols-2 gap-2 p-2 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
+                      {/* Mockups Frente, Costas e Lateral */}
+                      <div className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
                         <div className="flex flex-col items-center">
                           <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
                             Frente
@@ -1856,6 +1915,19 @@ export function VitrineAdminView({
                             <img
                               src={tpl.baseImageBack}
                               alt={`${tpl.name} Costas`}
+                              className="w-full h-full object-contain p-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
+                            Lateral
+                          </span>
+                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
+                            <img
+                              src={tpl.baseImageSide || "/mockups/blank-side.svg"}
+                              alt={`${tpl.name} Lateral`}
                               className="w-full h-full object-contain p-1"
                             />
                           </div>
@@ -1922,6 +1994,17 @@ export function VitrineAdminView({
                 if (e.target) e.target.value = "";
               }}
             />
+            <input
+              type="file"
+              ref={tplSideInputRef}
+              accept="image/png,image/webp,image/svg+xml,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUploadTemplateBase(f, "SIDE");
+                if (e.target) e.target.value = "";
+              }}
+            />
 
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
@@ -1975,12 +2058,12 @@ export function VitrineAdminView({
                 </select>
               </div>
 
-              {/* Uploads das bases cinzas Frente e Costas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Uploads das bases cinzas Frente, Costas e Lateral */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 {/* Frente */}
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
                   <span className="text-[11px] font-bold text-zinc-200 block">
-                    Mockup Base Cinza (Frente) *
+                    Base Cinza (Frente) *
                   </span>
                   <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
                     <img
@@ -2012,7 +2095,7 @@ export function VitrineAdminView({
                 {/* Costas */}
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
                   <span className="text-[11px] font-bold text-zinc-200 block">
-                    Mockup Base Cinza (Costas) *
+                    Base Cinza (Costas) *
                   </span>
                   <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
                     <img
@@ -2033,6 +2116,38 @@ export function VitrineAdminView({
                       type="button"
                       disabled={isUploadingTemplateBase}
                       onClick={() => tplBackInputRef.current?.click()}
+                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
+                    >
+                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
+                      <span>Subir</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Lateral (Arara Pendurada) */}
+                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
+                  <span className="text-[11px] font-bold text-zinc-200 block">
+                    Base Cinza (Lateral) *
+                  </span>
+                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={tplBaseSide || "/mockups/blank-side.svg"}
+                      alt="Base Lateral"
+                      className="w-full h-full object-contain p-2"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={tplBaseSide}
+                      onChange={(e) => setTplBaseSide(e.target.value)}
+                      placeholder="/mockups/blank-side.svg"
+                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                    />
+                    <button
+                      type="button"
+                      disabled={isUploadingTemplateBase}
+                      onClick={() => tplSideInputRef.current?.click()}
                       className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
                     >
                       {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
@@ -2420,6 +2535,8 @@ export function VitrineAdminView({
                   setBaseShirtUrl={setBaseShirtUrl}
                   baseShirtBackUrl={baseShirtBackUrl}
                   setBaseShirtBackUrl={setBaseShirtBackUrl}
+                  baseShirtSideUrl={baseShirtSideUrl}
+                  setBaseShirtSideUrl={setBaseShirtSideUrl}
                   printImageUrl={printImageUrl}
                   setPrintImageUrl={setPrintImageUrl}
                   printBackImageUrl={printBackImageUrl}
@@ -2454,6 +2571,7 @@ export function VitrineAdminView({
                     if (found) {
                       setBaseShirtUrl(found.baseImageFront);
                       setBaseShirtBackUrl(found.baseImageBack);
+                      setBaseShirtSideUrl(found.baseImageSide || "/mockups/blank-side.svg");
                     }
                   }}
                 />
@@ -2810,6 +2928,8 @@ export function VitrineAdminView({
                   setBaseShirtUrl={setEditBaseShirtUrl}
                   baseShirtBackUrl={editBaseShirtBackUrl}
                   setBaseShirtBackUrl={setEditBaseShirtBackUrl}
+                  baseShirtSideUrl={editBaseShirtSideUrl}
+                  setBaseShirtSideUrl={setEditBaseShirtSideUrl}
                   printImageUrl={editPrintImageUrl}
                   setPrintImageUrl={setEditPrintImageUrl}
                   printBackImageUrl={editPrintBackImageUrl}
@@ -2844,6 +2964,7 @@ export function VitrineAdminView({
                     if (found) {
                       setEditBaseShirtUrl(found.baseImageFront);
                       setEditBaseShirtBackUrl(found.baseImageBack);
+                      setEditBaseShirtSideUrl(found.baseImageSide || "/mockups/blank-side.svg");
                     }
                   }}
                 />

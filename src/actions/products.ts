@@ -41,6 +41,7 @@ export async function createProduct(data: {
   templateId?: string;
   baseShirtUrl?: string;
   baseShirtBackUrl?: string;
+  baseShirtSideUrl?: string;
   printImageUrl?: string;
   printBackImageUrl?: string;
   printLightFront?: string;
@@ -81,6 +82,7 @@ export async function createProduct(data: {
         templateId: data.templateId?.trim() || null,
         baseShirtUrl: data.baseShirtUrl?.trim() || null,
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
+        baseShirtSideUrl: data.baseShirtSideUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
         printBackImageUrl: data.printBackImageUrl?.trim() || null,
         printLightFront: data.printLightFront?.trim() || null,
@@ -145,6 +147,7 @@ export async function updateProduct(
     templateId?: string;
     baseShirtUrl?: string;
     baseShirtBackUrl?: string;
+    baseShirtSideUrl?: string;
     printImageUrl?: string;
     printBackImageUrl?: string;
     printLightFront?: string;
@@ -220,6 +223,7 @@ export async function updateProduct(
           templateId: data.templateId !== undefined ? (data.templateId?.trim() || null) : undefined,
           baseShirtUrl: data.baseShirtUrl !== undefined ? (data.baseShirtUrl?.trim() || null) : undefined,
           baseShirtBackUrl: data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl?.trim() || null) : undefined,
+          baseShirtSideUrl: data.baseShirtSideUrl !== undefined ? (data.baseShirtSideUrl?.trim() || null) : undefined,
           printImageUrl: data.printImageUrl !== undefined ? (data.printImageUrl?.trim() || null) : undefined,
           printBackImageUrl: data.printBackImageUrl !== undefined ? (data.printBackImageUrl?.trim() || null) : undefined,
           printLightFront: data.printLightFront !== undefined ? (data.printLightFront?.trim() || null) : undefined,

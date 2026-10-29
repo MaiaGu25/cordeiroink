@@ -77,6 +77,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
   // Blend Mode & Print Positioning Fields
   const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
   const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
+  const [baseShirtSideUrl, setBaseShirtSideUrl] = useState("/mockups/blank-side.svg");
   const [printImageUrl, setPrintImageUrl] = useState("");
   const [printBackImageUrl, setPrintBackImageUrl] = useState("");
   const [printLightFront, setPrintLightFront] = useState("");
@@ -102,6 +103,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
   const backPrintDarkInputRef = useRef<HTMLInputElement>(null);
   const frontBaseInputRef = useRef<HTMLInputElement>(null);
   const backBaseInputRef = useRef<HTMLInputElement>(null);
+  const sideBaseInputRef = useRef<HTMLInputElement>(null);
 
   // Upload handler para as camadas e versões de estampa
   const handleUploadLayer = async (
@@ -113,6 +115,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
       | "PRINT_DARK_BACK"
       | "BASE_FRONT"
       | "BASE_BACK"
+      | "BASE_SIDE"
       | "PRINT_FRONT"
       | "PRINT_BACK"
   ) => {
@@ -148,6 +151,8 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
         setBaseShirtUrl(res.url);
       } else if (target === "BASE_BACK") {
         setBaseShirtBackUrl(res.url);
+      } else if (target === "BASE_SIDE") {
+        setBaseShirtSideUrl(res.url);
       }
 
       const msg =
@@ -155,6 +160,8 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
           ? "Mockup Base Frente enviado!"
           : target === "BASE_BACK"
           ? "Mockup Base Costas enviado!"
+          : target === "BASE_SIDE"
+          ? "Mockup Base Lateral enviado!"
           : target === "PRINT_LIGHT_FRONT"
           ? "Estampa Clara (Frente) enviada!"
           : target === "PRINT_DARK_FRONT"
@@ -187,6 +194,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     setSelectedTemplateId("");
     setBaseShirtUrl("/mockups/blank-front.svg");
     setBaseShirtBackUrl("/mockups/blank-back.svg");
+    setBaseShirtSideUrl("/mockups/blank-side.svg");
     setPrintImageUrl("");
     setPrintBackImageUrl("");
     setPrintLightFront("");
@@ -223,6 +231,9 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
     );
     setBaseShirtBackUrl(
       prod.baseShirtBackUrl || prod.template?.baseImageBack || "/mockups/blank-back.svg"
+    );
+    setBaseShirtSideUrl(
+      prod.baseShirtSideUrl || prod.template?.baseImageSide || "/mockups/blank-side.svg"
     );
     setPrintImageUrl(prod.printImageUrl || "");
     setPrintBackImageUrl(prod.printBackImageUrl || "");
@@ -265,6 +276,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
           templateId: selectedTemplateId || undefined,
           baseShirtUrl: baseShirtUrl.trim() || undefined,
           baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
+          baseShirtSideUrl: baseShirtSideUrl.trim() || undefined,
           printImageUrl: printLightFront.trim() || printImageUrl.trim() || undefined,
           printBackImageUrl: printLightBack.trim() || printBackImageUrl.trim() || undefined,
           printLightFront: printLightFront.trim() || undefined,
@@ -994,6 +1006,13 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                     />
                     <input
                       type="file"
+                      ref={sideBaseInputRef}
+                      accept="image/png,image/webp,image/svg+xml,image/jpeg"
+                      className="hidden"
+                      onChange={(e) => handleUploadLayer(e, "BASE_SIDE")}
+                    />
+                    <input
+                      type="file"
                       ref={frontPrintLightInputRef}
                       accept="image/png,image/webp,image/svg+xml"
                       className="hidden"
@@ -1255,6 +1274,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                             if (tpl) {
                               setBaseShirtUrl(tpl.baseImageFront);
                               setBaseShirtBackUrl(tpl.baseImageBack);
+                              setBaseShirtSideUrl(tpl.baseImageSide || "/mockups/blank-side.svg");
                             }
                           }}
                           className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
@@ -1267,7 +1287,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                           ))}
                         </select>
                         <span className="text-[10px] text-zinc-400 block mt-1">
-                          As bases cinzas da frente e das costas são herdadas automaticamente do molde selecionado.
+                          As bases cinzas da frente, costas e lateral são herdadas automaticamente do molde selecionado.
                         </span>
 
                         {/* Detalhes expansíveis para customização manual opcional */}
@@ -1275,7 +1295,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                           <summary className="cursor-pointer hover:text-zinc-200 font-medium transition select-none">
                             ⚙️ Personalizar mockups base manualmente (opcional)
                           </summary>
-                          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-zinc-800">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 pt-2 border-t border-zinc-800">
                             <div>
                               <label className="block text-[9px] text-zinc-400 mb-0.5">
                                 Base Frente
@@ -1292,7 +1312,7 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                                   type="button"
                                   disabled={isUploadingPrint}
                                   onClick={() => frontBaseInputRef.current?.click()}
-                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
                                 >
                                   <Upload size={10} />
                                 </button>
@@ -1315,7 +1335,30 @@ export function ProductsCatalog({ products, templates = [] }: ProductCatalogProp
                                   type="button"
                                   disabled={isUploadingPrint}
                                   onClick={() => backBaseInputRef.current?.click()}
-                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
+                                >
+                                  <Upload size={10} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[9px] text-zinc-400 mb-0.5">
+                                Base Lateral (Arara)
+                              </label>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={baseShirtSideUrl}
+                                  onChange={(e) => setBaseShirtSideUrl(e.target.value)}
+                                  placeholder="/mockups/blank-side.svg"
+                                  className="w-full px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={isUploadingPrint}
+                                  onClick={() => sideBaseInputRef.current?.click()}
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
                                 >
                                   <Upload size={10} />
                                 </button>

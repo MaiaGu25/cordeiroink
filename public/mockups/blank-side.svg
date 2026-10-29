@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 580" fill="none">
+  <defs>
+    <!-- Gradiente Principal do Corpo Lateral Cinza -->
+    <linearGradient id="bodyGradSide" x1="250" y1="35" x2="250" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EDEDED" />
+      <stop offset="30%" stop-color="#E2E2E2" />
+      <stop offset="70%" stop-color="#D4D4D4" />
+      <stop offset="100%" stop-color="#C5C5C5" />
+    </linearGradient>
+
+    <!-- Sombreamento de Volume da Visão Lateral -->
+    <radialGradient id="sideVolume" cx="240" cy="260" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.32" />
+      <stop offset="60%" stop-color="#BDBDBD" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#7A7A7A" stop-opacity="0.5" />
+    </radialGradient>
+
+    <!-- Sombra da Manga Lateral Caída -->
+    <linearGradient id="sleeveDrapeSide" x1="220" y1="110" x2="270" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#9C9C9C" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#6E6E6E" stop-opacity="0.65" />
+    </linearGradient>
+
+    <!-- Sombra de Dobras Verticais (Efeito Guarda-Roupa) -->
+    <linearGradient id="verticalFoldShadow" x1="180" y1="200" x2="320" y2="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.12" />
+      <stop offset="25%" stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="50%" stop-color="#000000" stop-opacity="0.08" />
+      <stop offset="75%" stop-color="#FFFFFF" stop-opacity="0.14" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+
+  <!-- Silhueta Principal da Camiseta Vista de Lado (Pendurada no Cabide) -->
+  <path
+    d="M210 45 
+       C235 40 265 40 290 45 
+       C310 60 325 90 330 130 
+       C335 180 340 320 342 540 
+       C310 546 190 546 158 540 
+       C160 320 165 180 170 130 
+       C175 90 190 60 210 45 
+       Z"
+    fill="url(#bodyGradSide)"
+    stroke="#AFAFAF"
+    stroke-width="1.5"
+  />
+
+  <!-- Sombra de Volume da Silhueta -->
+  <path
+    d="M210 45 
+       C235 40 265 40 290 45 
+       C310 60 325 90 330 130 
+       C335 180 340 320 342 540 
+       C310 546 190 546 158 540 
+       C160 320 165 180 170 130 
+       C175 90 190 60 210 45 
+       Z"
+    fill="url(#sideVolume)"
+  />
+
+  <!-- Dobras e Drapes Verticais do Tecido Pendurado -->
+  <path
+    d="M170 140 
+       C175 250 172 420 168 538 
+       L332 538 
+       C328 420 325 250 330 140 
+       Z"
+    fill="url(#verticalFoldShadow)"
+    opacity="0.85"
+  />
+
+  <!-- Manga Lateral Caindo na Frente/Lado -->
+  <path
+    d="M215 95 
+       C250 90 285 95 295 115 
+       C305 145 310 230 305 310 
+       C275 322 225 322 195 310 
+       C190 230 195 145 205 115 
+       Z"
+    fill="url(#sleeveDrapeSide)"
+    stroke="#B8B8B8"
+    stroke-width="1.2"
+  />
+
+  <!-- Barra da Manga Lateral (Bainha) -->
+  <path
+    d="M195 310 
+       C225 324 275 324 305 310 
+       C302 322 278 334 250 334 
+       C222 334 198 322 195 310 
+       Z"
+    fill="#CCCCCC"
+    stroke="#A5A5A5"
+    stroke-width="1"
+  />
+
+  <!-- Vincos e Dobras de Caimento Realista -->
+  <path d="M250 50 L250 110" stroke="#B0B0B0" stroke-width="1.5" stroke-linecap="round" opacity="0.6" />
+  <path d="M215 130 C220 220 218 380 212 535" stroke="#9E9E9E" stroke-width="1.2" stroke-dasharray="2 1" opacity="0.45" />
+  <path d="M285 130 C280 220 282 380 288 535" stroke="#9E9E9E" stroke-width="1.2" stroke-dasharray="2 1" opacity="0.45" />
+  <path d="M250 335 L250 538" stroke="#8E8E8E" stroke-width="1.5" opacity="0.4" />
+
+  <!-- Barra Inferior da Camiseta -->
+  <path
+    d="M158 540 
+       C200 550 300 550 342 540 
+       L342 545 
+       C300 555 200 555 158 545 
+       Z"
+    fill="#BDBDBD"
+    stroke="#9E9E9E"
+    stroke-width="1"
+  />
+</svg>

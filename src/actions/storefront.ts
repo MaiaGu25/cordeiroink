@@ -156,6 +156,10 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         p.baseShirtBackUrl?.trim() ||
         p.template?.baseImageBack?.trim() ||
         "/mockups/blank-back.svg";
+      const resolvedBaseSide =
+        p.baseShirtSideUrl?.trim() ||
+        p.template?.baseImageSide?.trim() ||
+        "/mockups/blank-side.svg";
 
       result.push({
         id: p.id,
@@ -166,6 +170,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         description: p.description,
         baseImage: resolvedBaseFront,
         baseBackImage: resolvedBaseBack,
+        baseSideImage: resolvedBaseSide,
         printImage: p.printImageUrl?.trim() || p.imageUrl || null,
         printBackImage: p.printBackImageUrl?.trim() || p.backImageUrl || null,
         printLightFront: p.printLightFront?.trim() || null,
@@ -214,6 +219,10 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         c.baseShirtBackUrl?.trim() ||
         c.template?.baseImageBack?.trim() ||
         "/mockups/blank-back.svg";
+      const resolvedBaseSide =
+        c.baseShirtSideUrl?.trim() ||
+        c.template?.baseImageSide?.trim() ||
+        "/mockups/blank-side.svg";
 
       result.push({
         id: c.id,
@@ -224,6 +233,7 @@ export async function getVirtualRackProducts(): Promise<VirtualRackProduct[]> {
         description: c.description,
         baseImage: resolvedBaseFront,
         baseBackImage: resolvedBaseBack,
+        baseSideImage: resolvedBaseSide,
         printImage: c.printImageUrl?.trim() || c.imageUrl || null,
         printBackImage: c.printBackImageUrl?.trim() || c.backImageUrl || null,
         printLightFront: c.printLightFront?.trim() || null,
@@ -285,6 +295,7 @@ export async function createCatalogItem(data: {
   templateId?: string;
   baseShirtUrl?: string;
   baseShirtBackUrl?: string;
+  baseShirtSideUrl?: string;
   printImageUrl?: string;
   printBackImageUrl?: string;
   printLightFront?: string;
@@ -324,6 +335,7 @@ export async function createCatalogItem(data: {
         templateId: data.templateId?.trim() || null,
         baseShirtUrl: data.baseShirtUrl?.trim() || null,
         baseShirtBackUrl: data.baseShirtBackUrl?.trim() || null,
+        baseShirtSideUrl: data.baseShirtSideUrl?.trim() || null,
         printImageUrl: data.printImageUrl?.trim() || null,
         printBackImageUrl: data.printBackImageUrl?.trim() || null,
         printLightFront: data.printLightFront?.trim() || null,
@@ -381,6 +393,7 @@ export async function updateCatalogItem(
     templateId?: string;
     baseShirtUrl?: string;
     baseShirtBackUrl?: string;
+    baseShirtSideUrl?: string;
     printImageUrl?: string;
     printBackImageUrl?: string;
     printLightFront?: string;
@@ -449,6 +462,8 @@ export async function updateCatalogItem(
             data.baseShirtUrl !== undefined ? (data.baseShirtUrl.trim() || null) : undefined,
           baseShirtBackUrl:
             data.baseShirtBackUrl !== undefined ? (data.baseShirtBackUrl.trim() || null) : undefined,
+          baseShirtSideUrl:
+            data.baseShirtSideUrl !== undefined ? (data.baseShirtSideUrl.trim() || null) : undefined,
           printImageUrl:
             data.printImageUrl !== undefined ? (data.printImageUrl.trim() || null) : undefined,
           printBackImageUrl:

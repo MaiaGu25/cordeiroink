@@ -42,6 +42,7 @@ export interface VirtualRackProduct {
   // Camadas de Blend Mode (Mockup cinza base e estampa PNG)
   baseImage: string;
   baseBackImage: string;
+  baseSideImage?: string | null;
   printImage?: string | null;
   printBackImage?: string | null;
 

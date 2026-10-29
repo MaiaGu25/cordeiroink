@@ -98,6 +98,7 @@ model Product {
   // Blend Mode & Posicionamento Dinâmico de Estampas
   baseShirtUrl      String?          // Mockup cinza liso frente (opcional se herdar do template)
   baseShirtBackUrl  String?          // Mockup cinza liso costas (opcional se herdar do template)
+  baseShirtSideUrl  String?          // Mockup cinza liso lateral (opcional se herdar do template)
   printImageUrl     String?          // Arte/Estampa PNG isolada frente (legado/fallback)
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas (legado/fallback)
   printLightFront   String?          // Estampa versão clara (para fundos escuros) frente
@@ -428,6 +429,7 @@ model CatalogItem {
   // Blend Mode & Posicionamento Dinâmico de Estampas
   baseShirtUrl      String?          // Mockup cinza liso frente (opcional se herdar do template)
   baseShirtBackUrl  String?          // Mockup cinza liso costas (opcional se herdar do template)
+  baseShirtSideUrl  String?          // Mockup cinza liso lateral (opcional se herdar do template)
   printImageUrl     String?          // Arte/Estampa PNG isolada frente (legado/fallback)
   printBackImageUrl String?          // Arte/Estampa PNG isolada costas (legado/fallback)
   printLightFront   String?          // Estampa versão clara (para fundos escuros) frente

@@ -459,6 +459,7 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
 
   const currentBase = currentProduct.baseImage || "/mockups/blank-front.svg";
   const currentBaseBack = currentProduct.baseBackImage || "/mockups/blank-back.svg";
+  const currentBaseSide = currentProduct.baseSideImage || "/mockups/blank-side.svg";
 
   // Resolução dinâmica de estampa (Clara vs Escura) baseada no tema da cor ou fundo branco
   const currentPrint = getEffectivePrint(
@@ -617,18 +618,13 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                       }`}
                     >
                       <ShirtLayeredRender
-                        baseImage={prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg"}
-                        printImage={getEffectivePrint(
-                          prod,
-                          "BACK",
-                          prod.colors?.[0]?.printTheme,
-                          prodColor
-                        )}
+                        baseImage={prod.baseSideImage || "/mockups/blank-side.svg"}
+                        printImage={null}
                         colorHex={prodColor}
-                        printTop={prod.printTopBack ?? 25}
-                        printLeft={prod.printLeftBack ?? 50}
-                        printWidth={prod.printWidthBack ?? 50}
-                        alt={prod.name}
+                        printTop={0}
+                        printLeft={0}
+                        printWidth={0}
+                        alt={`${prod.name} - Lateral`}
                       />
                     </div>
 
@@ -679,37 +675,28 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                 if (Math.abs(diff) > 1) return null;
 
                 const isCenter = diff === 0;
-                const prodBaseBack = isCenter
-                  ? currentBaseBack
-                  : prod.baseBackImage || prod.baseImage || "/mockups/blank-back.svg";
+                const prodBaseSide = isCenter
+                  ? currentBaseSide
+                  : prod.baseSideImage || "/mockups/blank-side.svg";
 
                 const prodColor = isCenter
                   ? currentColor.hex
                   : prod.colors?.[0]?.hex || "#18181b";
 
-                const prodPrintBack = isCenter
-                  ? currentPrintBack
-                  : getEffectivePrint(
-                      prod,
-                      "BACK",
-                      prod.colors?.[0]?.printTheme,
-                      prodColor
-                    );
-
-                const pTopBack = isCenter ? printTopBack : (prod.printTopBack ?? 25);
-                const pLeftBack = isCenter ? printLeftBack : (prod.printLeftBack ?? 50);
-                const pWidthBack = isCenter ? printWidthBack : (prod.printWidthBack ?? 50);
-
                 return (
                   <motion.div
                     key={prod.id}
                     onClick={() => {
-                      if (!isCenter) handleSelectProduct(idx);
+                      if (!isCenter) {
+                        setSelectedIndex(idx);
+                        setViewSide("BACK");
+                        setSelectedColorIndex(0);
+                      }
                     }}
                     animate={{
-                      x: diff * (typeof window !== "undefined" && window.innerWidth < 640 ? 210 : 280),
-                      scale: isCenter ? 1 : 0.78,
-                      opacity: isCenter ? 1 : 0.38,
+                      x: diff * (typeof window !== "undefined" && window.innerWidth < 640 ? 170 : 230),
+                      scale: isCenter ? 1 : 0.82,
+                      opacity: isCenter ? 1 : 0.42,
                       zIndex: isCenter ? 30 : 10,
                     }}
                     transition={{
@@ -720,77 +707,36 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
                     }}
                     style={{ willChange: "transform, opacity" }}
                     className={`absolute flex flex-col items-center bg-transparent ${
-                      isCenter ? "cursor-default" : "cursor-pointer pointer-events-auto"
+                      isCenter ? "cursor-pointer" : "cursor-pointer pointer-events-auto"
                     }`}
                   >
-                    {/* CONTAINER DA CAMISETA (Mockup com cabide integrado na imagem base) */}
+                    {/* CONTAINER DA CAMISETA (Visão Lateral na Arara com Cabide Integrado) */}
                     <div className="relative bg-transparent">
                       <div
-                        className="relative w-72 sm:w-80 md:w-96 aspect-[3/4] flex items-center justify-center bg-transparent cursor-pointer group"
-                        style={{ perspective: "1400px" }}
+                        className="relative w-56 sm:w-64 md:w-72 aspect-[3/4] flex items-center justify-center bg-transparent cursor-pointer group"
                         onClick={(e) => {
                           if (isCenter) {
                             e.stopPropagation();
+                            setViewSide("BACK");
                             setIsFocused(true);
                           }
                         }}
                       >
-                        {/* CARTÃO 3D COM GIRO DAS COSTAS E FRENTE */}
-                        <div
-                          className="w-full h-full relative transition-transform duration-700 ease-out bg-transparent group-hover:scale-[1.02]"
-                          style={{
-                            transformStyle: "preserve-3d",
-                            transform:
-                              isCenter && viewSide === "FRONT"
-                                ? "rotateY(180deg)"
-                                : "rotateY(0deg)",
-                          }}
-                        >
-                          {/* Face Traseira (Visão padrão ao carregar) */}
-                          <div
-                            className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
-                            style={{
-                              backfaceVisibility: "hidden",
-                              WebkitBackfaceVisibility: "hidden",
-                            }}
-                          >
-                            <ShirtLayeredRender
-                              baseImage={prodBaseBack}
-                              printImage={prodPrintBack}
-                              colorHex={prodColor}
-                              printTop={pTopBack}
-                              printLeft={pLeftBack}
-                              printWidth={pWidthBack}
-                              alt={`${prod.name} - Costas`}
-                            />
-                          </div>
-
-                          {/* Face Frontal (Aparece ao alternar para FRONT com flip de 180deg) */}
-                          {isCenter && (
-                            <div
-                              className="absolute inset-0 flex items-center justify-center overflow-visible bg-transparent"
-                              style={{
-                                backfaceVisibility: "hidden",
-                                WebkitBackfaceVisibility: "hidden",
-                                transform: "rotateY(180deg)",
-                              }}
-                            >
-                              <ShirtLayeredRender
-                                baseImage={currentBase}
-                                printImage={currentPrint}
-                                colorHex={currentColor.hex}
-                                printTop={printTop}
-                                printLeft={printLeft}
-                                printWidth={printWidth}
-                                alt={`${currentProduct.name} - Frente`}
-                              />
-                            </div>
-                          )}
+                        <div className="w-full h-full relative transition-transform duration-300 ease-out bg-transparent group-hover:scale-[1.03]">
+                          <ShirtLayeredRender
+                            baseImage={prodBaseSide}
+                            printImage={null}
+                            colorHex={prodColor}
+                            printTop={0}
+                            printLeft={0}
+                            printWidth={0}
+                            alt={`${prod.name} - Visão Lateral`}
+                          />
                         </div>
 
                         {/* Indicador sutil de clique para focar */}
                         {isCenter && (
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono text-white flex items-center gap-1.5 shadow-lg pointer-events-none">
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/75 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-mono text-white flex items-center gap-1.5 shadow-lg pointer-events-none">
                             <Maximize2 size={11} />
                             <span>Clique para focar</span>
                           </div>
@@ -818,7 +764,10 @@ export function VirtualRack({ products = [] }: VirtualRackProps) {
             {/* BOTÃO PARA ATIVAR O MODO FOCO IMERSIVO */}
             <button
               type="button"
-              onClick={() => setIsFocused(true)}
+              onClick={() => {
+                setViewSide("BACK");
+                setIsFocused(true);
+              }}
               className="mt-1 px-5 py-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] hover:bg-neutral-800 text-[11px] font-mono font-bold uppercase tracking-widest transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95 flex items-center gap-2"
             >
               <Maximize2 size={13} />
