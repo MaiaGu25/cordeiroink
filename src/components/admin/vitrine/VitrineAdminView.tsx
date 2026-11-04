@@ -89,7 +89,7 @@ export function VitrineAdminView({
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Estado do Modal de CriaÃ§Ã£o
+  // Estado do Modal de Criação
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState<number | "">("");
@@ -102,7 +102,7 @@ export function VitrineAdminView({
     { colorName: string; hexCode: string; imageUrl: string; images?: string[] }[]
   >([]);
 
-  // Estado do Modal de EdiÃ§Ã£o
+  // Estado do Modal de Edição
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPrice, setEditPrice] = useState<number | "">("");
@@ -126,7 +126,7 @@ export function VitrineAdminView({
   const galleryFileInputRef = useRef<HTMLInputElement>(null);
   const editGalleryFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estado de ExclusÃ£o
+  // Estado de Exclusão
   const [itemToDelete, setItemToDelete] = useState<CatalogItem | null>(null);
 
   // Upload de Foto Principal
@@ -158,7 +158,7 @@ export function VitrineAdminView({
     if (e.target) e.target.value = "";
   };
 
-  // Upload de Foto SecundÃ¡ria (Costas)
+  // Upload de Foto Secundária (Costas)
   const handleBackFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     isEdit = false
@@ -187,7 +187,7 @@ export function VitrineAdminView({
     if (e.target) e.target.value = "";
   };
 
-  // Upload de Imagem de VariaÃ§Ã£o de Cor
+  // Upload de Imagem de Variação de Cor
   const handleVariantFileUpload = async (
     file: File,
     index: number,
@@ -213,9 +213,9 @@ export function VitrineAdminView({
           return next;
         });
       }
-      toast.success("Foto da variaÃ§Ã£o enviada com sucesso!");
+      toast.success("Foto da variação enviada com sucesso!");
     } else {
-      toast.error(res.error || "Erro no upload da imagem da variaÃ§Ã£o");
+      toast.error(res.error || "Erro no upload da imagem da variação");
     }
     setUploadingVariantIndex(null);
   };
@@ -350,18 +350,18 @@ export function VitrineAdminView({
     }
   };
 
-  // SubmissÃ£o de CriaÃ§Ã£o
+  // Submissão de Criação
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!title.trim() || price === "" || !imageUrl.trim()) {
-      toast.error("Preencha o tÃ­tulo, preÃ§o e envie a foto principal de capa.");
+      toast.error("Preencha o título, preço e envie a foto principal de capa.");
       return;
     }
 
     const parsedPrice = Number(price);
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      toast.error("Informe um preÃ§o de venda vÃ¡lido.");
+      toast.error("Informe um preço de venda válido.");
       return;
     }
 
@@ -384,7 +384,7 @@ export function VitrineAdminView({
           return;
         }
 
-        toast.success(`PeÃ§a "${title}" cadastrada com sucesso!`);
+        toast.success(`Peça "${title}" cadastrada com sucesso!`);
         setIsNewModalOpen(false);
         setTitle("");
         setPrice("");
@@ -401,7 +401,7 @@ export function VitrineAdminView({
     });
   };
 
-  // Abrir Modal de EdiÃ§Ã£o
+  // Abrir Modal de Edição
   const handleOpenEdit = (item: CatalogItem) => {
     setEditingItem(item);
     setEditTitle(item.title);
@@ -421,19 +421,19 @@ export function VitrineAdminView({
     );
   };
 
-  // Salvar EdiÃ§Ã£o
+  // Salvar Edição
   const handleEditSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
 
     if (!editTitle.trim() || editPrice === "" || !editImageUrl.trim()) {
-      toast.error("TÃ­tulo, preÃ§o e imagem de capa sÃ£o obrigatÃ³rios.");
+      toast.error("Título, preço e imagem de capa são obrigatórios.");
       return;
     }
 
     const parsedPrice = Number(editPrice);
     if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      toast.error("Informe um preÃ§o de venda vÃ¡lido.");
+      toast.error("Informe um preço de venda válido.");
       return;
     }
 
@@ -456,7 +456,7 @@ export function VitrineAdminView({
           return;
         }
 
-        toast.success(`PeÃ§a "${editTitle}" atualizada com sucesso!`);
+        toast.success(`Peça "${editTitle}" atualizada com sucesso!`);
         setEditingItem(null);
         router.refresh();
       } catch (err: any) {
@@ -486,7 +486,7 @@ export function VitrineAdminView({
     });
   };
 
-  // ExclusÃ£o
+  // Exclusão
   const handleDelete = () => {
     if (!itemToDelete) return;
     startTransition(async () => {
@@ -496,7 +496,7 @@ export function VitrineAdminView({
           toast.error(String(res.error || "Erro ao excluir"));
           return;
         }
-        toast.success("Produto removido do catÃ¡logo.");
+        toast.success("Produto removido do catálogo.");
         setItemToDelete(null);
         router.refresh();
       } catch (err: any) {
@@ -524,10 +524,10 @@ export function VitrineAdminView({
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
               <Sparkles size={22} className="text-amber-400" />
-              <span>Gerenciar Vitrine PÃºblica</span>
+              <span>Gerenciar Vitrine Pública</span>
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 font-semibold">
-              Loja & VariaÃ§Ãµes
+              Loja & Variações
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
@@ -576,7 +576,7 @@ export function VitrineAdminView({
           }`}
         >
           <Sparkles size={14} />
-          <span>PeÃ§as do CatÃ¡logo ({initialItems.length})</span>
+          <span>Peças do Catálogo ({initialItems.length})</span>
         </button>
 
         <button
@@ -588,7 +588,7 @@ export function VitrineAdminView({
           }`}
         >
           <MessageCircle size={14} />
-          <span>OrÃ§amentos Personalizados ({initialLeads.length})</span>
+          <span>Orçamentos Personalizados ({initialLeads.length})</span>
         </button>
 
         <button
@@ -604,7 +604,7 @@ export function VitrineAdminView({
         </button>
       </div>
 
-      {/* Content: PeÃ§as do CatÃ¡logo */}
+      {/* Content: Peças do Catálogo */}
       {activeTab === "CATALOG" && (
         <div className="space-y-4">
           {/* Barra de Filtros */}
@@ -641,7 +641,7 @@ export function VitrineAdminView({
             <div className="w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Buscar por nome ou descriÃ§Ã£o..."
+                placeholder="Buscar por nome ou descrição..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
@@ -656,10 +656,10 @@ export function VitrineAdminView({
                 <ImageIcon size={28} />
               </div>
               <h3 className="text-sm font-semibold text-zinc-300">
-                Nenhuma peÃ§a encontrada
+                Nenhuma peça encontrada
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm">
-                Cadastre novas peÃ§as ou altere o filtro de categoria acima.
+                Cadastre novas peças ou altere o filtro de categoria acima.
               </p>
             </div>
           ) : (
@@ -734,7 +734,7 @@ export function VitrineAdminView({
                     </div>
                   </div>
 
-                  {/* AÃ§Ãµes */}
+                  {/* Ações */}
                   <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/40 flex items-center justify-between gap-2">
                     <button
                       type="button"
@@ -755,7 +755,7 @@ export function VitrineAdminView({
                         type="button"
                         onClick={() => handleOpenEdit(item)}
                         className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
-                        title="Editar peÃ§a"
+                        title="Editar peça"
                       >
                         <Edit2 size={13} />
                       </button>
@@ -764,7 +764,7 @@ export function VitrineAdminView({
                         type="button"
                         onClick={() => setItemToDelete(item)}
                         className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
-                        title="Excluir peÃ§a"
+                        title="Excluir peça"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -777,7 +777,7 @@ export function VitrineAdminView({
         </div>
       )}
 
-      {/* Content: OrÃ§amentos / Leads */}
+      {/* Content: Orçamentos / Leads */}
       {activeTab === "LEADS" && (
         <div className="space-y-4">
           {initialLeads.length === 0 ? (
@@ -786,10 +786,10 @@ export function VitrineAdminView({
                 <MessageCircle size={28} />
               </div>
               <h3 className="text-sm font-semibold text-zinc-200">
-                Nenhum orÃ§amento personalizado recebido ainda
+                Nenhum orçamento personalizado recebido ainda
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm">
-                Quando os clientes preencherem o formulÃ¡rio na vitrine pÃºblica, os contatos e arquivos aparecerÃ£o aqui.
+                Quando os clientes preencherem o formulário na vitrine pública, os contatos e arquivos aparecerão aqui.
               </p>
             </div>
           ) : (
@@ -804,14 +804,14 @@ export function VitrineAdminView({
                       <th className="px-4 py-3">Tamanho</th>
                       <th className="px-4 py-3">Arte Enviada</th>
                       <th className="px-4 py-3">Data</th>
-                      <th className="px-4 py-3 text-right">AÃ§Ã£o</th>
+                      <th className="px-4 py-3 text-right">Ação</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
                     {initialLeads.map((lead) => {
                       const cleanPhone = lead.whatsapp.replace(/\D/g, "");
                       const waLink = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
-                        `OlÃ¡ ${lead.customerName}! Recebemos seu pedido de camiseta personalizada (${lead.shirtModel} - Tam ${lead.size}) na Cordeiro Ink.`
+                        `Olá ${lead.customerName}! Recebemos seu pedido de camiseta personalizada (${lead.shirtModel} - Tam ${lead.size}) na Cordeiro Ink.`
                       )}`;
 
                       return (
@@ -891,7 +891,7 @@ export function VitrineAdminView({
                   <Sparkles size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Cadastrar Nova PeÃ§a na Vitrine
+                  Cadastrar Nova Peça na Vitrine
                 </h3>
               </div>
               <button
@@ -964,10 +964,10 @@ export function VitrineAdminView({
                   )}
                 </div>
 
-                {/* Foto SecundÃ¡ria (Costas / Detalhe) */}
+                {/* Foto Secundária (Costas / Detalhe) */}
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                    Foto SecundÃ¡ria (Costas / Detalhe)
+                    Foto Secundária (Costas / Detalhe)
                   </label>
                   <input
                     ref={backFileInputRef}
@@ -1023,11 +1023,11 @@ export function VitrineAdminView({
                 </div>
               </div>
 
-              {/* TÃ­tulo & PreÃ§o */}
+              {/* Título & Preço */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    TÃ­tulo da PeÃ§a *
+                    Título da Peça *
                   </label>
                   <input
                     type="text"
@@ -1041,7 +1041,7 @@ export function VitrineAdminView({
 
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    PreÃ§o de Venda (R$) *
+                    Preço de Venda (R$) *
                   </label>
                   <CurrencyInput
                     value={price}
@@ -1070,27 +1070,27 @@ export function VitrineAdminView({
                 </select>
               </div>
 
-              {/* DescriÃ§Ã£o */}
+              {/* Descrição */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  DescriÃ§Ã£o / Detalhes do Tecido
+                  Descrição / Detalhes do Tecido
                 </label>
                 <textarea
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Malha 100% algodÃ£o 260g/mÂ² com ribana canelada de 3cm e costura ombro a ombro."
+                  placeholder="Ex: Malha 100% algodão 260g/m² com ribana canelada de 3cm e costura ombro a ombro."
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* VariaÃ§Ãµes de Cores */}
+              {/* Variações de Cores */}
               <div className="pt-2 border-t border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Palette size={15} className="text-amber-400" />
                     <span className="text-xs font-bold text-zinc-200">
-                      VariaÃ§Ãµes de Cores & Fotos EspecÃ­ficas ({variants.length})
+                      Variações de Cores & Fotos Específicas ({variants.length})
                     </span>
                   </div>
                   <button
@@ -1105,7 +1105,7 @@ export function VitrineAdminView({
 
                 {variants.length === 0 ? (
                   <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
-                    Nenhuma variaÃ§Ã£o adicionada. A peÃ§a usarÃ¡ apenas a foto principal de capa. Clique em "Adicionar Cor" para cadastrar fotos por cor (ex: Preto, Off-White, Bege).
+                    Nenhuma variação adicionada. A peça usará apenas a foto principal de capa. Clique em "Adicionar Cor" para cadastrar fotos por cor (ex: Preto, Off-White, Bege).
                   </p>
                 ) : (
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
@@ -1220,7 +1220,7 @@ export function VitrineAdminView({
                 )}
               </div>
 
-              {/* BotÃµes do RodapÃ© */}
+              {/* Botões do Rodapé */}
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
@@ -1250,7 +1250,7 @@ export function VitrineAdminView({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL DE EDIÃ‡ÃƒO SIMPLIFICADO                                              */}
+      {/* MODAL DE EDIÇÃO SIMPLIFICADO                                              */}
       {/* ========================================================================= */}
       {editingItem && (
         <div
@@ -1267,7 +1267,7 @@ export function VitrineAdminView({
                   <Edit2 size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Editar PeÃ§a "{editingItem.title}"
+                  Editar Peça "{editingItem.title}"
                 </h3>
               </div>
               <button
@@ -1337,10 +1337,10 @@ export function VitrineAdminView({
                   )}
                 </div>
 
-                {/* Foto SecundÃ¡ria (Costas / Detalhe) */}
+                {/* Foto Secundária (Costas / Detalhe) */}
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                    Foto SecundÃ¡ria (Costas / Detalhe)
+                    Foto Secundária (Costas / Detalhe)
                   </label>
                   <input
                     ref={editBackFileInputRef}
@@ -1396,11 +1396,11 @@ export function VitrineAdminView({
                 </div>
               </div>
 
-              {/* TÃ­tulo & PreÃ§o */}
+              {/* Título & Preço */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    TÃ­tulo da PeÃ§a *
+                    Título da Peça *
                   </label>
                   <input
                     type="text"
@@ -1413,7 +1413,7 @@ export function VitrineAdminView({
 
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    PreÃ§o de Venda (R$) *
+                    Preço de Venda (R$) *
                   </label>
                   <CurrencyInput
                     value={editPrice}
@@ -1441,10 +1441,10 @@ export function VitrineAdminView({
                 </select>
               </div>
 
-              {/* DescriÃ§Ã£o */}
+              {/* Descrição */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  DescriÃ§Ã£o / Detalhes do Tecido
+                  Descrição / Detalhes do Tecido
                 </label>
                 <textarea
                   rows={2}
@@ -1454,13 +1454,13 @@ export function VitrineAdminView({
                 />
               </div>
 
-              {/* VariaÃ§Ãµes de Cores */}
+              {/* Variações de Cores */}
               <div className="pt-2 border-t border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Palette size={15} className="text-amber-400" />
                     <span className="text-xs font-bold text-zinc-200">
-                      VariaÃ§Ãµes de Cores & Fotos EspecÃ­ficas ({editVariants.length})
+                      Variações de Cores & Fotos Específicas ({editVariants.length})
                     </span>
                   </div>
                   <button
@@ -1475,7 +1475,7 @@ export function VitrineAdminView({
 
                 {editVariants.length === 0 ? (
                   <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
-                    Nenhuma variaÃ§Ã£o adicionada.
+                    Nenhuma variação adicionada.
                   </p>
                 ) : (
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
@@ -1589,7 +1589,7 @@ export function VitrineAdminView({
                 )}
               </div>
 
-              {/* BotÃµes do RodapÃ© */}
+              {/* Botões do Rodapé */}
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
@@ -1609,7 +1609,7 @@ export function VitrineAdminView({
                       <span>Salvando...</span>
                     </>
                   ) : (
-                    <span>Salvar AlteraÃ§Ãµes</span>
+                    <span>Salvar Alterações</span>
                   )}
                 </button>
               </div>
@@ -1619,7 +1619,7 @@ export function VitrineAdminView({
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL DE CONFIRMAÃ‡ÃƒO DE EXCLUSÃƒO                                          */}
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO                                          */}
       {/* ========================================================================= */}
       {itemToDelete && (
         <div
@@ -1636,16 +1636,16 @@ export function VitrineAdminView({
               </div>
               <div>
                 <h3 className="font-serif text-base font-bold text-zinc-100">
-                  Excluir PeÃ§a da Vitrine
+                  Excluir Peça da Vitrine
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Esta aÃ§Ã£o nÃ£o pode ser desfeita.
+                  Esta ação não pode ser desfeita.
                 </p>
               </div>
             </div>
 
             <p className="text-xs text-zinc-300 leading-relaxed">
-              Tem certeza que deseja remover <strong>"{itemToDelete.title}"</strong> e todas as suas variaÃ§Ãµes de cor da vitrine pÃºblica?
+              Tem certeza que deseja remover <strong>"{itemToDelete.title}"</strong> e todas as suas variações de cor da vitrine pública?
             </p>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -1668,7 +1668,7 @@ export function VitrineAdminView({
                     <span>Excluindo...</span>
                   </>
                 ) : (
-                  <span>Confirmar ExclusÃ£o</span>
+                  <span>Confirmar Exclusão</span>
                 )}
               </button>
             </div>

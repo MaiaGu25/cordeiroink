@@ -52,7 +52,7 @@ interface StorefrontCatalogProps {
   stockItems?: AvailableStockSize[];
 }
 
-// Exemplos realistas com mÃºltiplas variaÃ§Ãµes e fotos para a vitrine
+// Exemplos realistas com múltiplas variações e fotos para a vitrine
 const PLACEHOLDER_ITEMS: CatalogItem[] = [
   {
     id: "sample-1",
@@ -60,7 +60,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Oversized",
     price: 149.9,
     description:
-      "Modelagem streetwear autoral em malha 100% algodÃ£o 260gsm. Corte amplo e estruturado com gola canelada de 3cm e costura ombro a ombro reforÃ§ada.",
+      "Modelagem streetwear autoral em malha 100% algodão 260gsm. Corte amplo e estruturado com gola canelada de 3cm e costura ombro a ombro reforçada.",
     imageUrl:
       "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -94,7 +94,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Adulto",
     price: 159.9,
     description:
-      "Estampa dorsal A3 em alta gramatura com toque zero. Prensagem tÃ©rmica industrial a 160Â°C de mÃ¡xima durabilidade.",
+      "Estampa dorsal A3 em alta gramatura com toque zero. Prensagem térmica industrial a 160°C de máxima durabilidade.",
     imageUrl:
       "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -121,7 +121,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Feminina",
     price: 139.9,
     description:
-      "Modelagem boxy crop com caimento impecÃ¡vel. Confeccionada em algodÃ£o penteado de toque macio e estampa frontal discreta.",
+      "Modelagem boxy crop com caimento impecável. Confeccionada em algodão penteado de toque macio e estampa frontal discreta.",
     imageUrl:
       "https://images.unsplash.com/photo-1554568218-0f1715e72254?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -135,7 +135,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
       },
       {
         id: "v3-2",
-        colorName: "Preto ClÃ¡ssico",
+        colorName: "Preto Clássico",
         hexCode: "#000000",
         imageUrl:
           "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1000&auto=format&fit=crop",
@@ -148,7 +148,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Regata",
     price: 119.9,
     description:
-      "Cava larga e costura estruturada. O caimento clÃ¡ssico do basquete urbano com a estÃ©tica minimalista da Cordeiro Ink.",
+      "Cava larga e costura estruturada. O caimento clássico do basquete urbano com a estética minimalista da Cordeiro Ink.",
     imageUrl:
       "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -195,15 +195,15 @@ export function StorefrontCatalog({ items, stockItems }: StorefrontCatalogProps)
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#E6DED2] pb-8">
           <div className="space-y-3">
             <span className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#737373] font-semibold block">
-              Streetwear CristÃ£o & ColeÃ§Ã£o Autoral
+              Streetwear Cristão & Coleção Autoral
             </span>
             <h2 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#0A0A0A]">
-              PeÃ§as em Destaque
+              Peças em Destaque
             </h2>
           </div>
 
           <p className="font-sans text-xs sm:text-sm text-[#737373] max-w-md font-light leading-relaxed">
-            Cada camiseta Ã© cortada e prensada sob demanda no ateliÃª em malha heavyweight com estampas cristÃ£s que carregam uma mensagem viva.
+            Cada camiseta é cortada e prensada sob demanda no ateliê em malha heavyweight com estampas cristãs que carregam uma mensagem viva.
           </p>
         </div>
 
@@ -248,13 +248,13 @@ export function StorefrontCatalog({ items, stockItems }: StorefrontCatalogProps)
               Nenhum produto cadastrado na categoria "{selectedCategory}".
             </p>
             <p className="font-sans text-xs text-[#737373]">
-              Selecione outra categoria ou veja todas as peÃ§as disponÃ­veis.
+              Selecione outra categoria ou veja todas as peças disponíveis.
             </p>
             <button
               onClick={() => setSelectedCategory("Todas")}
               className="mt-2 px-4 py-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-xs font-semibold uppercase tracking-wider"
             >
-              Ver Todas as PeÃ§as
+              Ver Todas as Peças
             </button>
           </div>
         ) : (

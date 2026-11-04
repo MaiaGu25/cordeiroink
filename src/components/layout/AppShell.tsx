@@ -11,6 +11,18 @@ interface AppShellProps {
   criticalStockCount: number;
 }
 
+// Rotas internas exclusivas do ERP / Painel de Gestão da Equipe
+const ERP_ROUTES = [
+  "/admin",
+  "/pedidos",
+  "/producao",
+  "/estoque",
+  "/compras",
+  "/financeiro",
+  "/historico",
+  "/produtos",
+];
+
 export function AppShell({
   children,
   activeOrdersCount,
@@ -18,11 +30,18 @@ export function AppShell({
   criticalStockCount,
 }: AppShellProps) {
   const pathname = usePathname();
-  const isPublicStorefront = pathname === "/";
-  const isLoginPage = pathname === "/login";
 
-  // Vitrine pública ou tela de login não renderizam a barra do ERP
-  if (isPublicStorefront || isLoginPage) {
+  // Verifica se a rota atual é parte do ERP interno da equipe
+  const isErpRoute = Boolean(
+    pathname &&
+      ERP_ROUTES.some(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+      )
+  );
+
+  // Páginas públicas da loja (Home "/", "/quem-somos", "/eventos-b2b") ou tela de login
+  // NÃO renderizam a barra lateral nem o topo do ERP
+  if (!isErpRoute || pathname === "/login") {
     return <>{children}</>;
   }
 
