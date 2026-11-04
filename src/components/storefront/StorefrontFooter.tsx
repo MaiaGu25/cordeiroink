@@ -28,19 +28,19 @@ export function StorefrontFooter() {
             </h5>
             <ul className="space-y-2 text-xs text-[#888888]">
               <li>
-                <a href="#catalogo" className="hover:text-white transition">
+                <Link href="/#catalogo" className="hover:text-white transition">
                   Coleção de Drops
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#sobre" className="hover:text-white transition">
+                <Link href="/quem-somos" className="hover:text-white transition">
                   Quem Somos (O Ateliê)
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#personalizadas" className="hover:text-white transition">
-                  Camisetas para Eventos & Igrejas
-                </a>
+                <Link href="/eventos-b2b" className="hover:text-white transition">
+                  Eventos B2B
+                </Link>
               </li>
               <li>
                 <a

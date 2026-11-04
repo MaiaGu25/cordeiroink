@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, useRef } from "react";
 import {
@@ -15,28 +15,13 @@ import {
   MessageCircle,
   Eye,
   Palette,
-  Sliders,
-  RotateCw,
-  Maximize2,
-  Move,
-  RefreshCw,
-  Layers,
-  Shirt,
-  Sun,
-  Moon,
+  Check,
 } from "lucide-react";
 import {
   createCatalogItem,
   updateCatalogItem,
   deleteCatalogItem,
-  uploadStorefrontFile,
 } from "@/actions/storefront";
-import {
-  getProductTemplates,
-  createProductTemplate,
-  updateProductTemplate,
-  deleteProductTemplate,
-} from "@/actions/templates";
 import { uploadFileViaApi } from "@/lib/api-upload";
 import { CATALOG_CATEGORIES, type VariantInput } from "@/lib/storefront-constants";
 import { formatCurrency } from "@/lib/utils";
@@ -46,23 +31,14 @@ import { BannerManagerSection, type BannerItem } from "./BannerManagerSection";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-const PREVIEW_PALETTE = [
-  { name: "Preto", hex: "#18181b" },
-  { name: "Branco", hex: "#f4f4f5" },
-  { name: "Off-White", hex: "#e7e5e4" },
-  { name: "Azul Marinho", hex: "#1e3a8a" },
-  { name: "Vinho", hex: "#7f1d1d" },
-  { name: "Verde Militar", hex: "#14532d" },
-  { name: "Mostarda", hex: "#b45309" },
-];
-
 interface CatalogVariant {
   id: string;
   catalogItemId: string;
   colorName: string;
   hexCode: string;
   imageUrl: string;
-  printTheme?: "LIGHT" | "DARK";
+  backImageUrl?: string | null;
+  images?: string[];
 }
 
 interface CatalogItem {
@@ -72,28 +48,12 @@ interface CatalogItem {
   price: number;
   imageUrl: string;
   backImageUrl?: string | null;
+  images?: string[];
   category: string;
-  showOnVirtualRack?: boolean;
-  templateId?: string | null;
-  template?: any | null;
-  baseShirtUrl?: string | null;
-  baseShirtBackUrl?: string | null;
-  baseShirtSideUrl?: string | null;
-  printImageUrl?: string | null;
-  printBackImageUrl?: string | null;
-  printLightFront?: string | null;
-  printDarkFront?: string | null;
-  printLightBack?: string | null;
-  printDarkBack?: string | null;
-  printWidth?: number | null;
-  printTop?: number | null;
-  printLeft?: number | null;
-  printWidthBack?: number | null;
-  printTopBack?: number | null;
-  printLeftBack?: number | null;
   isActive: boolean;
-  createdAt: Date;
+  showOnVirtualRack?: boolean;
   variants?: CatalogVariant[];
+  createdAt: string | Date;
 }
 
 interface LeadQuote {
@@ -102,10 +62,9 @@ interface LeadQuote {
   whatsapp: string;
   shirtModel: string;
   size: string;
-  customDesignUrl: string | null;
-  notes: string | null;
-  status: string;
-  createdAt: Date;
+  customDesignUrl?: string | null;
+  notes?: string | null;
+  createdAt: string | Date;
 }
 
 interface VitrineAdminViewProps {
@@ -115,963 +74,62 @@ interface VitrineAdminViewProps {
   initialTemplates?: any[];
 }
 
-interface PrintPositioningBlockProps {
-  isFront: boolean;
-  setIsFront: (front: boolean) => void;
-  previewColor: string;
-  setPreviewColor: (c: string) => void;
-  baseShirtUrl: string;
-  setBaseShirtUrl: (s: string) => void;
-  baseShirtBackUrl: string;
-  setBaseShirtBackUrl: (s: string) => void;
-  baseShirtSideUrl?: string;
-  setBaseShirtSideUrl?: (s: string) => void;
-  printImageUrl?: string;
-  setPrintImageUrl?: (s: string) => void;
-  printBackImageUrl?: string;
-  setPrintBackImageUrl?: (s: string) => void;
-  printLightFront: string;
-  setPrintLightFront: (s: string) => void;
-  printDarkFront: string;
-  setPrintDarkFront: (s: string) => void;
-  printLightBack: string;
-  setPrintLightBack: (s: string) => void;
-  printDarkBack: string;
-  setPrintDarkBack: (s: string) => void;
-  printWidth: number;
-  setPrintWidth: (n: number) => void;
-  printTop: number;
-  setPrintTop: (n: number) => void;
-  printLeft: number;
-  setPrintLeft: (n: number) => void;
-  printWidthBack: number;
-  setPrintWidthBack: (n: number) => void;
-  printTopBack: number;
-  setPrintTopBack: (n: number) => void;
-  printLeftBack: number;
-  setPrintLeftBack: (n: number) => void;
-  isUploading: boolean;
-  onUploadLayer: (
-    file: File,
-    target:
-      | "PRINT_LIGHT_FRONT"
-      | "PRINT_DARK_FRONT"
-      | "PRINT_LIGHT_BACK"
-      | "PRINT_DARK_BACK"
-      | "BASE_FRONT"
-      | "BASE_BACK"
-      | "BASE_SIDE"
-      | "PRINT_FRONT"
-      | "PRINT_BACK"
-  ) => Promise<void>;
-  templates?: any[];
-  selectedTemplateId?: string;
-  onSelectTemplate?: (id: string) => void;
-}
-
-function PrintPositioningBlock({
-  isFront,
-  setIsFront,
-  previewColor,
-  setPreviewColor,
-  baseShirtUrl,
-  setBaseShirtUrl,
-  baseShirtBackUrl,
-  setBaseShirtBackUrl,
-  baseShirtSideUrl,
-  setBaseShirtSideUrl,
-  printImageUrl,
-  setPrintImageUrl,
-  printBackImageUrl,
-  setPrintBackImageUrl,
-  printLightFront,
-  setPrintLightFront,
-  printDarkFront,
-  setPrintDarkFront,
-  printLightBack,
-  setPrintLightBack,
-  printDarkBack,
-  setPrintDarkBack,
-  printWidth,
-  setPrintWidth,
-  printTop,
-  setPrintTop,
-  printLeft,
-  setPrintLeft,
-  printWidthBack,
-  setPrintWidthBack,
-  printTopBack,
-  setPrintTopBack,
-  printLeftBack,
-  setPrintLeftBack,
-  isUploading,
-  onUploadLayer,
-  templates = [],
-  selectedTemplateId,
-  onSelectTemplate,
-}: PrintPositioningBlockProps) {
-  const [previewPrintTheme, setPreviewPrintTheme] = useState<"LIGHT" | "DARK">("LIGHT");
-
-  const frontBaseInputRef = useRef<HTMLInputElement>(null);
-  const backBaseInputRef = useRef<HTMLInputElement>(null);
-  const sideBaseInputRef = useRef<HTMLInputElement>(null);
-  const frontPrintLightInputRef = useRef<HTMLInputElement>(null);
-  const frontPrintDarkInputRef = useRef<HTMLInputElement>(null);
-  const backPrintLightInputRef = useRef<HTMLInputElement>(null);
-  const backPrintDarkInputRef = useRef<HTMLInputElement>(null);
-
-  const currentBase = isFront
-    ? baseShirtUrl || "/mockups/blank-front.svg"
-    : baseShirtBackUrl || "/mockups/blank-back.svg";
-
-  // Escolha dinâmica da estampa no preview baseada no switch de tema
-  const currentPrint = isFront
-    ? previewPrintTheme === "LIGHT"
-      ? (printLightFront || printImageUrl)
-      : (printDarkFront || printImageUrl)
-    : previewPrintTheme === "LIGHT"
-      ? (printLightBack || printBackImageUrl)
-      : (printDarkBack || printBackImageUrl);
-
-  const currentWidth = isFront ? printWidth : printWidthBack;
-  const currentTop = isFront ? printTop : printTopBack;
-  const currentLeft = isFront ? printLeft : printLeftBack;
-
-  const setCurrentWidth = (val: number) => {
-    if (isFront) setPrintWidth(val);
-    else setPrintWidthBack(val);
-  };
-  const setCurrentTop = (val: number) => {
-    if (isFront) setPrintTop(val);
-    else setPrintTopBack(val);
-  };
-  const setCurrentLeft = (val: number) => {
-    if (isFront) setPrintLeft(val);
-    else setPrintLeftBack(val);
-  };
-
-  const handleReset = () => {
-    if (isFront) {
-      setPrintWidth(45);
-      setPrintTop(28);
-      setPrintLeft(50);
-    } else {
-      setPrintWidthBack(50);
-      setPrintTopBack(25);
-      setPrintLeftBack(50);
-    }
-  };
-
-  return (
-    <div className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 space-y-4">
-      {/* Hidden file inputs distintos para cada camada e variante */}
-      <input
-        type="file"
-        ref={frontBaseInputRef}
-        accept="image/png,image/webp,image/svg+xml,image/jpeg"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "BASE_FRONT");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={backBaseInputRef}
-        accept="image/png,image/webp,image/svg+xml,image/jpeg"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "BASE_BACK");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={sideBaseInputRef}
-        accept="image/png,image/webp,image/svg+xml,image/jpeg"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "BASE_SIDE");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={frontPrintLightInputRef}
-        accept="image/png,image/webp,image/svg+xml"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "PRINT_LIGHT_FRONT");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={frontPrintDarkInputRef}
-        accept="image/png,image/webp,image/svg+xml"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "PRINT_DARK_FRONT");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={backPrintLightInputRef}
-        accept="image/png,image/webp,image/svg+xml"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "PRINT_LIGHT_BACK");
-          if (e.target) e.target.value = "";
-        }}
-      />
-      <input
-        type="file"
-        ref={backPrintDarkInputRef}
-        accept="image/png,image/webp,image/svg+xml"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUploadLayer(f, "PRINT_DARK_BACK");
-          if (e.target) e.target.value = "";
-        }}
-      />
-
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
-        <div className="flex items-center gap-2">
-          <Layers size={16} className="text-amber-400" />
-          <h4 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
-            Posicionamento da Estampa & Contraste Dinâmico (Arara Virtual)
-          </h4>
-        </div>
-
-        {/* Tab Frente / Costas */}
-        <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] font-semibold w-fit">
-          <button
-            type="button"
-            onClick={() => setIsFront(true)}
-            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
-              isFront
-                ? "bg-amber-500 text-zinc-950 font-bold shadow"
-                : "text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            Frente
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsFront(false)}
-            className={`px-3 py-1 rounded-lg transition cursor-pointer ${
-              !isFront
-                ? "bg-amber-500 text-zinc-950 font-bold shadow"
-                : "text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            Costas
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-        {/* PREVIEW VISUAL EM TEMPO REAL (MOCKUP CINZA + BLEND MODE + ESTAMPA) */}
-        <div className="md:col-span-5 flex flex-col items-center">
-          <div className="w-full flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase font-semibold text-zinc-400">
-                Preview:
-              </span>
-              {/* Toggle de Visualização de Estampa Clara vs Escura */}
-              <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[9px] font-mono font-bold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewPrintTheme("LIGHT");
-                    setPreviewColor("#18181b");
-                  }}
-                  className={`px-1.5 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
-                    previewPrintTheme === "LIGHT"
-                      ? "bg-amber-500 text-zinc-950 font-bold"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                  title="Testar com estampa clara em fundo escuro"
-                >
-                  <Sun size={10} />
-                  <span>Clara</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPreviewPrintTheme("DARK");
-                    setPreviewColor("#f4f4f5");
-                  }}
-                  className={`px-1.5 py-0.5 rounded transition cursor-pointer flex items-center gap-1 ${
-                    previewPrintTheme === "DARK"
-                      ? "bg-amber-500 text-zinc-950 font-bold"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                  title="Testar com estampa escura em fundo claro"
-                >
-                  <Moon size={10} />
-                  <span>Escura</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {PREVIEW_PALETTE.map((c) => (
-                <button
-                  key={c.hex}
-                  type="button"
-                  onClick={() => setPreviewColor(c.hex)}
-                  title={c.name}
-                  className={`w-3.5 h-3.5 rounded-full border transition cursor-pointer ${
-                    previewColor === c.hex
-                      ? "border-amber-400 scale-125 ring-1 ring-amber-400/50"
-                      : "border-zinc-700 hover:scale-110"
-                  }`}
-                  style={{ backgroundColor: c.hex }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="relative w-full aspect-[3/4] max-h-[290px] rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden shadow-inner select-none">
-            {/* Camada 1: Cor de fundo mascarada pela silhueta */}
-            <div
-              className="absolute inset-0 transition-colors duration-300 pointer-events-none"
-              style={{
-                backgroundColor: previewColor,
-                maskImage: `url('${currentBase}')`,
-                WebkitMaskImage: `url('${currentBase}')`,
-                maskSize: "contain",
-                WebkitMaskSize: "contain",
-                maskRepeat: "no-repeat",
-                WebkitMaskRepeat: "no-repeat",
-                maskPosition: "center",
-                WebkitMaskPosition: "center",
-              }}
-            />
-
-            {/* Camada 2: Mockup cinza em mix-blend-multiply */}
-            <img
-              src={currentBase}
-              alt="Mockup Camiseta"
-              className="relative z-10 w-full h-full object-contain mix-blend-multiply pointer-events-none select-none"
-            />
-
-            {/* Camada 3: Arte PNG Isolada movida pelos sliders em tempo real */}
-            {currentPrint ? (
-              <div
-                className="absolute z-20 pointer-events-none transition-all duration-75 flex items-center justify-center"
-                style={{
-                  top: `${currentTop}%`,
-                  left: `${currentLeft}%`,
-                  width: `${currentWidth}%`,
-                  transform: "translateX(-50%)",
-                }}
-              >
-                <img
-                  src={currentPrint}
-                  alt="Estampa"
-                  className="w-full h-auto object-contain drop-shadow-md select-none"
-                />
-              </div>
-            ) : (
-              <div
-                className="absolute z-20 pointer-events-none border-2 border-dashed border-amber-400/60 rounded-lg p-2 text-center flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]"
-                style={{
-                  top: `${currentTop}%`,
-                  left: `${currentLeft}%`,
-                  width: `${currentWidth}%`,
-                  transform: "translateX(-50%)",
-                  minHeight: "60px",
-                }}
-              >
-                <span className="text-[9px] font-bold text-amber-300 uppercase">
-                  Área da Estampa ({previewPrintTheme === "LIGHT" ? "Clara" : "Escura"})
-                </span>
-                <span className="text-[8px] text-zinc-300">
-                  Suba o PNG transparente correspondente
-                </span>
-              </div>
-            )}
-
-            <div className="absolute bottom-1.5 right-1.5 z-30 px-1.5 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[8px] font-mono text-zinc-400">
-              W:{currentWidth}% Y:{currentTop}% X:{currentLeft}%
-            </div>
-          </div>
-        </div>
-
-        {/* CONTROLES DESLIZANTES (RANGE SLIDERS) & INPUTS */}
-        <div className="md:col-span-7 space-y-3.5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-              <Sliders size={13} className="text-amber-400" />
-              <span>Controles Deslizantes ({isFront ? "Frente" : "Costas"})</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition"
-              title="Restaurar valores padrão"
-            >
-              <RefreshCw size={10} />
-              <span>Restaurar Padrão</span>
-            </button>
-          </div>
-
-          {/* Slider 1: Escala / Tamanho (printWidth) */}
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-zinc-400 flex items-center gap-1">
-                <Maximize2 size={11} /> Escala da Estampa (Tamanho %):
-              </span>
-              <span className="font-mono font-bold text-amber-400">{currentWidth}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min="15"
-                max="90"
-                step="1"
-                value={currentWidth}
-                onChange={(e) => setCurrentWidth(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
-              <input
-                type="number"
-                min="15"
-                max="90"
-                value={currentWidth}
-                onChange={(e) => setCurrentWidth(Number(e.target.value))}
-                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
-              />
-            </div>
-          </div>
-
-          {/* Slider 2: Posição Vertical (printTop / Eixo Y) */}
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-zinc-400 flex items-center gap-1">
-                <Move size={11} /> Posição Vertical (Eixo Y %):
-              </span>
-              <span className="font-mono font-bold text-amber-400">{currentTop}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min="5"
-                max="85"
-                step="1"
-                value={currentTop}
-                onChange={(e) => setCurrentTop(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
-              <input
-                type="number"
-                min="5"
-                max="85"
-                value={currentTop}
-                onChange={(e) => setCurrentTop(Number(e.target.value))}
-                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
-              />
-            </div>
-          </div>
-
-          {/* Slider 3: Posição Horizontal (printLeft / Eixo X) */}
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-zinc-400 flex items-center gap-1">
-                <Move size={11} className="rotate-90" /> Posição Horizontal (Eixo X %):
-              </span>
-              <span className="font-mono font-bold text-amber-400">{currentLeft}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="range"
-                min="15"
-                max="85"
-                step="1"
-                value={currentLeft}
-                onChange={(e) => setCurrentLeft(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer"
-              />
-              <input
-                type="number"
-                min="15"
-                max="85"
-                value={currentLeft}
-                onChange={(e) => setCurrentLeft(Number(e.target.value))}
-                className="w-14 px-1.5 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-xs font-mono text-center text-zinc-100"
-              />
-            </div>
-          </div>
-
-          {/* SELEÇÃO DO MOLDE & UPLOAD DAS ESTAMPAS */}
-          <div className="pt-3 border-t border-zinc-800 space-y-3">
-            {/* 1. Molde / Modelagem Padrão (Select de Mockup Base) */}
-            <div className="p-3 rounded-xl bg-zinc-950/90 border border-amber-500/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
-                  <Shirt size={13} className="text-amber-400" />
-                  <span>Molde / Modelagem Padrão (Mockup Base Cinza)</span>
-                </span>
-                <span className="text-[9px] text-amber-400 font-mono">Bases Reutilizáveis</span>
-              </div>
-
-              <div>
-                <select
-                  value={selectedTemplateId || ""}
-                  onChange={(e) => onSelectTemplate?.(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-semibold text-zinc-100 focus:outline-none focus:border-amber-500 cursor-pointer"
-                >
-                  <option value="">Selecione um molde de modelagem...</option>
-                  {(templates || []).map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.category || "Camisetas"})
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[10px] text-zinc-400 block mt-1">
-                  As bases cinzas da frente e das costas são vinculadas automaticamente do molde cadastrado.
-                </span>
-              </div>
-
-              {/* Detalhes expansíveis para personalização manual de mockup desta peça */}
-              <details className="text-[10px] text-zinc-400 pt-1">
-                <summary className="cursor-pointer hover:text-zinc-200 font-medium transition select-none">
-                  ⚙️ Personalizar bases manualmente para este produto (opcional)
-                </summary>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-2 pt-2 border-t border-zinc-800">
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Base Frente Customizada
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={baseShirtUrl}
-                        onChange={(e) => setBaseShirtUrl(e.target.value)}
-                        placeholder="/mockups/blank-front.svg"
-                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => frontBaseInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-                        title="Upload Base Frente"
-                      >
-                        <Upload size={10} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Base Costas Customizada
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={baseShirtBackUrl}
-                        onChange={(e) => setBaseShirtBackUrl(e.target.value)}
-                        placeholder="/mockups/blank-back.svg"
-                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => backBaseInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-                        title="Upload Base Costas"
-                      >
-                        <Upload size={10} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Base Lateral (Arara Pendurada)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={baseShirtSideUrl || ""}
-                        onChange={(e) => setBaseShirtSideUrl?.(e.target.value)}
-                        placeholder="/mockups/blank-side.svg"
-                        className="w-full px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-200 font-mono"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => sideBaseInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
-                        title="Upload Base Lateral"
-                      >
-                        <Upload size={10} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </details>
-            </div>
-
-            {/* 2. Contraste Dinâmico de Estampas: Versão Clara e Versão Escura */}
-            <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
-                  <Layers size={13} className="text-amber-400" />
-                  <span>Contraste Dinâmico de Estampas (PNG Transparente)</span>
-                </span>
-                <span className="text-[9px] text-zinc-500 font-mono">PNG transparente isolado</span>
-              </div>
-
-              {/* Versão Clara (para fundos escuros) */}
-              <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-amber-500/20 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-amber-300 flex items-center gap-1">
-                    <Sun size={11} />
-                    <span>Estampa Clara (para tecidos escuros: Preto, Marinho, Vinho...)</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-zinc-400">Tema: LIGHT</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Frente (Clara)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={printLightFront}
-                        onChange={(e) => {
-                          setPrintLightFront(e.target.value);
-                          setPrintImageUrl?.(e.target.value);
-                        }}
-                        placeholder="https://.../estampa-clara-frente.png"
-                        className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-200 focus:outline-none focus:border-amber-500"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => frontPrintLightInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow"
-                        title="Upload Estampa Clara Frente"
-                      >
-                        {isUploading ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                        <span>Upload</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Costas (Clara)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={printLightBack}
-                        onChange={(e) => {
-                          setPrintLightBack(e.target.value);
-                          setPrintBackImageUrl?.(e.target.value);
-                        }}
-                        placeholder="https://.../estampa-clara-costas.png"
-                        className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-200 focus:outline-none focus:border-amber-500"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => backPrintLightInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow"
-                        title="Upload Estampa Clara Costas"
-                      >
-                        {isUploading ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                        <span>Upload</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Versão Escura (para fundos claros/brancos) */}
-              <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-zinc-200 flex items-center gap-1">
-                    <Moon size={11} className="text-zinc-400" />
-                    <span>Estampa Escura (para tecidos claros: Branco, Off-White, Bege...)</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-zinc-400">Tema: DARK</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Frente (Escura)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={printDarkFront}
-                        onChange={(e) => setPrintDarkFront(e.target.value)}
-                        placeholder="https://.../estampa-escura-frente.png"
-                        className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-200 focus:outline-none focus:border-amber-500"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => frontPrintDarkInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow"
-                        title="Upload Estampa Escura Frente"
-                      >
-                        {isUploading ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                        <span>Upload</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-semibold text-zinc-300 mb-0.5">
-                      Costas (Escura)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={printDarkBack}
-                        onChange={(e) => setPrintDarkBack(e.target.value)}
-                        placeholder="https://.../estampa-escura-costas.png"
-                        className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-200 focus:outline-none focus:border-amber-500"
-                      />
-                      <button
-                        type="button"
-                        disabled={isUploading}
-                        onClick={() => backPrintDarkInputRef.current?.click()}
-                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow"
-                        title="Upload Estampa Escura Costas"
-                      >
-                        {isUploading ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                        <span>Upload</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function VitrineAdminView({
   initialItems,
   initialLeads,
   initialBanners = [],
-  initialTemplates = [],
 }: VitrineAdminViewProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS" | "BANNERS" | "TEMPLATES">("CATALOG");
-  const [templatesList, setTemplatesList] = useState<any[]>(initialTemplates);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [editSelectedTemplateId, setEditSelectedTemplateId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"CATALOG" | "LEADS" | "BANNERS">("CATALOG");
 
-  // Estados do Modal de Cadastro/Edição de Moldes (Templates)
-  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
-  const [tplName, setTplName] = useState("");
-  const [tplCategory, setTplCategory] = useState("Camisetas");
-  const [tplBaseFront, setTplBaseFront] = useState("/mockups/blank-front.svg");
-  const [tplBaseBack, setTplBaseBack] = useState("/mockups/blank-back.svg");
-  const [tplBaseSide, setTplBaseSide] = useState("");
-  const [tplDesc, setTplDesc] = useState("");
-  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  const [isUploadingTemplateBase, setIsUploadingTemplateBase] = useState(false);
-  const tplFrontInputRef = useRef<HTMLInputElement>(null);
-  const tplBackInputRef = useRef<HTMLInputElement>(null);
-  const tplSideInputRef = useRef<HTMLInputElement>(null);
-
-  // Estados de Criação
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [items, setItems] = useState<CatalogItem[]>(initialItems);
   const [isPending, startTransition] = useTransition();
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadingVariantIndex, setUploadingVariantIndex] = useState<number | null>(null);
 
+  // Filtros
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Estado do Modal de CriaÃ§Ã£o
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState<number | "">("");
-  const [category, setCategory] = useState<string>("Adulto");
+  const [category, setCategory] = useState("Adulto");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [backImageUrl, setBackImageUrl] = useState("");
-  const [showOnVirtualRack, setShowOnVirtualRack] = useState(false);
-  const [variants, setVariants] = useState<VariantInput[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [variants, setVariants] = useState<
+    { colorName: string; hexCode: string; imageUrl: string; images?: string[] }[]
+  >([]);
 
-  // Estados de Criação de Estampa & Mockup
-  const [baseShirtUrl, setBaseShirtUrl] = useState("/mockups/blank-front.svg");
-  const [baseShirtBackUrl, setBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
-  const [baseShirtSideUrl, setBaseShirtSideUrl] = useState("/mockups/blank-side.svg");
-  const [printImageUrl, setPrintImageUrl] = useState("");
-  const [printBackImageUrl, setPrintBackImageUrl] = useState("");
-  const [printLightFront, setPrintLightFront] = useState("");
-  const [printDarkFront, setPrintDarkFront] = useState("");
-  const [printLightBack, setPrintLightBack] = useState("");
-  const [printDarkBack, setPrintDarkBack] = useState("");
-  const [printWidth, setPrintWidth] = useState(45);
-  const [printTop, setPrintTop] = useState(28);
-  const [printLeft, setPrintLeft] = useState(50);
-  const [printWidthBack, setPrintWidthBack] = useState(50);
-  const [printTopBack, setPrintTopBack] = useState(25);
-  const [printLeftBack, setPrintLeftBack] = useState(50);
-  const [previewSide, setPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
-  const [previewColor, setPreviewColor] = useState("#18181b");
-  const [isUploadingPrint, setIsUploadingPrint] = useState(false);
-
-  // Estados de Edição
+  // Estado do Modal de EdiÃ§Ã£o
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editPrice, setEditPrice] = useState<number | "">("");
-  const [editCategory, setEditCategory] = useState<string>("Adulto");
+  const [editCategory, setEditCategory] = useState("Adulto");
   const [editDescription, setEditDescription] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editBackImageUrl, setEditBackImageUrl] = useState("");
-  const [editShowOnVirtualRack, setEditShowOnVirtualRack] = useState(false);
-  const [editVariants, setEditVariants] = useState<VariantInput[]>([]);
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editVariants, setEditVariants] = useState<
+    { colorName: string; hexCode: string; imageUrl: string; images?: string[] }[]
+  >([]);
+
+  // Upload States
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingVariantIndex, setUploadingVariantIndex] = useState<number | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const backFileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  const editBackFileInputRef = useRef<HTMLInputElement>(null);
+  const galleryFileInputRef = useRef<HTMLInputElement>(null);
+  const editGalleryFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados de Edição de Estampa & Mockup
-  const [editBaseShirtUrl, setEditBaseShirtUrl] = useState("/mockups/blank-front.svg");
-  const [editBaseShirtBackUrl, setEditBaseShirtBackUrl] = useState("/mockups/blank-back.svg");
-  const [editBaseShirtSideUrl, setEditBaseShirtSideUrl] = useState("/mockups/blank-side.svg");
-  const [editPrintImageUrl, setEditPrintImageUrl] = useState("");
-  const [editPrintBackImageUrl, setEditPrintBackImageUrl] = useState("");
-  const [editPrintLightFront, setEditPrintLightFront] = useState("");
-  const [editPrintDarkFront, setEditPrintDarkFront] = useState("");
-  const [editPrintLightBack, setEditPrintLightBack] = useState("");
-  const [editPrintDarkBack, setEditPrintDarkBack] = useState("");
-  const [editPrintWidth, setEditPrintWidth] = useState(45);
-  const [editPrintTop, setEditPrintTop] = useState(28);
-  const [editPrintLeft, setEditPrintLeft] = useState(50);
-  const [editPrintWidthBack, setEditPrintWidthBack] = useState(50);
-  const [editPrintTopBack, setEditPrintTopBack] = useState(25);
-  const [editPrintLeftBack, setEditPrintLeftBack] = useState(50);
-  const [editPreviewSide, setEditPreviewSide] = useState<"FRONT" | "BACK">("FRONT");
-  const [editPreviewColor, setEditPreviewColor] = useState("#18181b");
-  const [isUploadingEditPrint, setIsUploadingEditPrint] = useState(false);
-
-  // Upload handler para as camadas e versões de estampa
-  const handleUploadLayerFile = async (
-    file: File,
-    target:
-      | "PRINT_LIGHT_FRONT"
-      | "PRINT_DARK_FRONT"
-      | "PRINT_LIGHT_BACK"
-      | "PRINT_DARK_BACK"
-      | "BASE_FRONT"
-      | "BASE_BACK"
-      | "BASE_SIDE"
-      | "PRINT_FRONT"
-      | "PRINT_BACK",
-    isEdit = false
-  ) => {
-    if (isEdit) setIsUploadingEditPrint(true);
-    else setIsUploadingPrint(true);
-
-    const folder = target.startsWith("BASE") ? "mockups" : "prints";
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", folder);
-
-    const res = await uploadFileViaApi(formData);
-
-    if (res.success && res.url) {
-      if (isEdit) {
-        if (target === "PRINT_LIGHT_FRONT") {
-          setEditPrintLightFront(res.url);
-          setEditPrintImageUrl(res.url);
-        } else if (target === "PRINT_DARK_FRONT") {
-          setEditPrintDarkFront(res.url);
-        } else if (target === "PRINT_LIGHT_BACK") {
-          setEditPrintLightBack(res.url);
-          setEditPrintBackImageUrl(res.url);
-        } else if (target === "PRINT_DARK_BACK") {
-          setEditPrintDarkBack(res.url);
-        } else if (target === "PRINT_FRONT") {
-          setEditPrintLightFront(res.url);
-          setEditPrintImageUrl(res.url);
-        } else if (target === "PRINT_BACK") {
-          setEditPrintLightBack(res.url);
-          setEditPrintBackImageUrl(res.url);
-        } else if (target === "BASE_FRONT") {
-          setEditBaseShirtUrl(res.url);
-        } else if (target === "BASE_BACK") {
-          setEditBaseShirtBackUrl(res.url);
-        } else if (target === "BASE_SIDE") {
-          setEditBaseShirtSideUrl(res.url);
-        }
-      } else {
-        if (target === "PRINT_LIGHT_FRONT") {
-          setPrintLightFront(res.url);
-          setPrintImageUrl(res.url);
-        } else if (target === "PRINT_DARK_FRONT") {
-          setPrintDarkFront(res.url);
-        } else if (target === "PRINT_LIGHT_BACK") {
-          setPrintLightBack(res.url);
-          setPrintBackImageUrl(res.url);
-        } else if (target === "PRINT_DARK_BACK") {
-          setPrintDarkBack(res.url);
-        } else if (target === "PRINT_FRONT") {
-          setPrintLightFront(res.url);
-          setPrintImageUrl(res.url);
-        } else if (target === "PRINT_BACK") {
-          setPrintLightBack(res.url);
-          setPrintBackImageUrl(res.url);
-        } else if (target === "BASE_FRONT") {
-          setBaseShirtUrl(res.url);
-        } else if (target === "BASE_BACK") {
-          setBaseShirtBackUrl(res.url);
-        } else if (target === "BASE_SIDE") {
-          setBaseShirtSideUrl(res.url);
-        }
-      }
-
-      const label =
-        target === "BASE_FRONT"
-          ? "Mockup Base Frente enviado!"
-          : target === "BASE_BACK"
-          ? "Mockup Base Costas enviado!"
-          : target === "BASE_SIDE"
-          ? "Mockup Base Lateral enviado!"
-          : target === "PRINT_LIGHT_FRONT"
-          ? "Estampa Clara (Frente) enviada!"
-          : target === "PRINT_DARK_FRONT"
-          ? "Estampa Escura (Frente) enviada!"
-          : target === "PRINT_LIGHT_BACK"
-          ? "Estampa Clara (Costas) enviada!"
-          : target === "PRINT_DARK_BACK"
-          ? "Estampa Escura (Costas) enviada!"
-          : "Estampa enviada com sucesso!";
-      toast.success(label);
-    } else {
-      toast.error(res.error || "Erro no upload da imagem");
-    }
-    if (isEdit) setIsUploadingEditPrint(false);
-    else setIsUploadingPrint(false);
-  };
-
-  // Estado de Exclusão
+  // Estado de ExclusÃ£o
   const [itemToDelete, setItemToDelete] = useState<CatalogItem | null>(null);
 
-  // Upload de Imagem Principal
+  // Upload de Foto Principal
   const handleMainFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     isEdit = false
@@ -1097,12 +155,39 @@ export function VitrineAdminView({
     }
 
     setIsUploading(false);
-    if (e.target) {
-      e.target.value = "";
-    }
+    if (e.target) e.target.value = "";
   };
 
-  // Upload de Imagem de Variação de Cor
+  // Upload de Foto SecundÃ¡ria (Costas)
+  const handleBackFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEdit = false
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "catalog");
+
+    const res = await uploadFileViaApi(formData);
+    if (res.success && res.url) {
+      if (isEdit) {
+        setEditBackImageUrl(res.url);
+      } else {
+        setBackImageUrl(res.url);
+      }
+      toast.success("Foto de costas enviada com sucesso!");
+    } else {
+      toast.error(res.error || "Erro no upload da imagem");
+    }
+
+    setIsUploading(false);
+    if (e.target) e.target.value = "";
+  };
+
+  // Upload de Imagem de VariaÃ§Ã£o de Cor
   const handleVariantFileUpload = async (
     file: File,
     index: number,
@@ -1118,34 +203,142 @@ export function VitrineAdminView({
       if (isEdit) {
         setEditVariants((prev) => {
           const next = [...prev];
-          next[index] = { ...next[index], imageUrl: res.url! };
+          next[index].imageUrl = res.url!;
           return next;
         });
       } else {
         setVariants((prev) => {
           const next = [...prev];
-          next[index] = { ...next[index], imageUrl: res.url! };
+          next[index].imageUrl = res.url!;
           return next;
         });
       }
-      toast.success("Foto da variação enviada com sucesso!");
+      toast.success("Foto da variaÃ§Ã£o enviada com sucesso!");
     } else {
-      toast.error(res.error || "Erro no upload da foto da variação");
+      toast.error(res.error || "Erro no upload da imagem da variaÃ§Ã£o");
     }
     setUploadingVariantIndex(null);
   };
 
+  // Upload de Múltiplas Imagens para Galeria Geral
+  const handleGalleryUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isEdit = false
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const uploadedUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const formData = new FormData();
+      formData.append("file", files[i]);
+      formData.append("folder", "catalog");
+      const res = await uploadFileViaApi(formData);
+      if (res.success && res.url) {
+        uploadedUrls.push(res.url);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      if (isEdit) {
+        setEditImages((prev) => [...prev, ...uploadedUrls]);
+      } else {
+        setImages((prev) => [...prev, ...uploadedUrls]);
+      }
+      toast.success(`${uploadedUrls.length} foto(s) adicionada(s) à galeria!`);
+    } else {
+      toast.error("Erro ao enviar imagens da galeria.");
+    }
+
+    setIsUploading(false);
+    if (e.target) e.target.value = "";
+  };
+
+  const handleRemoveGalleryImage = (index: number, isEdit = false) => {
+    if (isEdit) {
+      setEditImages((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setImages((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  // Upload de Múltiplas Fotos para uma Variação de Cor
+  const handleVariantMultiFileUpload = async (
+    files: FileList | null,
+    variantIndex: number,
+    isEdit = false
+  ) => {
+    if (!files || files.length === 0) return;
+
+    setUploadingVariantIndex(variantIndex);
+    const uploadedUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const formData = new FormData();
+      formData.append("file", files[i]);
+      formData.append("folder", "catalog");
+      const res = await uploadFileViaApi(formData);
+      if (res.success && res.url) {
+        uploadedUrls.push(res.url);
+      }
+    }
+
+    if (uploadedUrls.length > 0) {
+      const setter = isEdit ? setEditVariants : setVariants;
+      setter((prev) => {
+        const next = [...prev];
+        const currentVariant = next[variantIndex];
+        const existingImages = currentVariant.images || (currentVariant.imageUrl ? [currentVariant.imageUrl] : []);
+        const mergedImages = [...existingImages, ...uploadedUrls];
+        next[variantIndex] = {
+          ...currentVariant,
+          imageUrl: currentVariant.imageUrl || uploadedUrls[0],
+          images: mergedImages,
+        };
+        return next;
+      });
+      toast.success(`${uploadedUrls.length} foto(s) da variação enviada(s)!`);
+    } else {
+      toast.error("Erro ao fazer upload das fotos da variação.");
+    }
+
+    setUploadingVariantIndex(null);
+  };
+
+  const handleRemoveVariantImage = (
+    variantIndex: number,
+    imageIndex: number,
+    isEdit = false
+  ) => {
+    const setter = isEdit ? setEditVariants : setVariants;
+    setter((prev) => {
+      const next = [...prev];
+      const current = next[variantIndex];
+      const currentList = current.images || (current.imageUrl ? [current.imageUrl] : []);
+      const updatedList = currentList.filter((_, i) => i !== imageIndex);
+      next[variantIndex] = {
+        ...current,
+        images: updatedList,
+        imageUrl: updatedList[0] || "",
+      };
+      return next;
+    });
+  };
+
+  // Gerenciamento de Variantes (Novo Item)
   const handleAddVariant = (isEdit = false) => {
-    const newVar: VariantInput = {
-      colorName: "",
-      hexCode: "#000000",
+    const defaultColor = {
+      colorName: "Nova Cor",
+      hexCode: "#18181b",
       imageUrl: "",
-      printTheme: "LIGHT",
+      images: [],
     };
     if (isEdit) {
-      setEditVariants((prev) => [...prev, newVar]);
+      setEditVariants((prev) => [...prev, defaultColor]);
     } else {
-      setVariants((prev) => [...prev, newVar]);
+      setVariants((prev) => [...prev, defaultColor]);
     }
   };
 
@@ -1157,277 +350,113 @@ export function VitrineAdminView({
     }
   };
 
-  // Ações de Gestão de Moldes / Modelagens
-  const handleOpenTemplateModal = (template?: any) => {
-    if (template) {
-      setEditingTemplate(template);
-      setTplName(template.name);
-      setTplCategory(template.category || "Camisetas");
-      setTplBaseFront(template.baseImageFront || "/mockups/blank-front.svg");
-      setTplBaseBack(template.baseImageBack || "/mockups/blank-back.svg");
-      setTplBaseSide(template.baseImageSide || "/mockups/blank-side.svg");
-      setTplDesc(template.description || "");
-    } else {
-      setEditingTemplate(null);
-      setTplName("");
-      setTplCategory("Camisetas");
-      setTplBaseFront("/mockups/blank-front.svg");
-      setTplBaseBack("/mockups/blank-back.svg");
-      setTplBaseSide("/mockups/blank-side.svg");
-      setTplDesc("");
-    }
-    setIsTemplateModalOpen(true);
-  };
-
-  const handleUploadTemplateBase = async (file: File, side: "FRONT" | "BACK" | "SIDE") => {
-    try {
-      setIsUploadingTemplateBase(true);
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("folder", "templates");
-      const res = await uploadFileViaApi(fd);
-      if (res.success && res.url) {
-        if (side === "FRONT") setTplBaseFront(res.url);
-        else if (side === "BACK") setTplBaseBack(res.url);
-        else setTplBaseSide(res.url);
-        toast.success(`Mockup ${side === "FRONT" ? "Frente" : side === "BACK" ? "Costas" : "Lateral"} carregado!`);
-      } else {
-        toast.error("Erro no upload do mockup: " + (res.error || "Desconhecido"));
-      }
-    } catch (e: any) {
-      toast.error("Erro no upload: " + e.message);
-    } finally {
-      setIsUploadingTemplateBase(false);
-    }
-  };
-
-  const handleSaveTemplate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tplName.trim()) {
-      toast.error("Informe o nome da modelagem/molde.");
-      return;
-    }
-    try {
-      setIsSavingTemplate(true);
-      if (editingTemplate) {
-        const res = await updateProductTemplate(editingTemplate.id, {
-          name: tplName,
-          category: tplCategory,
-          baseImageFront: tplBaseFront,
-          baseImageBack: tplBaseBack,
-          baseImageSide: tplBaseSide || undefined,
-          description: tplDesc || undefined,
-        });
-        if (res.success && res.template) {
-          toast.success(`Molde "${tplName}" atualizado com sucesso!`);
-          setTemplatesList((prev) =>
-            prev.map((t) => (t.id === editingTemplate.id ? { ...t, ...res.template } : t))
-          );
-          setIsTemplateModalOpen(false);
-          router.refresh();
-        } else {
-          toast.error(res.error || "Erro ao atualizar molde");
-        }
-      } else {
-        const res = await createProductTemplate({
-          name: tplName,
-          category: tplCategory,
-          baseImageFront: tplBaseFront,
-          baseImageBack: tplBaseBack,
-          baseImageSide: tplBaseSide || undefined,
-          description: tplDesc || undefined,
-        });
-        if (res.success && res.template) {
-          toast.success(`Molde "${tplName}" cadastrado com sucesso!`);
-          setTemplatesList((prev) => [res.template, ...prev]);
-          setIsTemplateModalOpen(false);
-          router.refresh();
-        } else {
-          toast.error(res.error || "Erro ao cadastrar molde");
-        }
-      }
-    } catch (e: any) {
-      toast.error("Erro: " + e.message);
-    } finally {
-      setIsSavingTemplate(false);
-    }
-  };
-
-  const handleDeleteTemplate = async (id: string, name: string) => {
-    if (!confirm(`Deseja realmente excluir o molde "${name}"? Os produtos vinculados manterão suas imagens atuais.`)) {
-      return;
-    }
-    try {
-      const res = await deleteProductTemplate(id);
-      if (res.success) {
-        toast.success(`Molde "${name}" removido.`);
-        setTemplatesList((prev) => prev.filter((t) => t.id !== id));
-        router.refresh();
-      } else {
-        toast.error(res.error || "Erro ao remover molde");
-      }
-    } catch (e: any) {
-      toast.error("Erro ao excluir: " + e.message);
-    }
-  };
-
+  // SubmissÃ£o de CriaÃ§Ã£o
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !imageUrl || price === "") {
-      toast.error("Preencha título, preço e envie a foto principal do produto.");
+
+    if (!title.trim() || price === "" || !imageUrl.trim()) {
+      toast.error("Preencha o tÃ­tulo, preÃ§o e envie a foto principal de capa.");
+      return;
+    }
+
+    const parsedPrice = Number(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast.error("Informe um preÃ§o de venda vÃ¡lido.");
       return;
     }
 
     startTransition(async () => {
       try {
-        const res: any = await createCatalogItem({
-          title,
-          price: Number(price),
-          category,
-          description,
-          imageUrl,
+        const payload = {
+          title: title.trim(),
+          price: parsedPrice,
+          imageUrl: imageUrl.trim(),
           backImageUrl: backImageUrl.trim() || undefined,
-          showOnVirtualRack,
-          templateId: selectedTemplateId || undefined,
-          baseShirtUrl: baseShirtUrl.trim() || undefined,
-          baseShirtBackUrl: baseShirtBackUrl.trim() || undefined,
-          baseShirtSideUrl: baseShirtSideUrl.trim() || undefined,
-          printImageUrl: printLightFront.trim() || printImageUrl.trim() || undefined,
-          printBackImageUrl: printLightBack.trim() || printBackImageUrl.trim() || undefined,
-          printLightFront: printLightFront.trim() || undefined,
-          printDarkFront: printDarkFront.trim() || undefined,
-          printLightBack: printLightBack.trim() || undefined,
-          printDarkBack: printDarkBack.trim() || undefined,
-          printWidth: Number(printWidth),
-          printTop: Number(printTop),
-          printLeft: Number(printLeft),
-          printWidthBack: Number(printWidthBack),
-          printTopBack: Number(printTopBack),
-          printLeftBack: Number(printLeftBack),
-          variants,
-        });
+          category,
+          description: description.trim() || undefined,
+          images: images.filter(Boolean),
+          variants: variants.map((v) => ({ ...v, images: v.images && v.images.length > 0 ? v.images : (v.imageUrl ? [v.imageUrl] : []) })),
+        };
 
+        const res: any = await createCatalogItem(payload);
         if (res && typeof res === "object" && "success" in res && !res.success) {
-          toast.error(String(res.error || "Erro ao salvar produto"));
+          toast.error(String(res.error || "Erro ao cadastrar produto"));
           return;
         }
 
-        toast.success(`Peça "${title}" cadastrada na vitrine com variações!`);
+        toast.success(`PeÃ§a "${title}" cadastrada com sucesso!`);
         setIsNewModalOpen(false);
         setTitle("");
         setPrice("");
+        setCategory("Adulto");
         setDescription("");
         setImageUrl("");
         setBackImageUrl("");
-        setShowOnVirtualRack(false);
-        setSelectedTemplateId("");
-        setBaseShirtUrl("/mockups/blank-front.svg");
-        setBaseShirtBackUrl("/mockups/blank-back.svg");
-        setBaseShirtSideUrl("/mockups/blank-side.svg");
-        setPrintImageUrl("");
-        setPrintBackImageUrl("");
-        setPrintLightFront("");
-        setPrintDarkFront("");
-        setPrintLightBack("");
-        setPrintDarkBack("");
-        setPrintWidth(45);
-        setPrintTop(28);
-        setPrintLeft(50);
-        setPrintWidthBack(50);
-        setPrintTopBack(25);
-        setPrintLeftBack(50);
+        setImages([]);
         setVariants([]);
         router.refresh();
       } catch (err: any) {
-        toast.error("Erro ao salvar produto: " + (err?.message || String(err)));
+        toast.error("Erro ao cadastrar: " + (err?.message || String(err)));
       }
     });
   };
 
+  // Abrir Modal de EdiÃ§Ã£o
   const handleOpenEdit = (item: CatalogItem) => {
     setEditingItem(item);
     setEditTitle(item.title);
     setEditPrice(item.price);
-    setEditCategory(item.category);
+    setEditCategory(item.category || "Adulto");
     setEditDescription(item.description || "");
     setEditImageUrl(item.imageUrl);
     setEditBackImageUrl(item.backImageUrl || "");
-    setEditShowOnVirtualRack(Boolean(item.showOnVirtualRack));
-    setEditSelectedTemplateId(item.templateId || "");
-    setEditBaseShirtUrl(
-      item.baseShirtUrl || item.template?.baseImageFront || "/mockups/blank-front.svg"
-    );
-    setEditBaseShirtBackUrl(
-      item.baseShirtBackUrl || item.template?.baseImageBack || "/mockups/blank-back.svg"
-    );
-    setEditBaseShirtSideUrl(
-      item.baseShirtSideUrl || item.template?.baseImageSide || "/mockups/blank-side.svg"
-    );
-    setEditPrintImageUrl(item.printImageUrl || "");
-    setEditPrintBackImageUrl(item.printBackImageUrl || "");
-    setEditPrintLightFront(item.printLightFront || item.printImageUrl || "");
-    setEditPrintDarkFront(item.printDarkFront || "");
-    setEditPrintLightBack(item.printLightBack || item.printBackImageUrl || "");
-    setEditPrintDarkBack(item.printDarkBack || "");
-    setEditPrintWidth(item.printWidth ?? 45);
-    setEditPrintTop(item.printTop ?? 28);
-    setEditPrintLeft(item.printLeft ?? 50);
-    setEditPrintWidthBack(item.printWidthBack ?? 50);
-    setEditPrintTopBack(item.printTopBack ?? 25);
-    setEditPrintLeftBack(item.printLeftBack ?? 50);
-    setEditPreviewSide("FRONT");
-    setEditPreviewColor(item.variants?.[0]?.hexCode || "#18181b");
+    setEditImages(item.images || []);
     setEditVariants(
-      (item.variants || []).map((v) => ({
-        id: v.id,
+      item.variants?.map((v) => ({
         colorName: v.colorName,
-        hexCode: v.hexCode,
+        hexCode: v.hexCode || "#18181b",
         imageUrl: v.imageUrl,
-        printTheme: v.printTheme || "LIGHT",
-      }))
+        images: v.images && v.images.length > 0 ? v.images : (v.imageUrl ? [v.imageUrl] : []),
+      })) || []
     );
   };
 
-  const handleUpdate = (e: React.FormEvent) => {
+  // Salvar EdiÃ§Ã£o
+  const handleEditSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
 
+    if (!editTitle.trim() || editPrice === "" || !editImageUrl.trim()) {
+      toast.error("TÃ­tulo, preÃ§o e imagem de capa sÃ£o obrigatÃ³rios.");
+      return;
+    }
+
+    const parsedPrice = Number(editPrice);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast.error("Informe um preÃ§o de venda vÃ¡lido.");
+      return;
+    }
+
     startTransition(async () => {
       try {
-        const finalImageUrl = editImageUrl?.trim() || editingItem.imageUrl;
-        const res: any = await updateCatalogItem(editingItem.id, {
-          title: editTitle,
-          price: Number(editPrice),
+        const payload = {
+          title: editTitle.trim(),
+          price: parsedPrice,
+          imageUrl: editImageUrl.trim(),
+          backImageUrl: editBackImageUrl.trim() || undefined,
           category: editCategory,
-          description: editDescription,
-          imageUrl: finalImageUrl,
-          backImageUrl: editBackImageUrl?.trim() || undefined,
-          showOnVirtualRack: editShowOnVirtualRack,
-          templateId: editSelectedTemplateId || undefined,
-          baseShirtUrl: editBaseShirtUrl.trim() || undefined,
-          baseShirtBackUrl: editBaseShirtBackUrl.trim() || undefined,
-          baseShirtSideUrl: editBaseShirtSideUrl.trim() || undefined,
-          printImageUrl: editPrintLightFront.trim() || editPrintImageUrl.trim() || undefined,
-          printBackImageUrl: editPrintLightBack.trim() || editPrintBackImageUrl.trim() || undefined,
-          printLightFront: editPrintLightFront.trim() || undefined,
-          printDarkFront: editPrintDarkFront.trim() || undefined,
-          printLightBack: editPrintLightBack.trim() || undefined,
-          printDarkBack: editPrintDarkBack.trim() || undefined,
-          printWidth: Number(editPrintWidth),
-          printTop: Number(editPrintTop),
-          printLeft: Number(editPrintLeft),
-          printWidthBack: Number(editPrintWidthBack),
-          printTopBack: Number(editPrintTopBack),
-          printLeftBack: Number(editPrintLeftBack),
-          variants: editVariants,
-        });
+          description: editDescription.trim() || undefined,
+          images: editImages.filter(Boolean),
+          variants: editVariants.map((v) => ({ ...v, images: v.images && v.images.length > 0 ? v.images : (v.imageUrl ? [v.imageUrl] : []) })),
+        };
 
+        const res: any = await updateCatalogItem(editingItem.id, payload);
         if (res && typeof res === "object" && "success" in res && !res.success) {
           toast.error(String(res.error || "Erro ao atualizar produto"));
           return;
         }
 
-        toast.success(`Peça "${editTitle}" e variações atualizadas!`);
+        toast.success(`PeÃ§a "${editTitle}" atualizada com sucesso!`);
         setEditingItem(null);
         router.refresh();
       } catch (err: any) {
@@ -1436,6 +465,7 @@ export function VitrineAdminView({
     });
   };
 
+  // Toggle Ativo / Inativo
   const handleToggleActive = (item: CatalogItem) => {
     startTransition(async () => {
       try {
@@ -1456,6 +486,7 @@ export function VitrineAdminView({
     });
   };
 
+  // ExclusÃ£o
   const handleDelete = () => {
     if (!itemToDelete) return;
     startTransition(async () => {
@@ -1465,7 +496,7 @@ export function VitrineAdminView({
           toast.error(String(res.error || "Erro ao excluir"));
           return;
         }
-        toast.success("Produto removido do catálogo.");
+        toast.success("Produto removido do catÃ¡logo.");
         setItemToDelete(null);
         router.refresh();
       } catch (err: any) {
@@ -1473,6 +504,17 @@ export function VitrineAdminView({
       }
     });
   };
+
+  // Filtragem de Itens
+  const filteredItems = items.filter((item) => {
+    const matchesCategory =
+      categoryFilter === "ALL" || item.category === categoryFilter;
+    const matchesSearch =
+      searchTerm === "" ||
+      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -1482,14 +524,14 @@ export function VitrineAdminView({
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl md:text-2xl font-bold tracking-tight text-zinc-100 flex items-center gap-2">
               <Sparkles size={22} className="text-amber-400" />
-              <span>Gerenciar Vitrine Pública</span>
+              <span>Gerenciar Vitrine PÃºblica</span>
             </h1>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-amber-400 font-semibold">
-              Loja & Variações
+              Loja & VariaÃ§Ãµes
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Cadastre produtos com variações de cores/fotos, organize por categoria (Adulto, Infantil, Oversized, Feminina, Regata) e veja os orçamentos.
+            Cadastre fotos reais dos produtos, organize por categoria (Adulto, Infantil, Oversized, Feminina, Regata) e visualize os leads.
           </p>
         </div>
 
@@ -1501,7 +543,7 @@ export function VitrineAdminView({
             className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition"
           >
             <Eye size={14} />
-            <span>Ver Vitrine ao Vivo</span>
+            <span>Ver Loja ao Vivo</span>
           </a>
 
           <button
@@ -1512,6 +554,7 @@ export function VitrineAdminView({
               setCategory("Adulto");
               setDescription("");
               setImageUrl("");
+              setBackImageUrl("");
               setVariants([]);
             }}
             className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
@@ -1533,7 +576,7 @@ export function VitrineAdminView({
           }`}
         >
           <Sparkles size={14} />
-          <span>Peças do Catálogo ({initialItems.length})</span>
+          <span>PeÃ§as do CatÃ¡logo ({initialItems.length})</span>
         </button>
 
         <button
@@ -1545,7 +588,7 @@ export function VitrineAdminView({
           }`}
         >
           <MessageCircle size={14} />
-          <span>Orçamentos Personalizados ({initialLeads.length})</span>
+          <span>OrÃ§amentos Personalizados ({initialLeads.length})</span>
         </button>
 
         <button
@@ -1559,63 +602,86 @@ export function VitrineAdminView({
           <ImageIcon size={14} />
           <span>Banners da Home ({initialBanners.length})</span>
         </button>
-
-        <button
-          onClick={() => setActiveTab("TEMPLATES")}
-          className={`px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition cursor-pointer ${
-            activeTab === "TEMPLATES"
-              ? "bg-amber-500 text-zinc-950 font-bold shadow-sm"
-              : "text-zinc-500 hover:text-zinc-300"
-          }`}
-        >
-          <Shirt size={14} />
-          <span>Moldes / Modelagens ({templatesList.length})</span>
-        </button>
       </div>
 
-      {/* Content: Catálogo */}
+      {/* Content: PeÃ§as do CatÃ¡logo */}
       {activeTab === "CATALOG" && (
         <div className="space-y-4">
-          {initialItems.length === 0 ? (
+          {/* Barra de Filtros */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl bg-zinc-900/50 border border-zinc-800">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+              <button
+                onClick={() => setCategoryFilter("ALL")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer shrink-0 ${
+                  categoryFilter === "ALL"
+                    ? "bg-amber-500 text-zinc-950 font-bold"
+                    : "bg-zinc-800/80 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                Todas ({items.length})
+              </button>
+              {CATALOG_CATEGORIES.map((cat) => {
+                const count = items.filter((i) => i.category === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition cursor-pointer shrink-0 ${
+                      categoryFilter === cat
+                        ? "bg-amber-500 text-zinc-950 font-bold"
+                        : "bg-zinc-800/80 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {cat} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Buscar por nome ou descriÃ§Ã£o..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+          </div>
+
+          {/* Grid de Cards */}
+          {filteredItems.length === 0 ? (
             <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 flex flex-col items-center justify-center gap-3">
-              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
+              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500">
                 <ImageIcon size={28} />
               </div>
-              <h3 className="text-sm font-semibold text-zinc-200">
-                Nenhum produto cadastrado na vitrine ainda
+              <h3 className="text-sm font-semibold text-zinc-300">
+                Nenhuma peÃ§a encontrada
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm">
-                Cadastre suas peças com múltiplas cores, fotos e categorias para exibição na vitrine online.
+                Cadastre novas peÃ§as ou altere o filtro de categoria acima.
               </p>
-              <button
-                onClick={() => setIsNewModalOpen(true)}
-                className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                + Adicionar Primeiro Produto
-              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {initialItems.map((item) => (
+              {filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`rounded-2xl border transition overflow-hidden flex flex-col justify-between group ${
-                    item.isActive
-                      ? "bg-zinc-900/40 border-zinc-800/80 hover:border-zinc-700"
-                      : "bg-zinc-950/40 border-zinc-800/40 opacity-60"
-                  }`}
+                  className="group rounded-2xl bg-zinc-900/70 border border-zinc-800 hover:border-zinc-700 transition overflow-hidden flex flex-col justify-between"
                 >
                   <div>
-                    {/* Imagem do Produto */}
-                    <div className="relative aspect-[3/4] w-full bg-zinc-900 overflow-hidden flex items-center justify-center">
+                    {/* Imagem de Capa Real */}
+                    <div className="relative aspect-[3/4] bg-zinc-950 border-b border-zinc-800/80 overflow-hidden">
                       <SafeImage
                         src={item.imageUrl}
                         alt={item.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        fallbackClassName="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-600"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        containerClassName="w-full h-full bg-zinc-950 flex items-center justify-center text-zinc-600"
                         iconSize={32}
                       />
-                      <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1">
+
+                      {/* Status Badges */}
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                         <span
                           className={`text-[10px] font-mono px-2 py-0.5 rounded-full border backdrop-blur-md font-semibold ${
                             item.isActive
@@ -1625,12 +691,6 @@ export function VitrineAdminView({
                         >
                           {item.isActive ? "Ativo" : "Inativo"}
                         </span>
-                        {item.showOnVirtualRack && (
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full border backdrop-blur-md font-bold bg-amber-500/20 text-amber-400 border-amber-500/40 flex items-center gap-1 shadow">
-                            <Sparkles size={9} />
-                            Arara 3D
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -1645,44 +705,46 @@ export function VitrineAdminView({
                         </span>
                       </div>
 
-                      <h4 className="text-sm font-semibold text-zinc-100 truncate">
+                      <h4 className="font-serif text-sm font-bold text-zinc-100 truncate">
                         {item.title}
                       </h4>
 
-                      {/* Swatches de Cores */}
-                      {item.variants && item.variants.length > 0 ? (
-                        <div className="flex items-center gap-1.5 pt-1">
+                      {item.description && (
+                        <p className="text-xs text-zinc-400 line-clamp-2 font-light">
+                          {item.description}
+                        </p>
+                      )}
+
+                      {/* Miniaturas de Cores Cadastradas */}
+                      {item.variants && item.variants.length > 0 && (
+                        <div className="pt-2 flex items-center gap-1 overflow-x-auto">
                           {item.variants.map((v) => (
                             <span
-                              key={v.id || v.colorName}
-                              title={`${v.colorName} (${v.hexCode})`}
-                              className="w-3.5 h-3.5 rounded-full border border-zinc-700 shadow-sm shrink-0"
-                              style={{ backgroundColor: v.hexCode }}
+                              key={v.id}
+                              title={v.colorName}
+                              className="w-3.5 h-3.5 rounded-full border border-black/40 inline-block shrink-0"
+                              style={{ backgroundColor: v.hexCode || "#18181b" }}
                             />
                           ))}
                           <span className="text-[10px] text-zinc-500 font-mono ml-1">
-                            {item.variants.length} {item.variants.length === 1 ? "cor" : "cores"}
+                            +{item.variants.length} cores
                           </span>
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-zinc-600 font-mono block pt-1">
-                          Sem variações de cor adicionais
-                        </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Actions Footer */}
-                  <div className="p-3 bg-zinc-950/60 border-t border-zinc-800/60 flex items-center justify-between">
+                  {/* AÃ§Ãµes */}
+                  <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/40 flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => handleToggleActive(item)}
-                      title={item.isActive ? "Desativar da vitrine" : "Ativar na vitrine"}
                       className={`p-1.5 rounded-lg text-xs flex items-center gap-1 transition cursor-pointer ${
                         item.isActive
-                          ? "text-emerald-400 hover:bg-emerald-500/10"
-                          : "text-zinc-500 hover:bg-zinc-800"
+                          ? "text-zinc-400 hover:text-amber-400"
+                          : "text-emerald-400 hover:text-emerald-300"
                       }`}
+                      title={item.isActive ? "Desativar da vitrine" : "Ativar na vitrine"}
                     >
                       <Power size={13} />
                       <span className="text-[11px]">{item.isActive ? "Pausar" : "Ativar"}</span>
@@ -1692,8 +754,8 @@ export function VitrineAdminView({
                       <button
                         type="button"
                         onClick={() => handleOpenEdit(item)}
-                        title="Editar produto e cores"
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-400 hover:bg-zinc-800 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
+                        title="Editar peÃ§a"
                       >
                         <Edit2 size={13} />
                       </button>
@@ -1701,8 +763,8 @@ export function VitrineAdminView({
                       <button
                         type="button"
                         onClick={() => setItemToDelete(item)}
-                        title="Excluir produto"
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                        title="Excluir peÃ§a"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -1715,7 +777,7 @@ export function VitrineAdminView({
         </div>
       )}
 
-      {/* Content: Orçamentos / Leads */}
+      {/* Content: OrÃ§amentos / Leads */}
       {activeTab === "LEADS" && (
         <div className="space-y-4">
           {initialLeads.length === 0 ? (
@@ -1724,10 +786,10 @@ export function VitrineAdminView({
                 <MessageCircle size={28} />
               </div>
               <h3 className="text-sm font-semibold text-zinc-200">
-                Nenhum orçamento personalizado recebido ainda
+                Nenhum orÃ§amento personalizado recebido ainda
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm">
-                Quando os clientes preencherem o formulário "Personalize sua Peça" na vitrine pública, os contatos e arquivos aparecerão aqui.
+                Quando os clientes preencherem o formulÃ¡rio na vitrine pÃºblica, os contatos e arquivos aparecerÃ£o aqui.
               </p>
             </div>
           ) : (
@@ -1742,14 +804,14 @@ export function VitrineAdminView({
                       <th className="px-4 py-3">Tamanho</th>
                       <th className="px-4 py-3">Arte Enviada</th>
                       <th className="px-4 py-3">Data</th>
-                      <th className="px-4 py-3 text-right">Ação</th>
+                      <th className="px-4 py-3 text-right">AÃ§Ã£o</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/60">
                     {initialLeads.map((lead) => {
                       const cleanPhone = lead.whatsapp.replace(/\D/g, "");
                       const waLink = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
-                        `Olá ${lead.customerName}! Recebemos seu pedido de camiseta personalizada (${lead.shirtModel} - Tam ${lead.size}) na Cordeiro Ink.`
+                        `OlÃ¡ ${lead.customerName}! Recebemos seu pedido de camiseta personalizada (${lead.shirtModel} - Tam ${lead.size}) na Cordeiro Ink.`
                       )}`;
 
                       return (
@@ -1811,398 +873,17 @@ export function VitrineAdminView({
         <BannerManagerSection initialBanners={initialBanners} />
       )}
 
-      {/* Content: Moldes e Modelagens */}
-      {activeTab === "TEMPLATES" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
-            <div>
-              <div className="flex items-center gap-2">
-                <Shirt size={18} className="text-amber-400" />
-                <h3 className="text-sm font-bold text-zinc-100">
-                  Moldes & Modelagens Padrão (Mockups Base)
-                </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  Arquitetura Arara 3D
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 mt-1 max-w-2xl">
-                Cadastre as bases cinzas neutras com texturas e sombras (frente e costas) de cada modelagem (ex: Oversized Streetwear, Regular Heavyweight, Moletom). Ao cadastrar novas peças, basta escolher a modelagem e subir apenas o PNG da estampa transparente.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleOpenTemplateModal()}
-              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold flex items-center gap-2 transition shadow cursor-pointer shrink-0"
-            >
-              <Plus size={15} />
-              <span>+ Novo Molde</span>
-            </button>
-          </div>
-
-          {templatesList.length === 0 ? (
-            <div className="p-12 text-center rounded-2xl bg-zinc-900/40 border border-dashed border-zinc-800 flex flex-col items-center justify-center gap-3">
-              <div className="p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-400">
-                <Shirt size={28} />
-              </div>
-              <h3 className="text-sm font-semibold text-zinc-200">
-                Nenhum molde cadastrado ainda
-              </h3>
-              <p className="text-xs text-zinc-500 max-w-sm">
-                Cadastre uma modelagem padrão para reutilizar os mockups neutros cinzas da frente e costas sem precisar subir as fotos repetidamente.
-              </p>
-              <button
-                type="button"
-                onClick={() => handleOpenTemplateModal()}
-                className="mt-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer"
-              >
-                Cadastrar Primeiro Molde
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {templatesList.map((tpl) => {
-                const totalLinked =
-                  (tpl._count?.products || 0) + (tpl._count?.catalogItems || 0);
-
-                return (
-                  <div
-                    key={tpl.id}
-                    className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex flex-col justify-between gap-4 hover:border-zinc-700 transition"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div>
-                          <h4 className="text-sm font-bold text-zinc-100 flex items-center gap-1.5">
-                            <Shirt size={14} className="text-amber-400" />
-                            <span>{tpl.name}</span>
-                          </h4>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700 inline-block mt-1">
-                            {tpl.category}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono font-semibold text-zinc-400 px-2 py-0.5 rounded-md bg-zinc-950 border border-zinc-800 shrink-0">
-                          {totalLinked} {totalLinked === 1 ? "peça" : "peças"}
-                        </span>
-                      </div>
-
-                      {tpl.description && (
-                        <p className="text-xs text-zinc-400 mb-3 line-clamp-2">
-                          {tpl.description}
-                        </p>
-                      )}
-
-                      {/* Mockups Frente, Costas e Lateral */}
-                      <div className="grid grid-cols-3 gap-2 p-2 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
-                            Frente
-                          </span>
-                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                            <img
-                              src={tpl.baseImageFront}
-                              alt={`${tpl.name} Frente`}
-                              className="w-full h-full object-contain p-1"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center">
-                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
-                            Costas
-                          </span>
-                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                            <img
-                              src={tpl.baseImageBack}
-                              alt={`${tpl.name} Costas`}
-                              className="w-full h-full object-contain p-1"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center">
-                          <span className="text-[9px] font-mono text-zinc-500 uppercase mb-1">
-                            Lateral
-                          </span>
-                          <div className="relative aspect-[3/4] w-full max-h-32 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
-                            <img
-                              src={tpl.baseImageSide || "/mockups/blank-side.svg"}
-                              alt={`${tpl.name} Lateral`}
-                              className="w-full h-full object-contain p-1"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800/80">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenTemplateModal(tpl)}
-                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                      >
-                        <Edit2 size={12} />
-                        <span>Editar</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTemplate(tpl.id, tpl.name)}
-                        className="p-1.5 rounded-lg bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition cursor-pointer"
-                        title="Excluir Molde"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Modal: Cadastrar ou Editar Molde */}
-      {isTemplateModalOpen && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => !isSavingTemplate && setIsTemplateModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Hidden file inputs para os mockups do molde */}
-            <input
-              type="file"
-              ref={tplFrontInputRef}
-              accept="image/png,image/webp,image/svg+xml,image/jpeg"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUploadTemplateBase(f, "FRONT");
-                if (e.target) e.target.value = "";
-              }}
-            />
-            <input
-              type="file"
-              ref={tplBackInputRef}
-              accept="image/png,image/webp,image/svg+xml,image/jpeg"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUploadTemplateBase(f, "BACK");
-                if (e.target) e.target.value = "";
-              }}
-            />
-            <input
-              type="file"
-              ref={tplSideInputRef}
-              accept="image/png,image/webp,image/svg+xml,image/jpeg"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleUploadTemplateBase(f, "SIDE");
-                if (e.target) e.target.value = "";
-              }}
-            />
-
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <Shirt size={16} />
-                </div>
-                <h3 className="text-sm font-bold text-zinc-100">
-                  {editingTemplate ? "Editar Molde / Modelagem" : "Cadastrar Novo Molde"}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTemplateModalOpen(false)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveTemplate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Nome da Modelagem / Molde *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={tplName}
-                  onChange={(e) => setTplName(e.target.value)}
-                  placeholder="Ex: Oversized Streetwear Boxy, Regular Heavyweight, Moletom"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Categoria da Modelagem
-                </label>
-                <select
-                  value={tplCategory}
-                  onChange={(e) => setTplCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
-                >
-                  <option value="Camisetas">Camisetas</option>
-                  <option value="Oversized">Oversized</option>
-                  <option value="Adulto">Adulto / Regular</option>
-                  <option value="Regatas">Regatas</option>
-                  <option value="Feminina">Feminina</option>
-                  <option value="Infantil">Infantil</option>
-                  <option value="Moletom">Moletom</option>
-                </select>
-              </div>
-
-              {/* Uploads das bases cinzas Frente, Costas e Lateral */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                {/* Frente */}
-                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-200 block">
-                    Base Cinza (Frente) *
-                  </span>
-                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={tplBaseFront}
-                      alt="Base Frente"
-                      className="w-full h-full object-contain p-2"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={tplBaseFront}
-                      onChange={(e) => setTplBaseFront(e.target.value)}
-                      placeholder="/mockups/blank-front.svg"
-                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploadingTemplateBase}
-                      onClick={() => tplFrontInputRef.current?.click()}
-                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                    >
-                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                      <span>Subir</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Costas */}
-                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-200 block">
-                    Base Cinza (Costas) *
-                  </span>
-                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={tplBaseBack}
-                      alt="Base Costas"
-                      className="w-full h-full object-contain p-2"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={tplBaseBack}
-                      onChange={(e) => setTplBaseBack(e.target.value)}
-                      placeholder="/mockups/blank-back.svg"
-                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploadingTemplateBase}
-                      onClick={() => tplBackInputRef.current?.click()}
-                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                    >
-                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                      <span>Subir</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Lateral (Arara Pendurada) */}
-                <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-200 block">
-                    Base Cinza (Lateral) *
-                  </span>
-                  <div className="relative aspect-[3/4] w-full max-h-36 rounded-lg bg-zinc-950 border border-zinc-800 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={tplBaseSide || "/mockups/blank-side.svg"}
-                      alt="Base Lateral"
-                      className="w-full h-full object-contain p-2"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={tplBaseSide}
-                      onChange={(e) => setTplBaseSide(e.target.value)}
-                      placeholder="/mockups/blank-side.svg"
-                      className="w-full px-2 py-1 rounded bg-zinc-950 border border-zinc-800 text-[10px] text-zinc-300 font-mono"
-                    />
-                    <button
-                      type="button"
-                      disabled={isUploadingTemplateBase}
-                      onClick={() => tplSideInputRef.current?.click()}
-                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[10px] font-bold flex items-center gap-1 shrink-0 transition cursor-pointer"
-                    >
-                      {isUploadingTemplateBase ? <Loader2 size={10} className="animate-spin" /> : <Upload size={10} />}
-                      <span>Subir</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Descrição Técnica da Modelagem (Opcional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={tplDesc}
-                  onChange={(e) => setTplDesc(e.target.value)}
-                  placeholder="Ex: Gola canelada de 3cm, caimento solto boxy, ombros caídos..."
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => setIsTemplateModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingTemplate || isUploadingTemplateBase}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {isSavingTemplate && <Loader2 size={12} className="animate-spin" />}
-                  <span>{editingTemplate ? "Salvar Alterações" : "Cadastrar Molde"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Adicionar Novo Produto */}
+      {/* ========================================================================= */}
+      {/* MODAL DE CADASTRO SIMPLIFICADO (UPLOAD DIRETO DE FOTO REAL)               */}
+      {/* ========================================================================= */}
       {isNewModalOpen && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => !isPending && setIsNewModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsNewModalOpen(false)}
         >
           <div
-            className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
+            className="w-full max-w-3xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
@@ -2210,7 +891,7 @@ export function VitrineAdminView({
                   <Sparkles size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Cadastrar Peça & Variações de Cores
+                  Cadastrar Nova PeÃ§a na Vitrine
                 </h3>
               </div>
               <button
@@ -2223,83 +904,144 @@ export function VitrineAdminView({
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
-              {/* Foto Principal de Capa */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Foto Principal de Capa *
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleMainFileUpload(e, false)}
-                  className="hidden"
-                />
+              {/* Fotos Reais: Frente e Costas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Foto Principal de Capa (Frente) */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                    Foto Principal (Frente) *
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleMainFileUpload(e, false)}
+                    className="hidden"
+                  />
 
-                {imageUrl ? (
-                  <div className="relative aspect-[3/4] w-36 rounded-xl overflow-hidden border border-zinc-700 mx-auto">
-                    <SafeImage
-                      src={imageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl("")}
-                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                  {imageUrl ? (
+                    <div className="relative aspect-[3/4] w-full max-w-[200px] rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                      <SafeImage
+                        src={imageUrl}
+                        alt="Preview Frente"
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl("")}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2 min-h-[160px]"
                     >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader2 size={22} className="animate-spin text-amber-400" />
-                        <span className="text-xs text-zinc-400 font-mono">
-                          Fazendo upload da foto para o Supabase...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={22} className="text-zinc-500" />
-                        <div>
-                          <p className="text-xs font-semibold text-zinc-300">
-                            Clique para subir a foto principal de capa
-                          </p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
-                            Bucket público storefront (PNG, JPG, WEBP)
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
+                      {isUploading ? (
+                        <>
+                          <Loader2 size={22} className="animate-spin text-amber-400" />
+                          <span className="text-xs text-zinc-400 font-mono">
+                            Fazendo upload da foto...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={22} className="text-zinc-500" />
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-300">
+                              Subir foto da frente
+                            </p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
+                              PNG, JPG ou WEBP
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Foto SecundÃ¡ria (Costas / Detalhe) */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                    Foto SecundÃ¡ria (Costas / Detalhe)
+                  </label>
+                  <input
+                    ref={backFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleBackFileUpload(e, false)}
+                    className="hidden"
+                  />
+
+                  {backImageUrl ? (
+                    <div className="relative aspect-[3/4] w-full max-w-[200px] rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                      <SafeImage
+                        src={backImageUrl}
+                        alt="Preview Costas"
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setBackImageUrl("")}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => backFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2 min-h-[160px]"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 size={22} className="animate-spin text-amber-400" />
+                          <span className="text-xs text-zinc-400 font-mono">
+                            Fazendo upload...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={22} className="text-zinc-500" />
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-300">
+                              Subir foto das costas
+                            </p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
+                              Opcional
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Título & Preço */}
+              {/* TÃ­tulo & PreÃ§o */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Título da Peça *
+                    TÃ­tulo da PeÃ§a *
                   </label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ex: Heavyweight Boxy Tee"
+                    placeholder="Ex: Blessed Heavyweight Oversized Tee"
                     className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Preço de Venda (R$) *
+                    PreÃ§o de Venda (R$) *
                   </label>
                   <CurrencyInput
                     value={price}
@@ -2310,7 +1052,7 @@ export function VitrineAdminView({
                 </div>
               </div>
 
-              {/* Categoria Estrita */}
+              {/* Categoria */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Categoria *
@@ -2328,27 +1070,27 @@ export function VitrineAdminView({
                 </select>
               </div>
 
-              {/* Descrição */}
+              {/* DescriÃ§Ã£o */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Descrição / Detalhes do Tecido
+                  DescriÃ§Ã£o / Detalhes do Tecido
                 </label>
                 <textarea
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ex: Malha 100% algodão 260g/m² com ribana canelada de 3cm e costura reforçada."
+                  placeholder="Ex: Malha 100% algodÃ£o 260g/mÂ² com ribana canelada de 3cm e costura ombro a ombro."
                   className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* Seção Dinâmica de Variações de Cores */}
+              {/* VariaÃ§Ãµes de Cores */}
               <div className="pt-2 border-t border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Palette size={15} className="text-amber-400" />
                     <span className="text-xs font-bold text-zinc-200">
-                      Variações de Cores & Fotos Específicas ({variants.length})
+                      VariaÃ§Ãµes de Cores & Fotos EspecÃ­ficas ({variants.length})
                     </span>
                   </div>
                   <button
@@ -2363,7 +1105,7 @@ export function VitrineAdminView({
 
                 {variants.length === 0 ? (
                   <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
-                    Nenhuma variação adicionada. O produto usará apenas a foto principal de capa. Clique em "Adicionar Cor" para cadastrar fotos por cor (ex: Preto, Off-White, Bege).
+                    Nenhuma variaÃ§Ã£o adicionada. A peÃ§a usarÃ¡ apenas a foto principal de capa. Clique em "Adicionar Cor" para cadastrar fotos por cor (ex: Preto, Off-White, Bege).
                   </p>
                 ) : (
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
@@ -2372,12 +1114,11 @@ export function VitrineAdminView({
                         key={index}
                         className="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs"
                       >
-                        {/* Nome da Cor */}
                         <div className="flex-1">
                           <input
                             type="text"
                             required
-                            placeholder="Nome da Cor (ex: Preto OLED)"
+                            placeholder="Nome da Cor (ex: Preto Street)"
                             value={variant.colorName}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -2391,11 +1132,10 @@ export function VitrineAdminView({
                           />
                         </div>
 
-                        {/* Color Picker / Hex */}
                         <div className="flex items-center gap-2 shrink-0">
                           <input
                             type="color"
-                            value={variant.hexCode || "#000000"}
+                            value={variant.hexCode || "#18181b"}
                             onChange={(e) => {
                               const val = e.target.value;
                               setVariants((prev) => {
@@ -2418,85 +1158,61 @@ export function VitrineAdminView({
                                 return next;
                               });
                             }}
-                            placeholder="#000000"
+                            placeholder="#18181b"
                             className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-100 focus:outline-none focus:border-amber-500 uppercase"
                           />
                         </div>
 
-                        {/* Tema da Estampa (Contraste Dinâmico) */}
-                        <div className="flex flex-col shrink-0">
-                          <select
-                            value={variant.printTheme || "LIGHT"}
-                            onChange={(e) => {
-                              const val = e.target.value as "LIGHT" | "DARK";
-                              setVariants((prev) => {
-                                const next = [...prev];
-                                next[index].printTheme = val;
-                                return next;
-                              });
-                            }}
-                            className="px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] font-semibold text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                            title="Escolha se esta cor de tecido usa a estampa clara ou escura"
-                          >
-                            <option value="LIGHT">☀️ Estampa Clara</option>
-                            <option value="DARK">🌙 Estampa Escura</option>
-                          </select>
-                        </div>
+                        <div className="flex flex-col gap-2 w-full pt-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-zinc-400 font-mono">
+                              Fotos da cor ({variant.images?.length || (variant.imageUrl ? 1 : 0)})
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <label className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1 cursor-pointer transition">
+                                {uploadingVariantIndex === index ? (
+                                  <Loader2 size={11} className="animate-spin text-amber-400" />
+                                ) : (
+                                  <Upload size={11} />
+                                )}
+                                <span>+ Fotos da Cor</span>
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleVariantMultiFileUpload(e.target.files, index, false)}
+                                />
+                              </label>
 
-                        {/* Imagem desta Variação */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          {variant.imageUrl ? (
-                            <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
-                              <SafeImage
-                                src={variant.imageUrl}
-                                alt={variant.colorName}
-                                className="w-full h-full object-cover"
-                                containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
-                                iconSize={14}
-                              />
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setVariants((prev) => {
-                                    const next = [...prev];
-                                    next[index].imageUrl = "";
-                                    return next;
-                                  });
-                                }}
-                                className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                                onClick={() => handleRemoveVariant(index, false)}
+                                className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                                title="Remover cor"
                               >
-                                <X size={10} />
+                                <Trash2 size={13} />
                               </button>
                             </div>
-                          ) : (
-                            <label className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer transition">
-                              {uploadingVariantIndex === index ? (
-                                <Loader2 size={12} className="animate-spin text-amber-400" />
-                              ) : (
-                                <Upload size={12} />
-                              )}
-                              <span>Foto desta cor</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVariantFileUpload(file, index, false);
-                                }}
-                              />
-                            </label>
-                          )}
+                          </div>
 
-                          {/* Botão Remover Variação */}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariant(index, false)}
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
-                            title="Remover cor"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                            {(variant.images && variant.images.length > 0
+                              ? variant.images
+                              : (variant.imageUrl ? [variant.imageUrl] : [])
+                            ).map((vPhotoUrl, vPhotoIdx) => (
+                              <div key={vPhotoUrl + vPhotoIdx} className="relative w-10 h-12 rounded-lg overflow-hidden border border-zinc-700 bg-black shrink-0">
+                                <SafeImage src={vPhotoUrl} alt="Foto Cor" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveVariantImage(index, vPhotoIdx, false)}
+                                  className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                                >
+                                  <X size={9} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2504,93 +1220,28 @@ export function VitrineAdminView({
                 )}
               </div>
 
-              {/* Toggle Arara Virtual */}
-              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showOnVirtualRack}
-                    onChange={(e) => setShowOnVirtualRack(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-amber-400" />
-                      Exibir na Arara Virtual 3D
-                    </span>
-                    <span className="text-[11px] text-zinc-400 block mt-0.5">
-                      Destaca esta peça no showroom interativo no topo da vitrine com rotação 360° e flip frente/costas.
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              {showOnVirtualRack && (
-                <PrintPositioningBlock
-                  isFront={previewSide === "FRONT"}
-                  setIsFront={(f) => setPreviewSide(f ? "FRONT" : "BACK")}
-                  previewColor={previewColor}
-                  setPreviewColor={setPreviewColor}
-                  baseShirtUrl={baseShirtUrl}
-                  setBaseShirtUrl={setBaseShirtUrl}
-                  baseShirtBackUrl={baseShirtBackUrl}
-                  setBaseShirtBackUrl={setBaseShirtBackUrl}
-                  baseShirtSideUrl={baseShirtSideUrl}
-                  setBaseShirtSideUrl={setBaseShirtSideUrl}
-                  printImageUrl={printImageUrl}
-                  setPrintImageUrl={setPrintImageUrl}
-                  printBackImageUrl={printBackImageUrl}
-                  setPrintBackImageUrl={setPrintBackImageUrl}
-                  printLightFront={printLightFront}
-                  setPrintLightFront={setPrintLightFront}
-                  printDarkFront={printDarkFront}
-                  setPrintDarkFront={setPrintDarkFront}
-                  printLightBack={printLightBack}
-                  setPrintLightBack={setPrintLightBack}
-                  printDarkBack={printDarkBack}
-                  setPrintDarkBack={setPrintDarkBack}
-                  printWidth={printWidth}
-                  setPrintWidth={setPrintWidth}
-                  printTop={printTop}
-                  setPrintTop={setPrintTop}
-                  printLeft={printLeft}
-                  setPrintLeft={setPrintLeft}
-                  printWidthBack={printWidthBack}
-                  setPrintWidthBack={setPrintWidthBack}
-                  printTopBack={printTopBack}
-                  setPrintTopBack={setPrintTopBack}
-                  printLeftBack={printLeftBack}
-                  setPrintLeftBack={setPrintLeftBack}
-                  isUploading={isUploadingPrint}
-                  onUploadLayer={(file, target) => handleUploadLayerFile(file, target, false)}
-                  templates={templatesList}
-                  selectedTemplateId={selectedTemplateId}
-                  onSelectTemplate={(tplId) => {
-                    setSelectedTemplateId(tplId);
-                    const found = templatesList.find((t) => t.id === tplId);
-                    if (found) {
-                      setBaseShirtUrl(found.baseImageFront);
-                      setBaseShirtBackUrl(found.baseImageBack);
-                      setBaseShirtSideUrl(found.baseImageSide || "/mockups/blank-side.svg");
-                    }
-                  }}
-                />
-              )}
-
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
+              {/* BotÃµes do RodapÃ© */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setIsNewModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending || isUploading || uploadingVariantIndex !== null}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                  disabled={isPending || isUploading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-50"
                 >
-                  {isPending ? "Publicando..." : "Publicar na Vitrine"}
+                  {isPending ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <span>Cadastrar Produto</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -2598,17 +1249,17 @@ export function VitrineAdminView({
         </div>
       )}
 
-      {/* Modal: Editar Produto e Variações */}
+      {/* ========================================================================= */}
+      {/* MODAL DE EDIÃ‡ÃƒO SIMPLIFICADO                                              */}
+      {/* ========================================================================= */}
       {editingItem && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => !isPending && setEditingItem(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setEditingItem(null)}
         >
           <div
-            className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
+            className="w-full max-w-3xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-5 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2">
@@ -2616,7 +1267,7 @@ export function VitrineAdminView({
                   <Edit2 size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-100">
-                  Editar Peça & Variações
+                  Editar PeÃ§a "{editingItem.title}"
                 </h3>
               </div>
               <button
@@ -2628,84 +1279,151 @@ export function VitrineAdminView({
               </button>
             </div>
 
-            <form onSubmit={handleUpdate} className="space-y-4">
-              {/* Imagem Principal Atual / Trocar */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1.5">
-                  Foto Principal de Capa
-                </label>
-                <input
-                  ref={editFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleMainFileUpload(e, true)}
-                  className="hidden"
-                />
+            <form onSubmit={handleEditSave} className="space-y-4">
+              {/* Fotos Reais: Frente e Costas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Foto Principal de Capa (Frente) */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                    Foto Principal (Frente) *
+                  </label>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleMainFileUpload(e, true)}
+                    className="hidden"
+                  />
 
-                <div className="flex items-center gap-4">
-                  <div className="relative aspect-[3/4] w-20 rounded-xl overflow-hidden border border-zinc-700 bg-zinc-900 shrink-0">
-                    <SafeImage
-                      src={editImageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
-                    />
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      disabled={isUploading}
+                  {editImageUrl ? (
+                    <div className="relative aspect-[3/4] w-full max-w-[200px] rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                      <SafeImage
+                        src={editImageUrl}
+                        alt="Preview Frente"
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditImageUrl("")}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
                       onClick={() => editFileInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
+                      className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2 min-h-[160px]"
                     >
                       {isUploading ? (
                         <>
-                          <Loader2 size={12} className="animate-spin" />
-                          <span>Enviando...</span>
+                          <Loader2 size={22} className="animate-spin text-amber-400" />
+                          <span className="text-xs text-zinc-400 font-mono">
+                            Fazendo upload...
+                          </span>
                         </>
                       ) : (
                         <>
-                          <Upload size={12} />
-                          <span>Trocar Foto Principal</span>
+                          <Upload size={22} className="text-zinc-500" />
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-300">
+                              Subir nova foto da frente
+                            </p>
+                          </div>
                         </>
                       )}
-                    </button>
-                    <p className="text-[10px] text-zinc-500 mt-1">
-                      Armazenado no bucket público do Supabase
-                    </p>
-                  </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Foto SecundÃ¡ria (Costas / Detalhe) */}
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                    Foto SecundÃ¡ria (Costas / Detalhe)
+                  </label>
+                  <input
+                    ref={editBackFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleBackFileUpload(e, true)}
+                    className="hidden"
+                  />
+
+                  {editBackImageUrl ? (
+                    <div className="relative aspect-[3/4] w-full max-w-[200px] rounded-xl overflow-hidden border border-zinc-700 mx-auto">
+                      <SafeImage
+                        src={editBackImageUrl}
+                        alt="Preview Costas"
+                        className="w-full h-full object-cover"
+                        containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditBackImageUrl("")}
+                        className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => editBackFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-zinc-800 hover:border-zinc-600 rounded-xl p-5 text-center cursor-pointer transition bg-zinc-900/40 flex flex-col items-center justify-center gap-2 min-h-[160px]"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 size={22} className="animate-spin text-amber-400" />
+                          <span className="text-xs text-zinc-400 font-mono">
+                            Fazendo upload...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={22} className="text-zinc-500" />
+                          <div>
+                            <p className="text-xs font-semibold text-zinc-300">
+                              Subir foto das costas
+                            </p>
+                            <p className="text-[10px] text-zinc-500 mt-0.5 font-mono">
+                              Opcional
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Título & Preço */}
+              {/* TÃ­tulo & PreÃ§o */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Título da Peça *
+                    TÃ­tulo da PeÃ§a *
                   </label>
                   <input
                     type="text"
                     required
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-zinc-300 mb-1">
-                    Preço (R$) *
+                    PreÃ§o de Venda (R$) *
                   </label>
                   <CurrencyInput
                     value={editPrice}
                     onChange={(val) => setEditPrice(val)}
-                    placeholder="0,00"
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
-              {/* Categoria Estrita */}
+              {/* Categoria */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
                   Categoria *
@@ -2723,26 +1441,26 @@ export function VitrineAdminView({
                 </select>
               </div>
 
-              {/* Descrição */}
+              {/* DescriÃ§Ã£o */}
               <div>
                 <label className="block text-xs font-medium text-zinc-300 mb-1">
-                  Descrição / Detalhes
+                  DescriÃ§Ã£o / Detalhes do Tecido
                 </label>
                 <textarea
                   rows={2}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              {/* Seção Dinâmica de Variações na Edição */}
+              {/* VariaÃ§Ãµes de Cores */}
               <div className="pt-2 border-t border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <Palette size={15} className="text-amber-400" />
                     <span className="text-xs font-bold text-zinc-200">
-                      Variações de Cores ({editVariants.length})
+                      VariaÃ§Ãµes de Cores & Fotos EspecÃ­ficas ({editVariants.length})
                     </span>
                   </div>
                   <button
@@ -2757,7 +1475,7 @@ export function VitrineAdminView({
 
                 {editVariants.length === 0 ? (
                   <p className="text-[11px] text-zinc-500 italic bg-zinc-900/40 p-3 rounded-xl border border-dashed border-zinc-800">
-                    Nenhuma cor cadastrada. Clique no botão acima para adicionar fotos específicas por cor.
+                    Nenhuma variaÃ§Ã£o adicionada.
                   </p>
                 ) : (
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
@@ -2766,12 +1484,11 @@ export function VitrineAdminView({
                         key={index}
                         className="p-3 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs"
                       >
-                        {/* Nome da Cor */}
                         <div className="flex-1">
                           <input
                             type="text"
                             required
-                            placeholder="Nome da Cor (ex: Branco Neve)"
+                            placeholder="Nome da Cor"
                             value={variant.colorName}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -2781,15 +1498,14 @@ export function VitrineAdminView({
                                 return next;
                               });
                             }}
-                            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-amber-500"
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500"
                           />
                         </div>
 
-                        {/* Color Picker / Hex */}
                         <div className="flex items-center gap-2 shrink-0">
                           <input
                             type="color"
-                            value={variant.hexCode || "#000000"}
+                            value={variant.hexCode || "#18181b"}
                             onChange={(e) => {
                               const val = e.target.value;
                               setEditVariants((prev) => {
@@ -2812,84 +1528,60 @@ export function VitrineAdminView({
                                 return next;
                               });
                             }}
-                            placeholder="#000000"
                             className="w-20 px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 font-mono text-[11px] text-zinc-100 focus:outline-none focus:border-amber-500 uppercase"
                           />
                         </div>
 
-                        {/* Tema da Estampa (Contraste Dinâmico) */}
-                        <div className="flex flex-col shrink-0">
-                          <select
-                            value={variant.printTheme || "LIGHT"}
-                            onChange={(e) => {
-                              const val = e.target.value as "LIGHT" | "DARK";
-                              setEditVariants((prev) => {
-                                const next = [...prev];
-                                next[index].printTheme = val;
-                                return next;
-                              });
-                            }}
-                            className="px-2 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[11px] font-semibold text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer"
-                            title="Escolha se esta cor de tecido usa a estampa clara ou escura"
-                          >
-                            <option value="LIGHT">☀️ Estampa Clara</option>
-                            <option value="DARK">🌙 Estampa Escura</option>
-                          </select>
-                        </div>
+                        <div className="flex flex-col gap-2 w-full pt-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-zinc-400 font-mono">
+                              Fotos da cor ({variant.images?.length || (variant.imageUrl ? 1 : 0)})
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <label className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1 cursor-pointer transition">
+                                {uploadingVariantIndex === index ? (
+                                  <Loader2 size={11} className="animate-spin text-amber-400" />
+                                ) : (
+                                  <Upload size={11} />
+                                )}
+                                <span>+ Fotos da Cor</span>
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => handleVariantMultiFileUpload(e.target.files, index, true)}
+                                />
+                              </label>
 
-                        {/* Imagem desta Variação */}
-                        <div className="flex items-center gap-2 shrink-0">
-                          {variant.imageUrl ? (
-                            <div className="relative w-9 h-11 rounded-lg overflow-hidden border border-zinc-700 bg-black">
-                              <SafeImage
-                                src={variant.imageUrl}
-                                alt={variant.colorName}
-                                className="w-full h-full object-cover"
-                                containerClassName="w-full h-full bg-zinc-900 flex items-center justify-center text-zinc-500"
-                                iconSize={14}
-                              />
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setEditVariants((prev) => {
-                                    const next = [...prev];
-                                    next[index].imageUrl = "";
-                                    return next;
-                                  });
-                                }}
-                                className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                                onClick={() => handleRemoveVariant(index, true)}
+                                className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                                title="Remover cor"
                               >
-                                <X size={10} />
+                                <Trash2 size={13} />
                               </button>
                             </div>
-                          ) : (
-                            <label className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer transition">
-                              {uploadingVariantIndex === index ? (
-                                <Loader2 size={12} className="animate-spin text-amber-400" />
-                              ) : (
-                                <Upload size={12} />
-                              )}
-                              <span>Foto desta cor</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVariantFileUpload(file, index, true);
-                                }}
-                              />
-                            </label>
-                          )}
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveVariant(index, true)}
-                            className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
-                            title="Remover cor"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                            {(variant.images && variant.images.length > 0
+                              ? variant.images
+                              : (variant.imageUrl ? [variant.imageUrl] : [])
+                            ).map((vPhotoUrl, vPhotoIdx) => (
+                              <div key={vPhotoUrl + vPhotoIdx} className="relative w-10 h-12 rounded-lg overflow-hidden border border-zinc-700 bg-black shrink-0">
+                                <SafeImage src={vPhotoUrl} alt="Foto Cor" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveVariantImage(index, vPhotoIdx, true)}
+                                  className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/80 text-zinc-300 hover:text-white"
+                                >
+                                  <X size={9} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2897,93 +1589,28 @@ export function VitrineAdminView({
                 )}
               </div>
 
-              {/* Toggle Arara Virtual */}
-              <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 hover:border-amber-500/40 transition">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editShowOnVirtualRack}
-                    onChange={(e) => setEditShowOnVirtualRack(e.target.checked)}
-                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 bg-zinc-950 border-zinc-700 cursor-pointer"
-                  />
-                  <div>
-                    <span className="text-xs font-bold text-zinc-100 flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-amber-400" />
-                      Exibir na Arara Virtual 3D
-                    </span>
-                    <span className="text-[11px] text-zinc-400 block mt-0.5">
-                      Destaca esta peça no showroom interativo no topo da vitrine com rotação 360° e flip frente/costas.
-                    </span>
-                  </div>
-                </label>
-              </div>
-
-              {editShowOnVirtualRack && (
-                <PrintPositioningBlock
-                  isFront={editPreviewSide === "FRONT"}
-                  setIsFront={(f) => setEditPreviewSide(f ? "FRONT" : "BACK")}
-                  previewColor={editPreviewColor}
-                  setPreviewColor={setEditPreviewColor}
-                  baseShirtUrl={editBaseShirtUrl}
-                  setBaseShirtUrl={setEditBaseShirtUrl}
-                  baseShirtBackUrl={editBaseShirtBackUrl}
-                  setBaseShirtBackUrl={setEditBaseShirtBackUrl}
-                  baseShirtSideUrl={editBaseShirtSideUrl}
-                  setBaseShirtSideUrl={setEditBaseShirtSideUrl}
-                  printImageUrl={editPrintImageUrl}
-                  setPrintImageUrl={setEditPrintImageUrl}
-                  printBackImageUrl={editPrintBackImageUrl}
-                  setPrintBackImageUrl={setEditPrintBackImageUrl}
-                  printLightFront={editPrintLightFront}
-                  setPrintLightFront={setEditPrintLightFront}
-                  printDarkFront={editPrintDarkFront}
-                  setPrintDarkFront={setEditPrintDarkFront}
-                  printLightBack={editPrintLightBack}
-                  setPrintLightBack={setEditPrintLightBack}
-                  printDarkBack={editPrintDarkBack}
-                  setPrintDarkBack={setEditPrintDarkBack}
-                  printWidth={editPrintWidth}
-                  setPrintWidth={setEditPrintWidth}
-                  printTop={editPrintTop}
-                  setPrintTop={setEditPrintTop}
-                  printLeft={editPrintLeft}
-                  setPrintLeft={setEditPrintLeft}
-                  printWidthBack={editPrintWidthBack}
-                  setPrintWidthBack={setEditPrintWidthBack}
-                  printTopBack={editPrintTopBack}
-                  setPrintTopBack={setEditPrintTopBack}
-                  printLeftBack={editPrintLeftBack}
-                  setPrintLeftBack={setEditPrintLeftBack}
-                  isUploading={isUploadingEditPrint}
-                  onUploadLayer={(file, target) => handleUploadLayerFile(file, target, true)}
-                  templates={templatesList}
-                  selectedTemplateId={editSelectedTemplateId}
-                  onSelectTemplate={(tplId) => {
-                    setEditSelectedTemplateId(tplId);
-                    const found = templatesList.find((t) => t.id === tplId);
-                    if (found) {
-                      setEditBaseShirtUrl(found.baseImageFront);
-                      setEditBaseShirtBackUrl(found.baseImageBack);
-                      setEditBaseShirtSideUrl(found.baseImageSide || "/mockups/blank-side.svg");
-                    }
-                  }}
-                />
-              )}
-
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-zinc-800">
+              {/* BotÃµes do RodapÃ© */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-zinc-800">
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 text-xs font-medium transition cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={isPending || isUploading || uploadingVariantIndex !== null}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                  disabled={isPending || isUploading}
+                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-50"
                 >
-                  {isPending ? "Salvando..." : "Salvar Alterações"}
+                  {isPending ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <span>Salvar AlteraÃ§Ãµes</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -2991,59 +1618,58 @@ export function VitrineAdminView({
         </div>
       )}
 
-      {/* Modal: Exclusão de Produto */}
+      {/* ========================================================================= */}
+      {/* MODAL DE CONFIRMAÃ‡ÃƒO DE EXCLUSÃƒO                                          */}
+      {/* ========================================================================= */}
       {itemToDelete && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => !isPending && setItemToDelete(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setItemToDelete(null)}
         >
           <div
-            className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-6 text-zinc-100 space-y-4"
+            className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 text-zinc-100 space-y-4 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
-                  <Trash2 size={16} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-zinc-100">
-                    Remover Peça da Vitrine
-                  </h3>
-                  <p className="text-xs text-zinc-400">{itemToDelete.title}</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                <Trash2 size={20} />
               </div>
-              <button
-                type="button"
-                onClick={() => setItemToDelete(null)}
-                className="p-1 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer"
-              >
-                <X size={16} />
-              </button>
+              <div>
+                <h3 className="font-serif text-base font-bold text-zinc-100">
+                  Excluir PeÃ§a da Vitrine
+                </h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Esta aÃ§Ã£o nÃ£o pode ser desfeita.
+                </p>
+              </div>
             </div>
 
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Tem certeza que deseja excluir esta peça da vitrine? Todas as fotos e variações de cores vinculadas também serão removidas.
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Tem certeza que deseja remover <strong>"{itemToDelete.title}"</strong> e todas as suas variaÃ§Ãµes de cor da vitrine pÃºblica?
             </p>
 
-            <div className="pt-2 flex items-center justify-end gap-2.5">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setItemToDelete(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition cursor-pointer"
               >
                 Cancelar
               </button>
-
               <button
                 type="button"
-                disabled={isPending}
                 onClick={handleDelete}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                disabled={isPending}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer disabled:opacity-50"
               >
-                {isPending ? "Excluindo..." : "Confirmar Exclusão"}
+                {isPending ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Excluindo...</span>
+                  </>
+                ) : (
+                  <span>Confirmar ExclusÃ£o</span>
+                )}
               </button>
             </div>
           </div>

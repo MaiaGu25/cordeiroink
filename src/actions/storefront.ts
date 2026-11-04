@@ -1,3 +1,4 @@
+import { z } from "zod";
 "use server";
 
 import { prisma } from "@/lib/prisma";
@@ -527,6 +528,36 @@ export async function deleteCatalogItem(id: string) {
 /**
  * Registra um orçamento/lead personalizado enviado pelo cliente na vitrine pública.
  */
+
+const leadQuoteSchema = z.object({
+  customerName: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(80, "Nome muito longo"),
+  whatsapp: z.string().trim().min(10, "WhatsApp com DDD inválido").max(25),
+  shirtModel: z.string().trim().max(100).optional(),
+  size: z.string().trim().max(50).optional(),
+  customDesignUrl: z.string().optional().or(z.literal("")),
+  notes: z.string().max(1500, "Observações devem ter no máximo 1500 caracteres").optional(),
+});
+
+const storefrontOrderSchema = z.object({
+  customerName: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(80, "Nome muito longo"),
+  customerPhone: z.string().trim().min(10, "WhatsApp com DDD inválido").max(25),
+  customerEmail: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  shippingAddress: z.string().max(255).optional(),
+  destinationCep: z.string().max(20).optional(),
+  shippingService: z.string().max(80).optional(),
+  shippingPrice: z.number().min(0).optional(),
+  deliveryDays: z.union([z.number(), z.string()]).optional(),
+  items: z.array(z.object({
+    title: z.string().trim().min(1, "Título do item obrigatório"),
+    colorName: z.string().optional(),
+    size: z.string().optional(),
+    price: z.number().min(0, "Preço do item deve ser positivo"),
+    quantity: z.number().int().positive("Quantidade deve ser maior que zero"),
+    imageUrl: z.string().optional(),
+    productId: z.string().optional(),
+  })).min(1, "A sua sacola de compras está vazia."),
+});
+
 export async function createLeadQuote(data: {
   customerName: string;
   whatsapp: string;
@@ -535,11 +566,15 @@ export async function createLeadQuote(data: {
   customDesignUrl?: string;
   notes?: string;
 }) {
-  if (!data.customerName?.trim() || !data.whatsapp?.trim()) {
-    throw new Error("Nome e WhatsApp são obrigatórios para o orçamento.");
+  const parsed = leadQuoteSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Dados de orçamento inválidos.");
   }
 
-  const cleanWhatsapp = data.whatsapp.replace(/\D/g, "");
+  const cleanWhatsapp = parsed.data.whatsapp.replace(/\D/g, "");
+  if (cleanWhatsapp.length < 10) {
+    throw new Error("Informe um número de WhatsApp válido com DDD.");
+  }
 
   const lead = await prisma.leadQuote.create({
     data: {
@@ -633,12 +668,14 @@ export async function getBlankShirtsStock(): Promise<AvailableStockSize[]> {
  * Salva o pedido no banco com status PENDING e retorna a URL padrão do WhatsApp com o resumo completo.
  */
 export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
-  if (!data.customerName?.trim() || !data.customerPhone?.trim()) {
-    throw new Error("Por favor, preencha seu nome e WhatsApp para finalizar o pedido.");
+  const parsed = storefrontOrderSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Dados do pedido inválidos.");
   }
 
-  if (!data.items || data.items.length === 0) {
-    throw new Error("A sua sacola de compras está vazia.");
+  const cleanPhone = parsed.data.customerPhone.replace(/\D/g, "");
+  if (cleanPhone.length < 10) {
+    throw new Error("Informe um número de WhatsApp válido com DDD.");
   }
 
   // 1. Validação estrita de disponibilidade de estoque antes de salvar o pedido
@@ -673,7 +710,6 @@ export async function createStorefrontOrder(data: CreateStorefrontOrderInput) {
     }
   }
 
-  const cleanPhone = data.customerPhone.replace(/\D/g, "");
   const subtotal = data.items.reduce(
     (acc, i) => acc + Number(i.price) * Math.max(1, Number(i.quantity) || 1),
     0

@@ -88,6 +88,7 @@ model Product {
   targetMargin Float           @default(50.0)
   imageUrl          String?
   backImageUrl      String?
+  images            String[]         @default([])
   description       String?
   showOnVirtualRack Boolean          @default(false)
 
@@ -151,6 +152,7 @@ model ProductVariant {
   colorHex       String?
   imageUrl       String?
   backImageUrl   String?
+  images         String[]     @default([])
   basePrice      Float
   printTheme     PrintTheme   @default(LIGHT) // LIGHT = usa estampa clara; DARK = usa estampa escura
   isActive       Boolean      @default(true)
@@ -419,6 +421,7 @@ model CatalogItem {
   price             Float
   imageUrl          String           // Imagem de capa principal
   backImageUrl      String?          // Imagem de costas principal
+  images            String[]         @default([])
   category          String           @default("Adulto") // Adulto, Infantil, Oversized, Feminina, Regata
   showOnVirtualRack Boolean          @default(false)
 
@@ -458,6 +461,7 @@ model CatalogVariant {
   hexCode       String      @default("#000000") // ex: "#000000"
   imageUrl      String      // URL da foto desta cor
   backImageUrl  String?     // URL da foto das costas desta cor
+  images        String[]    @default([])
   printTheme    PrintTheme  @default(LIGHT) // LIGHT = usa estampa clara; DARK = usa estampa escura
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

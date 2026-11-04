@@ -14,6 +14,7 @@ export interface VariantInput {
   hexCode: string;
   imageUrl: string;
   backImageUrl?: string;
+  images?: string[];
   printTheme?: "LIGHT" | "DARK";
 }
 
@@ -28,6 +29,7 @@ export interface VirtualRackColor {
   hex: string;
   imageUrl: string;
   backImageUrl?: string | null;
+  images?: string[];
   printTheme?: "LIGHT" | "DARK";
 }
 
@@ -52,18 +54,15 @@ export interface VirtualRackProduct {
   printLightBack?: string | null;
   printDarkBack?: string | null;
 
-  // Coordenadas dinâmicas da estampa frontal
-  printWidth: number;
-  printTop: number;
-  printLeft: number;
-
-  // Coordenadas dinâmicas da estampa traseira
-  printWidthBack: number;
-  printTopBack: number;
-  printLeftBack: number;
+  printWidth?: number;
+  printTop?: number;
+  printLeft?: number;
+  printWidthBack?: number;
+  printTopBack?: number;
+  printLeftBack?: number;
 
   imageUrl?: string;
   backImageUrl?: string | null;
+  images?: string[];
   colors: VirtualRackColor[];
 }
-

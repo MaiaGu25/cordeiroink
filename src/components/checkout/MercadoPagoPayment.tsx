@@ -13,6 +13,7 @@ import {
   ArrowRight,
   ExternalLink,
   RefreshCw,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
@@ -35,46 +36,41 @@ export interface MercadoPagoPaymentResult {
 }
 
 export interface MercadoPagoPaymentProps {
-  /**
-   * Valor total da transação em Reais (R$).
-   */
   amount: number;
-  /**
-   * ID do pedido gerado no banco de dados (se houver).
-   */
   orderId?: string;
-  /**
-   * Código legível do pedido (ex: #WPP-1049, #CI-1002).
-   */
   orderNumber?: string;
-  /**
-   * E-mail do cliente (pré-preenchimento no Brick).
-   */
   payerEmail?: string;
-  /**
-   * Alias para payerEmail
-   */
   customerEmail?: string;
-  /**
-   * Nome do cliente.
-   */
   payerName?: string;
-  /**
-   * Descrição opcional exibida no extrato do cartão.
-   */
   description?: string;
-  /**
-   * Callback invocado quando o pagamento for aprovado (cartão).
-   */
   onSuccess?: (result: MercadoPagoPaymentResult) => void;
-  /**
-   * Callback invocado em caso de erro na transação.
-   */
   onError?: (error: any) => void;
-  /**
-   * Callback de cancelamento ou fechamento.
-   */
   onCancel?: () => void;
+}
+
+function getCardErrorMessage(statusDetail?: string): string {
+  switch (statusDetail) {
+    case "cc_rejected_bad_filled_security_code":
+      return "O código de segurança (CVV) do cartão está incorreto.";
+    case "cc_rejected_bad_filled_date":
+      return "A data de validade do cartão está incorreta ou vencida.";
+    case "cc_rejected_bad_filled_other":
+      return "Os dados do cartão estão incorretos. Revise o número e o nome do titular.";
+    case "cc_rejected_insufficient_amount":
+      return "Saldo ou limite insuficiente no cartão para completar esta compra.";
+    case "cc_rejected_call_for_authorize":
+      return "Pagamento não autorizado pelo banco emissor. Ligue para a administradora do seu cartão para liberar compras online.";
+    case "cc_rejected_card_disabled":
+      return "O cartão utilizado está bloqueado ou inativo. Use outro cartão ou finalize via Pix.";
+    case "cc_rejected_duplicated_payment":
+      return "Pagamento duplicado detectado para esta operação.";
+    case "cc_rejected_high_risk":
+      return "A operadora do cartão recusou a transação por políticas de segurança. Recomendamos pagar instantaneamente via Pix.";
+    case "cc_rejected_max_attempts":
+      return "Você atingiu o limite de tentativas com este cartão. Tente outro cartão ou Pix.";
+    default:
+      return "O pagamento com cartão não foi autorizado pelo banco ou operadora. Verifique os dados digitados ou tente outro meio de pagamento.";
+  }
 }
 
 export function MercadoPagoPayment({
@@ -99,16 +95,16 @@ export function MercadoPagoPayment({
   const [paidOrderNumber, setPaidOrderNumber] = useState<string | null>(orderNumber || null);
   const [isCheckingManual, setIsCheckingManual] = useState(false);
 
-  const effectiveEmail = payerEmail || customerEmail || "";
+  const effectiveEmail = (payerEmail || customerEmail || "").trim();
 
-  // Carrega estritamente a chave pública oficial do ambiente (sem fallback fixo de teste)
+  // Carrega estritamente a chave pública oficial do ambiente
   const publicKey = process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY?.trim();
 
   // 1. Inicializa o SDK oficial do Mercado Pago no cliente
   useEffect(() => {
     if (!publicKey) {
       console.error(
-        "[MercadoPagoPayment] Erro crítico de configuração: NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY não está definida no ambiente."
+        "[MercadoPagoPayment] Chave pública NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY não está definida no ambiente."
       );
       setErrorMessage(
         "Chave pública do Mercado Pago não configurada no ambiente. Não é possível iniciar o pagamento."
@@ -127,7 +123,7 @@ export function MercadoPagoPayment({
     }
   }, [publicKey]);
 
-  // Polling em tempo real a cada 3 a 4 segundos checando o status do pedido ativo
+  // Polling em tempo real checando status do pedido quando pendente (ex: Pix)
   useEffect(() => {
     const targetId = orderId || paymentResult?.orderId || orderNumber || paymentResult?.orderNumber;
     if (!paymentResult || paymentResult.status !== "pending" || !targetId || isPixPaid) {
@@ -147,7 +143,7 @@ export function MercadoPagoPayment({
           clearInterval(interval);
           setIsPixPaid(true);
           if (data.orderNumber) setPaidOrderNumber(data.orderNumber);
-          toast.success("Pagamento via Pix confirmado com sucesso!");
+          toast.success("Pagamento confirmado com sucesso!");
           onSuccess?.({
             id: paymentResult?.id || targetId,
             status: "approved",
@@ -158,8 +154,8 @@ export function MercadoPagoPayment({
             transaction_amount: paymentResult?.transaction_amount || amount,
           });
         }
-      } catch (err) {
-        console.warn("[Polling Pix] Erro ao consultar status do pedido:", err);
+      } catch {
+        // Polling silencioso
       }
     }, 3500);
 
@@ -167,8 +163,9 @@ export function MercadoPagoPayment({
       isMounted = false;
       clearInterval(interval);
     };
-  }, [paymentResult, orderId, orderNumber, isPixPaid, onSuccess, amount]);
+  }, [orderId, orderNumber, paymentResult, isPixPaid, amount, onSuccess]);
 
+  // Verificação manual de status
   const handleManualCheckStatus = async () => {
     const targetId = orderId || paymentResult?.orderId || orderNumber || paymentResult?.orderNumber;
     if (!targetId) return;
@@ -193,7 +190,7 @@ export function MercadoPagoPayment({
           transaction_amount: paymentResult?.transaction_amount || amount,
         });
       } else {
-        toast.info("Aguardando confirmação bancária do Pix... O sistema está verificando a cada 3 segundos.");
+        toast.info("Aguardando confirmação bancária. O sistema está verificando automaticamente.");
       }
     } catch {
       toast.error("Erro ao verificar status. Tente novamente.");
@@ -202,7 +199,7 @@ export function MercadoPagoPayment({
     }
   };
 
-  // Função para copiar o código Pix Copia e Cola
+  // Copiar código Pix Copia e Cola
   const handleCopyPix = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -214,8 +211,9 @@ export function MercadoPagoPayment({
     }
   };
 
-  // 2. Callback de envio do Payment Brick para o backend
+  // Callback de envio do Payment Brick para o backend
   const handleSubmit = async (param: any) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -249,11 +247,14 @@ export function MercadoPagoPayment({
 
       if (data.status === "approved") {
         toast.success("Pagamento aprovado com sucesso! Deus abençoe sua compra.");
-        // Apenas chamamos onSuccess para pagamentos imediatamente aprovados (cartão)
         onSuccess?.(data);
       } else if (data.status === "pending") {
         toast.info("Código Pix gerado! Escaneie o QR Code ou utilize o código Copia e Cola.");
-        // Pagamento Pix: NÃO executa redirecionamento automático ou fechamento
+      } else if (data.status === "in_process") {
+        toast.info("Pagamento em análise pelo Mercado Pago.");
+      } else if (data.status === "rejected") {
+        const errorReason = getCardErrorMessage(data.status_detail);
+        toast.error(`Pagamento não aprovado: ${errorReason}`);
       }
     } catch (error: any) {
       console.error("[MercadoPagoPayment] Erro no envio:", error);
@@ -267,11 +268,11 @@ export function MercadoPagoPayment({
   };
 
   // =========================================================================
-  // TELA DE SUCESSO / CONFIRMAÇÃO IMEDIATA (CARTÃO DE CRÉDITO OU DÉBITO APROVADO)
+  // 1. TELA DE SUCESSO IMEDIATO (CARTÃO DE CRÉDITO APROVADO)
   // =========================================================================
   if (paymentResult && paymentResult.status === "approved") {
     return (
-      <div className="rounded-2xl border border-emerald-500/30 bg-zinc-950 p-6 text-zinc-100 shadow-2xl space-y-6">
+      <div className="rounded-2xl border border-emerald-500/30 bg-zinc-950 p-6 text-zinc-100 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto">
             <CheckCircle2 size={36} className="animate-in zoom-in" />
@@ -298,7 +299,7 @@ export function MercadoPagoPayment({
           <div className="flex justify-between items-center text-zinc-400">
             <span>Método de Pagamento</span>
             <span className="uppercase font-semibold text-emerald-400">
-              {paymentResult.payment_method_id || "Cartão"}
+              {paymentResult.payment_method_id || "Cartão de Crédito"}
             </span>
           </div>
           <div className="pt-2 border-t border-zinc-800 flex justify-between items-center font-bold text-sm">
@@ -329,7 +330,128 @@ export function MercadoPagoPayment({
   }
 
   // =========================================================================
-  // TELA DE SUCESSO PIX CONFIRMADO EM TEMPO REAL VIA WEBHOOK / POLLING
+  // 2. TELA DE RECUSA DE PAGAMENTO (CARTÃO RECUSADO) COM OPÇÃO DE RETENTATIVA
+  // =========================================================================
+  if (paymentResult && paymentResult.status === "rejected") {
+    const errorExplanation = getCardErrorMessage(paymentResult.status_detail);
+
+    return (
+      <div className="rounded-2xl border border-red-500/30 bg-zinc-950 p-6 text-zinc-100 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 mx-auto">
+            <AlertCircle size={36} />
+          </div>
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-white">
+            Pagamento não Aprovado
+          </h3>
+          <p className="text-sm text-red-300/90 max-w-sm mx-auto leading-relaxed">
+            {errorExplanation}
+          </p>
+        </div>
+
+        <div className="bg-zinc-900/80 rounded-xl p-4 border border-zinc-800/80 space-y-2.5 text-xs">
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Motivo Informado</span>
+            <span className="font-mono text-red-400 uppercase text-[11px]">
+              {paymentResult.status_detail || "Operação Recusada"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Valor da Tentativa</span>
+            <span className="font-mono text-zinc-200">
+              {formatCurrency(paymentResult.transaction_amount || amount)}
+            </span>
+          </div>
+          <div className="pt-2 border-t border-zinc-800 text-zinc-400 text-[11px] leading-relaxed">
+            💡 <strong>Dica:</strong> Você pode conferir os números digitados, usar outro cartão ou pagar via <strong>Pix</strong> com aprovação imediata.
+          </div>
+        </div>
+
+        <div className="space-y-2.5 pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPaymentResult(null);
+              setErrorMessage(null);
+            }}
+            className="w-full py-3.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-sans text-xs uppercase tracking-widest font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-950/30"
+          >
+            <RefreshCw size={14} />
+            <span>Tentar Novamente ou Trocar Cartão / Pix</span>
+          </button>
+
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="w-full py-2.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white font-sans text-xs uppercase tracking-wider transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
+          <ShieldCheck size={14} className="text-zinc-500" />
+          <span>Nenhuma cobrança foi efetuada no seu cartão.</span>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 3. TELA DE PAGAMENTO EM ANÁLISE (CARTÃO EM VERIFICAÇÃO ANTIFRAUDE)
+  // =========================================================================
+  if (paymentResult && paymentResult.status === "in_process") {
+    return (
+      <div className="rounded-2xl border border-amber-500/30 bg-zinc-950 p-6 text-zinc-100 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto">
+            <Loader2 size={36} className="animate-spin" />
+          </div>
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-white">
+            Pagamento em Análise
+          </h3>
+          <p className="text-sm text-zinc-300 max-w-sm mx-auto leading-relaxed">
+            Seu cartão está passando pela verificação de segurança do Mercado Pago. Seu pedido já está reservado no ateliê.
+          </p>
+        </div>
+
+        <div className="bg-zinc-900/80 rounded-xl p-4 border border-zinc-800/80 space-y-2.5 text-xs">
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Status</span>
+            <span className="font-mono text-amber-400 font-bold">EM PROCESSAMENTO</span>
+          </div>
+          {orderNumber && (
+            <div className="flex justify-between items-center text-zinc-400">
+              <span>Número do Pedido</span>
+              <span className="font-mono text-white font-bold">{orderNumber}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Total da Operação</span>
+            <span className="font-mono text-zinc-200">
+              {formatCurrency(paymentResult.transaction_amount || amount)}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="w-full py-3.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-sans text-xs uppercase tracking-widest font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+          >
+            <span>Concluir e Acompanhar Pedido</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 4. TELA DE SUCESSO PIX CONFIRMADO EM TEMPO REAL
   // =========================================================================
   if (isPixPaid) {
     return (
@@ -371,13 +493,6 @@ export function MercadoPagoPayment({
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-zinc-400">
-            <span>Fila do Ateliê</span>
-            <span className="text-zinc-200 font-medium">
-              Aguardando Prensagem Térmica
-            </span>
-          </div>
-
           <div className="pt-2 border-t border-zinc-800 flex justify-between items-center font-bold text-sm">
             <span className="text-zinc-300">Total Pago</span>
             <span className="font-mono text-emerald-400 text-base">
@@ -406,7 +521,7 @@ export function MercadoPagoPayment({
   }
 
   // =========================================================================
-  // TELA DE PAGAMENTO PENDENTE (PIX QR CODE & COPIA E COLA)
+  // 5. TELA DE PAGAMENTO PENDENTE (PIX QR CODE & COPIA E COLA)
   // =========================================================================
   if (paymentResult && paymentResult.status === "pending") {
     const transactionData = paymentResult.point_of_interaction?.transaction_data;
@@ -448,55 +563,50 @@ export function MercadoPagoPayment({
 
         {/* Campo Copia e Cola */}
         {qrCode && (
-          <div className="space-y-2">
-            <label className="block text-[11px] font-sans font-semibold text-zinc-300 uppercase tracking-wider">
-              Código Pix Copia e Cola
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+              <span>Código Copia e Cola</span>
+              {copiedPix && (
+                <span className="text-emerald-400 text-[11px] flex items-center gap-1">
+                  <Check size={12} /> Copiado!
+                </span>
+              )}
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={qrCode}
-                className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-zinc-300 focus:outline-none select-all truncate"
+                className="flex-1 px-3 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-300 truncate focus:outline-none select-all"
               />
               <button
                 type="button"
                 onClick={() => handleCopyPix(qrCode)}
-                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-sans text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer border border-zinc-700"
+                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
               >
-                {copiedPix ? (
-                  <>
-                    <Check size={14} className="text-emerald-400" />
-                    <span className="text-emerald-400">Copiado</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} />
-                    <span>Copiar</span>
-                  </>
-                )}
+                {copiedPix ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copiedPix ? "Copiado" : "Copiar"}</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Resumo do Pedido */}
-        <div className="bg-zinc-900/80 rounded-xl p-4 border border-zinc-800/80 space-y-2 text-xs">
-          <div className="flex justify-between items-center text-zinc-400">
-            <span>Valor a Pagar</span>
-            <span className="font-mono font-bold text-white text-sm">
+        {/* Informações de Pedido */}
+        <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1 text-xs">
+          <div className="flex justify-between text-zinc-400">
+            <span>Valor Total</span>
+            <span className="font-mono text-white font-bold">
               {formatCurrency(paymentResult.transaction_amount || amount)}
             </span>
           </div>
           {orderNumber && (
-            <div className="flex justify-between items-center text-zinc-400">
-              <span>Pedido</span>
-              <span className="font-mono text-zinc-300">{orderNumber}</span>
+            <div className="flex justify-between text-zinc-400">
+              <span>Número do Pedido</span>
+              <span className="font-mono text-white">{orderNumber}</span>
             </div>
           )}
           {ticketUrl && (
-            <div className="pt-2 border-t border-zinc-800 flex justify-between items-center">
-              <span className="text-zinc-400">Comprovante de pagamento</span>
+            <div className="pt-1 flex justify-end">
               <a
                 href={ticketUrl}
                 target="_blank"
@@ -539,7 +649,7 @@ export function MercadoPagoPayment({
   }
 
   // =========================================================================
-  // RENDERIZAÇÃO DO FORMULÁRIO DO PAYMENT BRICK OFICIAL
+  // 6. RENDERIZAÇÃO DO FORMULÁRIO DO PAYMENT BRICK OFICIAL (CARTÃO + PIX)
   // =========================================================================
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-6 text-zinc-100 shadow-xl space-y-4">
@@ -551,7 +661,7 @@ export function MercadoPagoPayment({
             Checkout Transparente Seguro
           </span>
           <h4 className="font-serif text-lg font-bold text-white mt-0.5">
-            Pague com Pix ou Cartão
+            Pague com Cartão ou Pix
           </h4>
         </div>
         <div className="text-right">
@@ -596,8 +706,9 @@ export function MercadoPagoPayment({
             customization={{
               paymentMethods: {
                 bankTransfer: "all", // Pix
-                creditCard: "all",
-                debitCard: "all",
+                creditCard: "all",   // Cartão de Crédito Totalmente Ativo
+                debitCard: "all",    // Cartão de Débito
+                maxInstallments: 12,
               },
               visual: {
                 style: {

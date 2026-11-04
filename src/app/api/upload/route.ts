@@ -40,6 +40,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validação de Segurança: Tamanho máximo (15MB) e tipos MIME permitidos
+    const MAX_FILE_SIZE = 15 * 1024 * 1024;
+    const ALLOWED_MIME_TYPES = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
+      "image/gif",
+    ];
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "Arquivo muito grande. O limite máximo permitido é de 15MB." },
+        { status: 400 }
+      );
+    }
+
+    if (file.type && !ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
+      return NextResponse.json(
+        { error: "Formato de arquivo não suportado. Envie imagens PNG, JPG, WEBP ou SVG." },
+        { status: 400 }
+      );
+    }
+
     const rawFolder = (formData.get("folder") as string) || "mockups";
     // Sanitiza a pasta de destino
     const safeFolder = rawFolder.replace(/[^a-zA-Z0-9_-]/g, "") || "mockups";

@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatCurrency } from "@/lib/utils";
 import {
   ArrowUpRight,
@@ -11,6 +11,7 @@ import {
   Sparkles,
   Check,
   ShoppingBag,
+  Loader2,
   Plus,
   Minus,
 } from "lucide-react";
@@ -29,6 +30,8 @@ export interface CatalogVariant {
   colorName: string;
   hexCode: string;
   imageUrl: string;
+  backImageUrl?: string | null;
+  images?: string[];
 }
 
 export interface CatalogItem {
@@ -37,6 +40,8 @@ export interface CatalogItem {
   description: string | null;
   price: number;
   imageUrl: string;
+  backImageUrl?: string | null;
+  images?: string[];
   category: string;
   isActive: boolean;
   variants?: CatalogVariant[];
@@ -47,7 +52,7 @@ interface StorefrontCatalogProps {
   stockItems?: AvailableStockSize[];
 }
 
-// Exemplos realistas com múltiplas variações e fotos para a vitrine
+// Exemplos realistas com mÃºltiplas variaÃ§Ãµes e fotos para a vitrine
 const PLACEHOLDER_ITEMS: CatalogItem[] = [
   {
     id: "sample-1",
@@ -55,7 +60,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Oversized",
     price: 149.9,
     description:
-      "Modelagem streetwear autoral em malha 100% algodão 260gsm. Corte amplo e estruturado com gola canelada de 3cm e costura ombro a ombro reforçada.",
+      "Modelagem streetwear autoral em malha 100% algodÃ£o 260gsm. Corte amplo e estruturado com gola canelada de 3cm e costura ombro a ombro reforÃ§ada.",
     imageUrl:
       "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -89,7 +94,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Adulto",
     price: 159.9,
     description:
-      "Estampa dorsal A3 em alta gramatura com toque zero. Prensagem térmica industrial a 160°C de máxima durabilidade.",
+      "Estampa dorsal A3 em alta gramatura com toque zero. Prensagem tÃ©rmica industrial a 160Â°C de mÃ¡xima durabilidade.",
     imageUrl:
       "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -116,7 +121,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Feminina",
     price: 139.9,
     description:
-      "Modelagem boxy crop com caimento impecável. Confeccionada em algodão penteado de toque macio e estampa frontal discreta.",
+      "Modelagem boxy crop com caimento impecÃ¡vel. Confeccionada em algodÃ£o penteado de toque macio e estampa frontal discreta.",
     imageUrl:
       "https://images.unsplash.com/photo-1554568218-0f1715e72254?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -130,7 +135,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
       },
       {
         id: "v3-2",
-        colorName: "Preto Clássico",
+        colorName: "Preto ClÃ¡ssico",
         hexCode: "#000000",
         imageUrl:
           "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1000&auto=format&fit=crop",
@@ -143,7 +148,7 @@ const PLACEHOLDER_ITEMS: CatalogItem[] = [
     category: "Regata",
     price: 119.9,
     description:
-      "Cava larga e costura estruturada. O caimento clássico do basquete urbano com a estética minimalista da Cordeiro Ink.",
+      "Cava larga e costura estruturada. O caimento clÃ¡ssico do basquete urbano com a estÃ©tica minimalista da Cordeiro Ink.",
     imageUrl:
       "https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?q=80&w=1000&auto=format&fit=crop",
     isActive: true,
@@ -190,15 +195,15 @@ export function StorefrontCatalog({ items, stockItems }: StorefrontCatalogProps)
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-[#E6DED2] pb-8">
           <div className="space-y-3">
             <span className="font-sans text-[11px] uppercase tracking-[0.2em] text-[#737373] font-semibold block">
-              Streetwear Cristão & Coleção Autoral
+              Streetwear CristÃ£o & ColeÃ§Ã£o Autoral
             </span>
             <h2 className="font-serif text-4xl sm:text-5xl font-bold tracking-tight text-[#0A0A0A]">
-              Peças em Destaque
+              PeÃ§as em Destaque
             </h2>
           </div>
 
           <p className="font-sans text-xs sm:text-sm text-[#737373] max-w-md font-light leading-relaxed">
-            Cada camiseta é cortada e prensada sob demanda no ateliê em malha heavyweight com estampas cristãs que carregam uma mensagem viva.
+            Cada camiseta Ã© cortada e prensada sob demanda no ateliÃª em malha heavyweight com estampas cristÃ£s que carregam uma mensagem viva.
           </p>
         </div>
 
@@ -243,13 +248,13 @@ export function StorefrontCatalog({ items, stockItems }: StorefrontCatalogProps)
               Nenhum produto cadastrado na categoria "{selectedCategory}".
             </p>
             <p className="font-sans text-xs text-[#737373]">
-              Selecione outra categoria ou veja todas as peças disponíveis.
+              Selecione outra categoria ou veja todas as peÃ§as disponÃ­veis.
             </p>
             <button
               onClick={() => setSelectedCategory("Todas")}
               className="mt-2 px-4 py-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] text-xs font-semibold uppercase tracking-wider"
             >
-              Ver Todas as Peças
+              Ver Todas as PeÃ§as
             </button>
           </div>
         ) : (
@@ -293,9 +298,16 @@ function ProductCard({
   onOpenDetails: () => void;
 }) {
   const allVariants = product.variants && product.variants.length > 0 ? product.variants : [];
-  const [activeImage, setActiveImage] = useState<string>(product.imageUrl);
+  const initialVariant = allVariants[0];
+  const initialImg =
+    initialVariant?.images?.[0] ||
+    initialVariant?.imageUrl ||
+    product.images?.[0] ||
+    product.imageUrl;
+
+  const [activeImage, setActiveImage] = useState<string>(initialImg);
   const [activeColorName, setActiveColorName] = useState<string | null>(
-    allVariants[0]?.colorName || null
+    initialVariant?.colorName || null
   );
 
   const whatsappMsg = encodeURIComponent(
@@ -306,7 +318,7 @@ function ProductCard({
   const waLink = `https://wa.me/${brandPhone}?text=${whatsappMsg}`;
 
   return (
-    <div className="group flex flex-col justify-between space-y-4">
+    <div className="group flex flex-col justify-between space-y-4 min-w-0 overflow-hidden break-words">
       <div>
         {/* Photo Container with click to open details */}
         <div
@@ -339,17 +351,18 @@ function ProductCard({
         {allVariants.length > 0 && (
           <div className="pt-3 flex items-center gap-1.5">
             {allVariants.map((v) => {
-              const isSelected = activeImage === v.imageUrl;
+              const targetImg = v.images?.[0] || v.imageUrl;
+              const isSelected = activeColorName === v.colorName;
               return (
                 <button
                   key={v.id || v.colorName}
                   type="button"
                   onClick={() => {
-                    setActiveImage(v.imageUrl);
+                    setActiveImage(targetImg);
                     setActiveColorName(v.colorName);
                   }}
                   onMouseEnter={() => {
-                    setActiveImage(v.imageUrl);
+                    setActiveImage(targetImg);
                     setActiveColorName(v.colorName);
                   }}
                   title={v.colorName}
@@ -372,15 +385,15 @@ function ProductCard({
         )}
 
         {/* Title & Description */}
-        <div className="pt-2 space-y-1">
+        <div className="pt-2 space-y-1 min-w-0 break-words">
           <h3
             onClick={onOpenDetails}
-            className="font-serif text-base sm:text-lg font-bold text-[#0A0A0A] tracking-tight group-hover:text-[#555555] transition-colors cursor-pointer"
+            className="font-serif text-base sm:text-lg font-bold text-[#0A0A0A] tracking-tight group-hover:text-[#555555] transition-colors cursor-pointer break-words"
           >
             {product.title}
           </h3>
           {product.description && (
-            <p className="font-sans text-xs text-[#737373] line-clamp-2 font-light">
+            <p className="font-sans text-xs text-[#737373] line-clamp-2 font-light break-words">
               {product.description}
             </p>
           )}
@@ -407,9 +420,6 @@ function ProductCard({
   );
 }
 
-/**
- * Modal Imersivo de Detalhes do Produto com Carrossel de Imagens e Variações de Cores.
- */
 function ProductDetailModal({
   product,
   brandPhone,
@@ -423,36 +433,52 @@ function ProductDetailModal({
 }) {
   const variants = product.variants && product.variants.length > 0 ? product.variants : [];
 
-  // Cria a lista unificada de slides do carrossel (capa principal + variações)
-  const slides = [
-    {
-      id: "cover",
-      url: product.imageUrl,
-      colorName: variants[0]?.colorName || "Padrão",
-      hexCode: variants[0]?.hexCode || "#000000",
-    },
-    ...variants
-      .filter((v) => v.imageUrl !== product.imageUrl)
-      .map((v) => ({
-        id: v.id,
-        url: v.imageUrl,
-        colorName: v.colorName,
-        hexCode: v.hexCode,
-      })),
-  ];
-
   const { addItem } = useCart();
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState(variants.length > 0 ? 0 : -1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState("G");
   const [quantity, setQuantity] = useState(1);
   const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
   const [destinationCep, setDestinationCep] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
 
-  const activeSlide = slides[currentSlideIndex] || slides[0];
+  const activeVariant = selectedVariantIndex >= 0 ? variants[selectedVariantIndex] : null;
+
+  // Resolve as fotos da variação ativa ou fotos gerais da peça
+  const activePhotos: string[] = useMemo(() => {
+    if (activeVariant) {
+      if (Array.isArray(activeVariant.images) && activeVariant.images.length > 0) {
+        return activeVariant.images.filter(Boolean);
+      }
+      const list = [activeVariant.imageUrl, activeVariant.backImageUrl].filter(Boolean) as string[];
+      if (list.length > 0) return list;
+    }
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images.filter(Boolean);
+    }
+    return [product.imageUrl, product.backImageUrl].filter(Boolean) as string[];
+  }, [activeVariant, product]);
+
+  const activePhoto = activePhotos[selectedImageIndex] || activePhotos[0] || product.imageUrl;
+  const activeColorName = activeVariant?.colorName || "Padrão";
+
+  // Troca de cor imediata (corrige bug da primeira cor e carrega galeria da variação)
+  const handleSelectVariant = (idx: number) => {
+    setSelectedVariantIndex(idx);
+    setSelectedImageIndex(0);
+  };
+
+  const handlePrev = () => {
+    setSelectedImageIndex((prev) => (prev === 0 ? activePhotos.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setSelectedImageIndex((prev) => (prev === activePhotos.length - 1 ? 0 : prev + 1));
+  };
 
   const isSizeAvailable = (sz: string) => {
     if (!stockItems || stockItems.length === 0) return true;
-    const colorPrefix = (activeSlide.colorName || "").split(" ")[0].toLowerCase();
+    const colorPrefix = (activeColorName || "").split(" ")[0].toLowerCase();
 
     const matchingColorShirts = stockItems.filter((item) => {
       if (!item.shirtColor) return true;
@@ -460,7 +486,7 @@ function ProductDetailModal({
       return (
         c.includes(colorPrefix) ||
         colorPrefix.includes(c) ||
-        c === activeSlide.colorName?.toLowerCase()
+        c === activeColorName?.toLowerCase()
       );
     });
 
@@ -476,26 +502,11 @@ function ProductDetailModal({
 
   const isCurrentSizeAvailable = isSizeAvailable(selectedSize);
 
-  const handleSelectColor = (hexCode: string) => {
-    const idx = slides.findIndex((s) => s.hexCode === hexCode);
-    if (idx !== -1) {
-      setCurrentSlideIndex(idx);
-    }
-  };
-
-  const handlePrev = () => {
-    setCurrentSlideIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentSlideIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
-  };
-
   const subtotal = product.price * quantity;
   const shippingPrice = selectedShipping ? selectedShipping.price : 0;
   const grandTotal = subtotal + shippingPrice;
 
-  let whatsappMsgText = `Olá! Gostei da peça "${product.title}" na cor ${activeSlide.colorName} (Tam ${selectedSize}, ${quantity}x = ${formatCurrency(subtotal)}) na Cordeiro Ink.`;
+  let whatsappMsgText = `Olá! Gostei da peça "${product.title}" na cor ${activeColorName} (Tam ${selectedSize}, ${quantity}x = ${formatCurrency(subtotal)}) na Cordeiro Ink.`;
   if (selectedShipping) {
     const daysText =
       typeof selectedShipping.deliveryDays === "number" && selectedShipping.deliveryDays > 0
@@ -512,20 +523,25 @@ function ProductDetailModal({
   const waLink = `https://wa.me/${brandPhone}?text=${whatsappMsg}`;
 
   const handleAddToCart = () => {
+    if (isAdding) return;
     if (!isCurrentSizeAvailable) {
       alert("O tamanho selecionado está esgotado no estoque.");
       return;
     }
+    setIsAdding(true);
     addItem({
       productId: product.id,
       title: product.title,
-      colorName: activeSlide.colorName,
+      colorName: activeColorName,
       size: selectedSize,
       price: product.price,
       quantity,
-      imageUrl: activeSlide.url,
+      imageUrl: activePhoto,
     });
-    onClose();
+    setTimeout(() => {
+      setIsAdding(false);
+      onClose();
+    }, 300);
   };
 
   return (
@@ -545,23 +561,24 @@ function ProductDetailModal({
           <X size={18} />
         </button>
 
-        {/* Lado Esquerdo: Carrossel de Fotos */}
+        {/* Lado Esquerdo: Galeria com Foto Principal e Miniaturas */}
         <div className="w-full md:w-1/2 bg-[#F2ECE1] relative flex flex-col justify-between p-4 sm:p-6 border-b md:border-b-0 md:border-r border-[#E6DED2]">
           {/* Main Slide Image */}
-          <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/5 flex items-center justify-center">
+          <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-black/5 flex items-center justify-center shadow-sm">
             <img
-              src={activeSlide.url}
+              src={activePhoto}
               alt={product.title}
               className="w-full h-full object-cover animate-in fade-in duration-300"
             />
 
-            {/* Setas de Navegação do Carrossel */}
-            {slides.length > 1 && (
+            {/* Setas de Navegação da Galeria */}
+            {activePhotos.length > 1 && (
               <>
                 <button
                   type="button"
                   onClick={handlePrev}
                   className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white transition cursor-pointer shadow"
+                  title="Foto anterior"
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -569,53 +586,57 @@ function ProductDetailModal({
                   type="button"
                   onClick={handleNext}
                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black text-white transition cursor-pointer shadow"
+                  title="Próxima foto"
                 >
                   <ChevronRight size={18} />
                 </button>
               </>
             )}
 
-            {/* Slide Index Counter */}
-            {slides.length > 1 && (
+            {/* Contador de Fotos */}
+            {activePhotos.length > 1 && (
               <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-white text-[10px] font-mono font-bold">
-                {currentSlideIndex + 1} / {slides.length}
+                {selectedImageIndex + 1} / {activePhotos.length}
               </div>
             )}
           </div>
 
-          {/* Miniaturas (Thumbnails) do Carrossel */}
-          {slides.length > 1 && (
-            <div className="flex items-center gap-2 pt-3 overflow-x-auto">
-              {slides.map((s, idx) => (
-                <button
-                  key={s.id + idx}
-                  type="button"
-                  onClick={() => setCurrentSlideIndex(idx)}
-                  className={`relative w-12 h-14 rounded-lg overflow-hidden border-2 transition shrink-0 cursor-pointer ${
-                    currentSlideIndex === idx
-                      ? "border-[#0A0A0A] scale-105"
-                      : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <img
-                    src={s.url}
-                    alt={s.colorName}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
+          {/* Miniaturas (Thumbnails) da Galeria */}
+          {activePhotos.length > 1 && (
+            <div className="flex items-center gap-2 pt-3 overflow-x-auto scrollbar-none py-1">
+              {activePhotos.map((photoUrl, idx) => {
+                const isSelectedThumb = selectedImageIndex === idx;
+                return (
+                  <button
+                    key={photoUrl + idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`relative w-12 h-14 rounded-lg overflow-hidden border-2 transition shrink-0 cursor-pointer ${
+                      isSelectedThumb
+                        ? "border-[#0A0A0A] scale-105 shadow"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={photoUrl}
+                      alt={`${product.title} miniatura ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
         {/* Lado Direito: Detalhes, Seletor de Cores e Compra */}
-        <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between space-y-6 overflow-y-auto">
+        <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between space-y-6 overflow-y-auto min-w-0 break-words">
           <div className="space-y-4">
             <div className="space-y-1">
               <span className="text-[10px] uppercase font-sans tracking-[0.2em] text-[#737373] font-semibold">
                 {product.category}
               </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0A0A0A] leading-tight">
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0A0A0A] leading-tight break-words">
                 {product.title}
               </h2>
               <p className="font-sans text-xl font-bold text-[#0A0A0A] pt-1">
@@ -628,13 +649,13 @@ function ProductDetailModal({
                 <h4 className="text-xs font-sans font-semibold uppercase tracking-wider text-[#0A0A0A] mb-1">
                   Detalhes da Peça
                 </h4>
-                <p className="font-sans text-xs sm:text-sm text-[#666666] leading-relaxed font-light">
+                <p className="font-sans text-xs sm:text-sm text-[#666666] leading-relaxed font-light break-words">
                   {product.description}
                 </p>
               </div>
             )}
 
-            {/* Seletor de Cores Interativo com Mudança no Carrossel */}
+            {/* Seletor de Cores Interativo com Troca Direta de Galeria */}
             {variants.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-[#E6DED2]">
                 <div className="flex items-center justify-between">
@@ -642,18 +663,18 @@ function ProductDetailModal({
                     Cor Selecionada:
                   </span>
                   <span className="text-xs font-sans text-[#737373] font-medium">
-                    {activeSlide.colorName}
+                    {activeColorName}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
-                  {variants.map((v) => {
-                    const isSelected = activeSlide.hexCode === v.hexCode;
+                  {variants.map((v, idx) => {
+                    const isSelected = selectedVariantIndex === idx;
                     return (
                       <button
-                        key={v.id || v.colorName}
+                        key={v.id || v.colorName + idx}
                         type="button"
-                        onClick={() => handleSelectColor(v.hexCode)}
+                        onClick={() => handleSelectVariant(idx)}
                         className={`w-7 h-7 rounded-full border border-black/20 transition-all cursor-pointer flex items-center justify-center ${
                           isSelected
                             ? "ring-2 ring-[#0A0A0A] ring-offset-2 scale-110 shadow-sm"
@@ -701,13 +722,12 @@ function ProductDetailModal({
                       type="button"
                       disabled={!available}
                       onClick={() => setSelectedSize(sz)}
-                      title={!available ? `Tamanho ${sz} esgotado no estoque` : undefined}
-                      className={`py-2 rounded-xl text-xs font-mono font-bold transition border ${
-                        !available
-                          ? "opacity-30 line-through cursor-not-allowed bg-zinc-200/50 text-zinc-400 border-zinc-200"
-                          : selectedSize === sz
-                          ? "bg-[#0A0A0A] text-[#F7F4EE] border-[#0A0A0A] cursor-pointer"
-                          : "bg-[#F7F4EE] text-[#0A0A0A] border-[#E6DED2] hover:border-[#0A0A0A] cursor-pointer"
+                      className={`py-2.5 rounded-xl font-sans text-xs font-bold uppercase transition border cursor-pointer ${
+                        selectedSize === sz
+                          ? "bg-[#0A0A0A] text-[#FAF9F6] border-[#0A0A0A] shadow"
+                          : available
+                          ? "bg-transparent text-[#0A0A0A] border-[#E6DED2] hover:border-[#0A0A0A]"
+                          : "opacity-30 border-dashed border-[#D5CABE] cursor-not-allowed line-through text-[#999999]"
                       }`}
                     >
                       {sz}
@@ -715,107 +735,81 @@ function ProductDetailModal({
                   );
                 })}
               </div>
+
+              {!isCurrentSizeAvailable && (
+                <p className="text-[11px] text-amber-600 font-medium">
+                  ⚠️ Tamanho esgotado no estoque de peças lisas desta cor.
+                </p>
+              )}
             </div>
 
-            {/* Seletor de Quantidade */}
-            <div className="flex items-center justify-between pt-2 border-t border-[#E6DED2]">
+            {/* Simulador de Frete */}
+            <div className="pt-2 border-t border-[#E6DED2]">
+              <ShippingCalculator
+                onSelectOption={(option) => setSelectedShipping(option)}
+                selectedOption={selectedShipping}
+                onCepChange={(c: string) => setDestinationCep(c)}
+              />
+            </div>
+          </div>
+
+          {/* Quantidade e Ação */}
+          <div className="pt-4 border-t border-[#E6DED2] space-y-3">
+            <div className="flex items-center justify-between">
               <span className="text-xs font-sans font-semibold uppercase tracking-wider text-[#0A0A0A]">
                 Quantidade:
               </span>
-              <div className="flex items-center gap-2 bg-[#F2ECE1] border border-[#E6DED2] rounded-xl p-1">
+              <div className="flex items-center border border-[#E6DED2] rounded-xl overflow-hidden bg-white">
                 <button
                   type="button"
-                  onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                  className="p-1.5 rounded-lg text-[#0A0A0A] hover:bg-black/5 transition cursor-pointer"
-                  title="Diminuir quantidade"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="px-3 py-1 text-xs hover:bg-black/5 transition"
                 >
-                  <Minus size={13} />
+                  -
                 </button>
-                <span className="font-mono text-xs font-bold px-2 min-w-[20px] text-center">
+                <span className="px-3 py-1 font-mono text-xs font-bold">
                   {quantity}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setQuantity((prev) => prev + 1)}
-                  className="p-1.5 rounded-lg text-[#0A0A0A] hover:bg-black/5 transition cursor-pointer"
-                  title="Aumentar quantidade"
+                  onClick={() => setQuantity((q) => q + 1)}
+                  className="px-3 py-1 text-xs hover:bg-black/5 transition"
                 >
-                  <Plus size={13} />
+                  +
                 </button>
               </div>
             </div>
 
-            {/* Módulo de Cálculo de Frete (Melhor Envio Sandbox) */}
-            <div className="pt-2 border-t border-[#E6DED2]">
-              <ShippingCalculator
-                quantity={quantity}
-                selectedOption={selectedShipping}
-                onSelectOption={setSelectedShipping}
-                variant="storefront"
-                initialCep={destinationCep}
-                onCepChange={setDestinationCep}
-              />
-            </div>
-
-            {/* Resumo Financeiro da Peça com Frete */}
-            <div className="p-3.5 rounded-2xl bg-[#F2ECE1]/60 border border-[#E6DED2] space-y-1.5 text-xs">
-              <div className="flex justify-between text-[#737373]">
-                <span>Subtotal ({quantity}x)</span>
-                <span className="font-mono">{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-[#737373]">
-                <span>
-                  Frete ({selectedShipping ? selectedShipping.service : "A calcular"})
-                </span>
-                <span className="font-mono">
-                  {selectedShipping
-                    ? selectedShipping.price === 0
-                      ? "Grátis / R$ 0,00"
-                      : formatCurrency(selectedShipping.price)
-                    : "Calcular acima"}
-                </span>
-              </div>
-              <div className="pt-1.5 border-t border-[#E6DED2] flex justify-between items-baseline font-bold">
-                <span className="font-serif text-sm text-[#0A0A0A]">
-                  Total do Pedido
-                </span>
-                <span className="font-mono text-base text-[#0A0A0A]">
-                  {formatCurrency(grandTotal)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Botões de Ação: Adicionar à Sacola & Pedir no WhatsApp */}
-          <div className="pt-4 border-t border-[#E6DED2] space-y-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={!isCurrentSizeAvailable}
-                className={`w-full py-3.5 rounded-full border-2 font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition ${
-                  !isCurrentSizeAvailable
-                    ? "bg-zinc-200 border-zinc-300 text-zinc-400 cursor-not-allowed"
-                    : "bg-[#FAF9F6] border-[#0A0A0A] text-[#0A0A0A] hover:bg-black/5 cursor-pointer"
-                }`}
+                disabled={!isCurrentSizeAvailable || isAdding}
+                className="w-full py-3.5 rounded-full bg-[#0A0A0A] hover:bg-[#222222] disabled:opacity-50 text-[#F7F4EE] font-sans text-xs uppercase tracking-wider font-semibold transition shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
-                <ShoppingBag size={15} />
-                <span>{isCurrentSizeAvailable ? "Adicionar à Sacola" : "Tamanho Esgotado"}</span>
+                {isAdding ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Adicionando...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag size={15} />
+                    <span>Adicionar à Sacola ({formatCurrency(subtotal)})</span>
+                  </>
+                )}
               </button>
 
               <a
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 rounded-full bg-[#0A0A0A] hover:bg-[#222222] text-[#F7F4EE] font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition shadow-md hover:shadow-xl text-center"
+                className="w-full py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-sans text-xs uppercase tracking-wider font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer text-center"
               >
-                <MessageCircle size={15} />
                 <span>Pedir no WhatsApp</span>
+                <ArrowUpRight size={13} />
               </a>
             </div>
-            <p className="text-[10px] text-center text-[#737373] font-sans font-light">
-              Produção sob encomenda com fé, acabamento artesanal e envio direto pelos Correios.
-            </p>
           </div>
         </div>
       </div>

@@ -77,8 +77,8 @@ export function StorefrontCartDrawer() {
       return;
     }
 
-    if (customerEmail.trim() && !customerEmail.includes("@")) {
-      toast.error("Por favor, informe um e-mail válido.");
+    if (!customerEmail.trim() || !customerEmail.includes("@")) {
+      toast.error("Por favor, preencha seu e-mail para receber o comprovante e confirmação do pagamento.");
       return;
     }
 
@@ -182,27 +182,27 @@ export function StorefrontCartDrawer() {
       onClick={handleCloseDrawer}
     >
       <div
-        className="w-full max-w-md bg-[#FAF9F6] h-full shadow-2xl flex flex-col border-l border-[#E6DED2] animate-in slide-in-from-right duration-300"
+        className="w-full max-w-md bg-[#FAF9F6] h-full shadow-2xl flex flex-col border-l border-[#E6DED2] animate-in slide-in-from-right duration-300 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div className="p-5 border-b border-[#E6DED2] flex items-center justify-between bg-[#F7F4EE]">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE]">
+        <div className="p-4 sm:p-5 border-b border-[#E6DED2] flex items-center justify-between bg-[#F7F4EE] shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-full bg-[#0A0A0A] text-[#F7F4EE] shrink-0">
               <ShoppingBag size={16} />
             </div>
-            <div>
-              <h3 className="font-serif text-lg font-bold text-[#0A0A0A] flex items-center gap-2">
-                <span>{showMercadoPago ? "Pagamento" : "Sua Sacola"}</span>
+            <div className="min-w-0">
+              <h3 className="font-serif text-base sm:text-lg font-bold text-[#0A0A0A] flex items-center gap-2 truncate">
+                <span>{showMercadoPago ? "Pagamento Seguro" : "Sua Sacola"}</span>
                 {!showMercadoPago && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0A0A0A]/10 text-[#0A0A0A]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0A0A0A]/10 text-[#0A0A0A] shrink-0">
                     {totalItemsCount} {totalItemsCount === 1 ? "peça" : "peças"}
                   </span>
                 )}
               </h3>
-              <p className="text-[10px] text-[#737373] font-sans tracking-wide">
+              <p className="text-[10px] text-[#737373] font-sans tracking-wide truncate">
                 {showMercadoPago
-                  ? "Ambiente Seguro Mercado Pago"
+                  ? "Mercado Pago • Cartão de Crédito ou Pix"
                   : "Produção artesanal sob demanda"}
               </p>
             </div>
@@ -210,7 +210,7 @@ export function StorefrontCartDrawer() {
 
           <button
             onClick={handleCloseDrawer}
-            className="p-2 rounded-full hover:bg-black/5 text-[#0A0A0A] transition cursor-pointer"
+            className="p-2 rounded-full hover:bg-black/5 text-[#0A0A0A] transition cursor-pointer shrink-0"
             aria-label="Fechar sacola"
           >
             <X size={18} />
@@ -219,16 +219,16 @@ export function StorefrontCartDrawer() {
 
         {/* Drawer Body */}
         {showMercadoPago && activeOrder ? (
-          <div className="p-5 overflow-y-auto flex-1 bg-black/5">
-            <div className="mb-3 flex justify-between items-center">
+          <div className="p-3 sm:p-5 overflow-y-auto flex-1 bg-black/5 min-w-0 break-words">
+            <div className="mb-3 flex justify-between items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowMercadoPago(false)}
-                className="text-xs text-[#0A0A0A] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                className="text-xs text-[#0A0A0A] hover:underline flex items-center gap-1 font-semibold cursor-pointer truncate"
               >
                 ← Voltar para revisão da sacola
               </button>
-              <span className="font-mono text-xs font-bold text-zinc-600">
+              <span className="font-mono text-xs font-bold text-zinc-600 shrink-0">
                 #{activeOrder.orderNumber}
               </span>
             </div>
@@ -271,7 +271,7 @@ export function StorefrontCartDrawer() {
             </button>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 min-w-0">
             {/* Lista de Peças */}
             <div className="space-y-3">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
@@ -281,20 +281,20 @@ export function StorefrontCartDrawer() {
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="p-3 rounded-2xl bg-[#F7F4EE] border border-[#E6DED2] flex gap-3.5 items-center justify-between"
+                  className="p-3 rounded-2xl bg-[#F7F4EE] border border-[#E6DED2] flex gap-3 items-center justify-between min-w-0 overflow-hidden"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
                       className="w-14 h-16 object-cover rounded-xl bg-black/5 shrink-0"
                     />
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <h5 className="font-serif text-xs font-bold text-[#0A0A0A] truncate">
                         {item.title}
                       </h5>
-                      <div className="flex items-center gap-2 text-[10px] text-[#737373] font-mono">
-                        <span className="px-1.5 py-0.5 rounded bg-black/5">
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#737373] font-mono flex-wrap">
+                        <span className="px-1.5 py-0.5 rounded bg-black/5 truncate max-w-[120px]">
                           {item.colorName}
                         </span>
                         <span className="px-1.5 py-0.5 rounded bg-black/5">
@@ -317,7 +317,7 @@ export function StorefrontCartDrawer() {
                       <Trash2 size={13} />
                     </button>
 
-                    <div className="flex items-center gap-1.5 bg-[#FAF9F6] border border-[#E6DED2] rounded-lg p-0.5">
+                    <div className="flex items-center gap-1 bg-[#FAF9F6] border border-[#E6DED2] rounded-lg p-0.5">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="p-1 rounded text-[#0A0A0A] hover:bg-black/5 transition cursor-pointer"
@@ -342,7 +342,7 @@ export function StorefrontCartDrawer() {
             </div>
 
             {/* Módulo de Cálculo de Frete */}
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
                 Entrega & Frete
               </span>
@@ -357,12 +357,12 @@ export function StorefrontCartDrawer() {
             </div>
 
             {/* Dados do Cliente */}
-            <div className="space-y-3 pt-2 border-t border-[#E6DED2]">
+            <div className="space-y-3 pt-2 border-t border-[#E6DED2] min-w-0">
               <span className="text-[10px] font-sans font-bold uppercase tracking-widest text-[#737373]">
                 Seus Dados para Contato & Envio
               </span>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div>
                   <label className="block text-[11px] font-sans font-semibold text-[#0A0A0A] mb-1">
                     Nome Completo *
@@ -404,7 +404,7 @@ export function StorefrontCartDrawer() {
 
                 <div>
                   <label className="block text-[11px] font-sans font-semibold text-[#0A0A0A] mb-1">
-                    E-mail (para confirmação e recibo)
+                    E-mail * <span className="text-[10px] font-normal text-[#737373]">(para confirmação e recibo)</span>
                   </label>
                   <div className="relative">
                     <Mail
@@ -446,7 +446,7 @@ export function StorefrontCartDrawer() {
 
         {/* Drawer Footer com Total e Botões de Pagamento */}
         {items.length > 0 && !showMercadoPago && (
-          <div className="p-5 border-t border-[#E6DED2] bg-[#F7F4EE] space-y-3 shrink-0">
+          <div className="p-4 sm:p-5 border-t border-[#E6DED2] bg-[#F7F4EE] space-y-3 shrink-0">
             {/* Breakdown de Valores */}
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-[#737373]">
@@ -482,7 +482,7 @@ export function StorefrontCartDrawer() {
               type="button"
               onClick={handleStartMercadoPago}
               disabled={isSubmitting}
-              className="w-full py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-sans text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-sans text-xs uppercase tracking-wider font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-center"
             >
               {isSubmitting ? (
                 <>
@@ -492,8 +492,8 @@ export function StorefrontCartDrawer() {
               ) : (
                 <>
                   <CreditCard size={16} />
-                  <span>Pagar com Pix ou Cartão ({formatCurrency(grandTotal)})</span>
-                  <ArrowRight size={14} />
+                  <span className="truncate">Pagar com Pix ou Cartão ({formatCurrency(grandTotal)})</span>
+                  <ArrowRight size={14} className="shrink-0" />
                 </>
               )}
             </button>
@@ -503,14 +503,14 @@ export function StorefrontCartDrawer() {
               type="button"
               onClick={handleCheckout}
               disabled={isSubmitting}
-              className="w-full py-2.5 rounded-full bg-[#FAF9F6] hover:bg-[#E6DED2] text-[#0A0A0A] border border-[#D5CABE] font-sans text-[11px] font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-full bg-[#FAF9F6] hover:bg-[#E6DED2] text-[#0A0A0A] border border-[#D5CABE] font-sans text-[11px] font-semibold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50 text-center"
             >
               <MessageCircle size={15} />
               <span>Ou combinar pagamento via WhatsApp</span>
             </button>
 
             <div className="flex items-center justify-center gap-1.5 text-[10px] text-[#737373] font-sans">
-              <ShieldCheck size={12} className="text-emerald-600" />
+              <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
               <span>Ambiente Seguro Cordeiro Ink & Mercado Pago</span>
             </div>
           </div>

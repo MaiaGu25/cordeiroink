@@ -2,31 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { prisma } from "@/lib/prisma";
 import { OrderStatus, TransactionType, TransactionCategory } from "@prisma/client";
+import { z } from "zod";
 
 /**
- * Interface do payload enviado pelo componente Payment Brick do frontend.
+ * Esquema de validação Zod para proteção e integridade do payload de pagamento.
  */
-interface CheckoutRequestBody {
-  formData: {
-    token?: string;
-    issuer_id?: string | number;
-    payment_method_id: string;
-    transaction_amount: number;
-    installments?: number;
-    payer: {
-      email: string;
-      first_name?: string;
-      last_name?: string;
-      identification?: {
-        type: string;
-        number: string;
-      };
-    };
-  };
-  orderId?: string;
-  orderNumber?: string;
-  description?: string;
-}
+const checkoutSchema = z.object({
+  formData: z.object({
+    token: z.string().optional(),
+    issuer_id: z.union([z.string(), z.number()]).optional(),
+    payment_method_id: z.string().min(1, "Método de pagamento (payment_method_id) não selecionado."),
+    transaction_amount: z.number().positive("Valor da transação inválido (deve ser maior que zero)."),
+    installments: z.number().int().min(1).max(12).optional(),
+    payer: z
+      .object({
+        email: z.string().email("E-mail do pagador inválido.").optional().or(z.literal("")),
+        first_name: z.string().optional(),
+        last_name: z.string().optional(),
+        identification: z
+          .object({
+            type: z.string().optional(),
+            number: z.string().optional(),
+          })
+          .optional(),
+      })
+      .optional(),
+  }),
+  orderId: z.string().optional(),
+  orderNumber: z.string().optional(),
+  description: z.string().max(255).optional(),
+});
+
+type CheckoutRequestBody = z.infer<typeof checkoutSchema>;
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,52 +50,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body: CheckoutRequestBody = await req.json();
-
-    // 1. Validação estrita do payload recebido do Brick
-    if (!body || !body.formData) {
+    let rawBody: any;
+    try {
+      rawBody = await req.json();
+    } catch {
       return NextResponse.json(
         {
           success: false,
-          error: "Dados do formulário de pagamento (formData) não informados.",
+          error: "Formato de requisição inválido. Esperava JSON.",
         },
         { status: 400 }
       );
     }
 
+    // 1. Validação estrita via Zod
+    const validationResult = checkoutSchema.safeParse(rawBody);
+    if (!validationResult.success) {
+      const issue = validationResult.error.issues[0];
+      return NextResponse.json(
+        {
+          success: false,
+          error: issue ? `${issue.path.join(".")}: ${issue.message}` : "Dados de pagamento inválidos.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const body: CheckoutRequestBody = validationResult.data;
     const { formData, orderId, orderNumber, description } = body;
     const { transaction_amount, payment_method_id, payer, token, installments, issuer_id } =
       formData;
-
-    if (!transaction_amount || Number(transaction_amount) <= 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Valor da transação inválido (deve ser maior que zero).",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!payment_method_id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Método de pagamento (payment_method_id) não selecionado.",
-        },
-        { status: 400 }
-      );
-    }
-
-    if (!payer?.email) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "E-mail do pagador é obrigatório para processar o pagamento.",
-        },
-        { status: 400 }
-      );
-    }
 
     // 2. Proteção Anti-Fraude de Preço: Calcula o valor a ser cobrado diretamente no servidor
     let secureAmount: number;
@@ -109,114 +100,118 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Calcula o valor a ser cobrado diretamente no servidor
-      secureAmount = Number(
-        (Number(existingOrder.totalProducts) + Number(existingOrder.shippingCost)).toFixed(2)
-      );
+      // O valor cobrado é rigorosamente o total real registrado no banco de dados do pedido
+      const dbTotal =
+        (Number(existingOrder.totalProducts) || 0) +
+        (Number(existingOrder.shippingCost) || 0);
 
-      const clientAmount = Number(parseFloat(String(transaction_amount)).toFixed(2));
-      if (Math.abs(clientAmount - secureAmount) > 0.01) {
-        console.warn(
-          `[Alerta de Segurança Checkout] Divergência de preço detectada no pedido ${existingOrder.orderNumber} (${orderId}). Valor enviado pelo cliente: R$ ${clientAmount}, Valor real do pedido no banco: R$ ${secureAmount}. Forçando valor real do banco.`
-        );
-      }
-    } else {
-      secureAmount = Number(parseFloat(String(transaction_amount)).toFixed(2));
-      if (!secureAmount || secureAmount <= 0) {
+      if (dbTotal <= 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "Valor da transação inválido (deve ser maior que zero).",
+            error: "Valor do pedido registrado no sistema é inválido.",
           },
           { status: 400 }
         );
       }
+
+      secureAmount = Number(dbTotal.toFixed(2));
+    } else {
+      // Se não há orderId registrado previamente, usa o valor com 2 casas decimais
+      secureAmount = Number(Number(transaction_amount).toFixed(2));
     }
 
-    // 3. Inicialização do SDK do Mercado Pago
+    // 3. Inicialização segura do SDK Mercado Pago
     const client = new MercadoPagoConfig({
       accessToken,
-      options: {
-        timeout: 10000,
-      },
+      options: { timeout: 10000 },
     });
 
     const payment = new Payment(client);
 
-    // 4. Montagem do payload oficial para payment.create() com secureAmount
-    const paymentDescription =
-      description ||
-      `Cordeiro Ink - Pedido ${existingOrder?.orderNumber || orderNumber || orderId || "Ateliê"}`.trim();
+    // 4. Montagem segura dos dados do pagador
+    const cleanPayerEmail =
+      payer?.email?.trim() || existingOrder?.customerEmail?.trim() || "cliente@cordeiroink.com.br";
 
-    const paymentPayload: any = {
+    const customerFullName =
+      (payer?.first_name ? `${payer.first_name} ${payer.last_name || ""}` : "").trim() ||
+      existingOrder?.customerName?.trim() ||
+      "Cliente Cordeiro Ink";
+
+    const nameParts = customerFullName.split(" ");
+    const firstName = nameParts[0] || "Cliente";
+    const lastName = nameParts.slice(1).join(" ") || "Cordeiro";
+
+    // 5. Montagem do payload oficial para o Mercado Pago
+    const paymentData: any = {
       transaction_amount: secureAmount,
-      description: paymentDescription,
+      description:
+        description ||
+        `Cordeiro Ink - Pedido ${existingOrder?.orderNumber || orderNumber || "Online"}`.trim(),
       payment_method_id,
       payer: {
-        email: payer.email,
-        first_name: payer.first_name,
-        last_name: payer.last_name,
-        identification: payer.identification?.number
-          ? {
-              type: payer.identification.type || "CPF",
-              number: payer.identification.number.replace(/\D/g, ""),
-            }
-          : undefined,
+        email: cleanPayerEmail,
+        first_name: firstName,
+        last_name: lastName,
       },
-      external_reference: orderId || existingOrder?.orderNumber || orderNumber || undefined,
       metadata: {
         order_id: orderId || null,
         order_number: existingOrder?.orderNumber || orderNumber || null,
+        store: "Cordeiro Ink",
       },
     };
 
-    // Campos específicos para Cartão de Crédito / Débito
+    // Dados específicos para Cartão de Crédito ou Débito
     if (token) {
-      paymentPayload.token = token;
-      paymentPayload.installments = installments ? Number(installments) : 1;
-      if (issuer_id) {
-        paymentPayload.issuer_id = Number(issuer_id);
+      paymentData.token = token;
+      paymentData.installments = Number(installments) || 1;
+
+      if (issuer_id !== undefined && issuer_id !== null && issuer_id !== "") {
+        paymentData.issuer_id = String(issuer_id);
+      }
+
+      // Se houver dados de identificação (CPF/CNPJ) enviados pelo Brick
+      if (payer?.identification?.number) {
+        paymentData.payer.identification = {
+          type: payer.identification.type || "CPF",
+          number: payer.identification.number.replace(/\D/g, ""),
+        };
       }
     }
 
-    // Adiciona webhook notification_url se configurado
-    if (process.env.MERCADO_PAGO_WEBHOOK_URL) {
-      paymentPayload.notification_url = process.env.MERCADO_PAGO_WEBHOOK_URL;
-    }
+    // 6. Chamada à API de Pagamentos do Mercado Pago
+    const response = await payment.create({ body: paymentData });
 
-    // 5. Executa a criação do pagamento no Mercado Pago
-    const response = await payment.create({
-      body: paymentPayload,
-    });
-
-    const status = response.status; // 'approved' | 'pending' | 'in_process' | 'rejected'
-    const statusDetail = response.status_detail;
     const paymentId = response.id;
+    const status = response.status;
+    const statusDetail = response.status_detail;
     const pointOfInteraction = response.point_of_interaction;
 
-    // 6. Se o pedido já existir no banco, atualiza status e método de pagamento
-    if (orderId && existingOrder) {
+    // Atualização em cascata do pedido no banco de dados
+    if (orderId) {
       try {
-        const order = existingOrder;
         const isApproved = status === "approved";
-        const methodUpper = payment_method_id.toUpperCase();
+        const isPending = status === "pending" || status === "in_process";
 
-        await prisma.order.update({
+        let newStatus: OrderStatus = OrderStatus.PENDING;
+        if (isApproved) {
+          newStatus = OrderStatus.PAID;
+        } else if (isPending) {
+          newStatus = OrderStatus.PENDING;
+        }
+
+        const methodUpper = payment_method_id?.toUpperCase() || "CARTAO";
+
+        const order = await prisma.order.update({
           where: { id: orderId },
           data: {
-            status: isApproved ? OrderStatus.PAID : OrderStatus.PENDING,
-            paidAt: isApproved ? new Date() : null,
-            paymentMethod:
-              payment_method_id === "pix"
-                ? "PIX"
-                : methodUpper.includes("DEBIT")
-                ? "CARTAO_DEBITO"
-                : "CARTAO_CREDITO",
-            notes: `${order.notes ? `${order.notes} | ` : ""}Mercado Pago ID: ${paymentId} (${status})`,
+            status: newStatus,
+            paymentMethod: methodUpper,
+            paidAt: isApproved ? new Date() : undefined,
           },
         });
 
-        // Se o pagamento foi aprovado imediatamente (ex: cartão), registra a transação financeira
+        // Se o pagamento com cartão foi aprovado instantaneamente, registra a transação financeira
         if (isApproved) {
           const existingTx = await prisma.financialTransaction.findFirst({
             where: { orderId: order.id, type: TransactionType.INCOME },
@@ -228,7 +223,7 @@ export async function POST(req: NextRequest) {
                 type: TransactionType.INCOME,
                 category: TransactionCategory.SALES_ORDER,
                 amount: secureAmount,
-                description: `Recebimento Pedido ${order.orderNumber} via Mercado Pago (${methodUpper})`,
+                description: `Recebimento Pedido ${order.orderNumber} via Mercado Pago (${methodUpper || "CARTAO"})`,
                 orderId: order.id,
                 date: new Date(),
               },
@@ -241,13 +236,12 @@ export async function POST(req: NextRequest) {
               entity: "ORDER",
               entityId: order.id,
               orderId: order.id,
-              details: `Pagamento aprovado instantaneamente via Mercado Pago (ID: ${paymentId}, Status: ${status})`,
+              details: `Pagamento com cartão aprovado instantaneamente via Mercado Pago (ID: ${paymentId}, Status: ${status})`,
             },
           });
         }
       } catch (dbError) {
         console.error("[MercadoPago Checkout] Erro ao sincronizar pedido no banco:", dbError);
-        // Não quebra a resposta para o cliente se o pagamento no MP funcionou
       }
     }
 
@@ -266,11 +260,11 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("[MercadoPago API Checkout Error]:", error);
 
-    // Tratamento de erros HTTP do Mercado Pago
+    // Tratamento seguro de erros do Mercado Pago sem vazar stack trace
     const statusCode = error.status || 500;
     const errorMessage =
-      error.message ||
       error.cause?.[0]?.description ||
+      error.message ||
       "Ocorreu um erro ao processar o pagamento com o Mercado Pago.";
 
     return NextResponse.json(
